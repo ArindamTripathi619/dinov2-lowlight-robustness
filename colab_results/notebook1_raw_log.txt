@@ -1,0 +1,339 @@
+Colab Session: run-ef4cab
+====================
+
+[2026-08-22 06:43:47] SESSION_CREATED: {'timestamp': '2026-08-22T06:43:47.972409+00:00', 'event_type': 'session_created', 'endpoint': 'gpu-t4-s-kkb-euw4c1-a9vyhtna1wwd', 'variant': 'GPU', 'accelerator': 'T4', 'via': 'run'}
+[2026-08-22 06:43:48] KEEP_ALIVE_STARTED: {'timestamp': '2026-08-22T06:43:48.591533+00:00', 'event_type': 'keep_alive_started', 'endpoint': 'gpu-t4-s-kkb-euw4c1-a9vyhtna1wwd', 'pid': 6059}
+[2026-08-22 06:54:08] FILE_OPERATION: {'timestamp': '2026-08-22T06:54:08.905309+00:00', 'event_type': 'file_operation', 'op': 'upload', 'local': 'run_notebook1_colab.py', 'remote': '/content/run_notebook1_colab.py'}
+[2026-08-22 07:07:39] FILE_OPERATION: {'timestamp': '2026-08-22T07:07:39.415864+00:00', 'event_type': 'file_operation', 'op': 'ls', 'path': '/content/output'}
+[2026-08-22 07:08:12] FILE_OPERATION: {'timestamp': '2026-08-22T07:08:12.492683+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/dinov2_lowlight_results.csv', 'local': 'colab_results/notebook1/dinov2_lowlight_results.csv'}
+[2026-08-22 07:08:15] FILE_OPERATION: {'timestamp': '2026-08-22T07:08:15.402441+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/dinov2_lowlight_results.png', 'local': 'colab_results/notebook1/dinov2_lowlight_results.png'}
+[2026-08-22 07:08:18] FILE_OPERATION: {'timestamp': '2026-08-22T07:08:18.314473+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/severity_visual_check.png', 'local': 'colab_results/notebook1/severity_visual_check.png'}
+[2026-08-22 07:08:48] FILE_OPERATION: {'timestamp': '2026-08-22T07:08:48.438880+00:00', 'event_type': 'file_operation', 'op': 'upload', 'local': 'run_notebook2_colab.py', 'remote': '/content/run_notebook2_colab.py'}
+[2026-08-22 07:09:58] EXECUTION: import sys
+import os
+import subprocess
+
+os.makedirs("/content/output", exist_ok=True)
+os.chdir("/content")
+
+# Headless matplotlib
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+_orig_show = plt.show
+def _noop_show(*a, **kw): pass
+plt.show = _noop_show
+
+print("=" * 60)
+print("Starting Notebook 2: DINOv2 Advanced Low-Light Analysis")
+print("=" * 60)
+
+# ========== Cell 0: Setup ==========
+print("\n>>> Cell 0: Setup")
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "scikit-learn", "matplotlib", "scipy"], check=False)
+
+import torch
+import torch.nn.functional as F
+import torchvision
+import torchvision.transforms as T
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print("Using device:", device)
+
+# ========== Cell 1: Load CIFAR-10 ==========
+print("\n>>> Cell 1: Load CIFAR-10 subset")
+N_IMAGES = 500
+
+raw_ds = torchvision.datasets.CIFAR10(root="./data", train=False, download=True)
+rng = np.random.default_rng(42)
+idx = rng.choice(len(raw_ds), size=N_IMAGES, replace=False)
+
+images, labels = [], []
+for i in idx:
+    img, label = raw_ds[i]
+    images.append(np.array(img))
+    labels.append(label)
+labels = np.array(labels)
+print(f"Loaded {len(images)} images")
+
+# ========== Cell 2: Corruption functions ==========
+print("\n>>> Cell 2: Define corruption functions")
+
+def low_light(image, severity):
+    brightness_factors = [1.0, 0.75, 0.55, 0.38, 0.25, 0.15]
+    noise_std          = [0,    2,    4,    6,    9,    13]
+    factor, noise = brightness_factors[severity], noise_std[severity]
+    img = image.astype(np.float32) * factor
+    if noise > 0:
+        img = img + np.random.normal(0, noise, img.shape)
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+def _fft_filter(image, cutoff_frac, keep="low"):
+    img = image.astype(np.float32)
+    out = np.zeros_like(img)
+    h, w = img.shape[:2]
+    cy, cx = h // 2, w // 2
+    Y, X = np.ogrid[:h, :w]
+    dist = np.sqrt((Y - cy) ** 2 + (X - cx) ** 2)
+    max_dist = np.sqrt(cy ** 2 + cx ** 2)
+    radius = cutoff_frac * max_dist
+    mask = (dist <= radius) if keep == "low" else (dist > radius)
+    for ch in range(img.shape[2]):
+        f = np.fft.fftshift(np.fft.fft2(img[:, :, ch]))
+        f_filtered = f * mask
+        out[:, :, ch] = np.real(np.fft.ifft2(np.fft.ifftshift(f_filtered)))
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+def low_pass(image, severity):
+    cutoffs = [0.9, 0.7, 0.5, 0.35, 0.2]
+    return _fft_filter(image, cutoffs[severity - 1], keep="low")
+
+def high_pass(image, severity):
+    cutoffs = [0.05, 0.1, 0.15, 0.2, 0.3]
+    return _fft_filter(image, cutoffs[severity - 1], keep="high")
+
+# Visual check
+fig, axes = plt.subplots(3, 6, figsize=(15, 8))
+sample = images[0]
+for s in range(6):
+    axes[0, s].imshow(low_light(sample, s)); axes[0, s].set_title(f"low-light sev {s}"); axes[0, s].axis("off")
+for s in range(1, 6):
+    axes[1, s].imshow(low_pass(sample, s)); axes[1, s].set_title(f"low-pass sev {s}"); axes[1, s].axis("off")
+    axes[2, s].imshow(high_pass(sample, s)); axes[2, s].set_title(f"high-pass sev {s}"); axes[2, s].axis("off")
+axes[1, 0].axis("off"); axes[2, 0].axis("off")
+plt.tight_layout()
+plt.savefig("/content/output/corruption_types.png", dpi=150)
+print("Saved corruption_types.png")
+
+# ========== Cell 3: Load DINOv2 ==========
+print("\n>>> Cell 3: Load DINOv2 ViT-S/14 with hooks")
+dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
+dinov2.eval().to(device)
+
+dinov2_preprocess = T.Compose([
+    T.ToTensor(),
+    T.Resize((224, 224), antialias=True),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+_dinov2_layer_outputs = {}
+def _make_hook(layer_idx):
+    def hook(module, inp, out):
+        _dinov2_layer_outputs[layer_idx] = out[:, 0, :].detach().cpu()
+    return hook
+
+for i, block in enumerate(dinov2.blocks):
+    block.register_forward_hook(_make_hook(i))
+
+N_DINOV2_LAYERS = len(dinov2.blocks)
+print(f"DINOv2 loaded, {N_DINOV2_LAYERS} transformer blocks hooked.")
+
+# ========== Cell 4: Embedding extraction function ==========
+print("\n>>> Cell 4: Define embedding extraction function")
+
+@torch.no_grad()
+def get_dinov2_embeddings(image_list, batch_size=64, collect_layers=False):
+    pooled = []
+    layerwise = {i: [] for i in range(N_DINOV2_LAYERS)} if collect_layers else None
+    for i in range(0, len(image_list), batch_size):
+        batch = image_list[i:i+batch_size]
+        tensors = torch.stack([dinov2_preprocess(img) for img in batch]).to(device)
+        out = dinov2(tensors)
+        pooled.append(out.cpu())
+        if collect_layers:
+            for l in range(N_DINOV2_LAYERS):
+                layerwise[l].append(_dinov2_layer_outputs[l])
+    pooled = torch.cat(pooled, dim=0).numpy()
+    if collect_layers:
+        layerwise = {l: torch.cat(v, dim=0).numpy() for l, v in layerwise.items()}
+        return pooled, layerwise
+    return pooled
+
+print("Extraction function ready.")
+
+# ========== Cell 5: Extract embeddings across severities ==========
+print("\n>>> Cell 5: Extract embeddings across all low-light severities")
+dinov2_pooled = {}
+dinov2_layerwise = {}
+
+for severity in range(6):
+    degraded = [low_light(img, severity) for img in images]
+    pooled, layerwise = get_dinov2_embeddings(degraded, collect_layers=True)
+    dinov2_pooled[severity] = pooled
+    dinov2_layerwise[severity] = layerwise
+    print(f"severity {severity}: embeddings {pooled.shape}")
+
+# ========== Cell 6: Linear probe ==========
+print("\n>>> Cell 6: Linear probe accuracy under low light")
+X_clean = dinov2_pooled[0]
+X_train, X_test, y_train, y_test, idx_train, idx_test = train_test_split(
+    X_clean, labels, np.arange(len(labels)), test_size=0.3, random_state=42, stratify=labels
+)
+
+probe = LogisticRegression(max_iter=2000, C=1.0)
+probe.fit(X_train, y_train)
+
+dinov2_accs = []
+for severity in range(6):
+    X_sev_test = dinov2_pooled[severity][idx_test]
+    acc = accuracy_score(y_test, probe.predict(X_sev_test))
+    dinov2_accs.append(acc)
+    print(f"severity {severity}: accuracy = {acc:.3f}")
+
+plt.figure(figsize=(8, 5))
+plt.plot(range(6), dinov2_accs, marker="o", color="tab:blue")
+plt.xlabel("Low-light severity (0 = bright, 5 = darkest)")
+plt.ylabel("Linear probe accuracy")
+plt.title("DINOv2 (ViT-S/14) accuracy vs low-light severity, CIFAR-10")
+plt.ylim(0, 1)
+plt.tight_layout()
+plt.savefig("/content/output/dinov2_accuracy.png", dpi=150)
+print("Saved dinov2_accuracy.png")
+
+# ========== Cell 7: Bootstrap CI ==========
+print("\n>>> Cell 7: Bootstrap confidence intervals")
+
+def bootstrap_accuracy_ci(probe, pooled_by_severity, idx_test, y_test, n_boot=1000, ci=95):
+    results = []
+    n = len(idx_test)
+    for severity in range(6):
+        X_sev = pooled_by_severity[severity][idx_test]
+        preds = probe.predict(X_sev)
+        correct = (preds == y_test).astype(float)
+        boot_accs = []
+        rng_local = np.random.default_rng(0)
+        for _ in range(n_boot):
+            sample_idx = rng_local.integers(0, n, n)
+            boot_accs.append(correct[sample_idx].mean())
+        lo, hi = np.percentile(boot_accs, [(100 - ci) / 2, 100 - (100 - ci) / 2])
+        results.append({"severity": severity, "mean": correct.mean(), "ci_low": lo, "ci_high": hi})
+    return results
+
+dinov2_ci = bootstrap_accuracy_ci(probe, dinov2_pooled, idx_test, y_test)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+sev = [r["severity"] for r in dinov2_ci]
+mean = [r["mean"] for r in dinov2_ci]
+lo = [r["ci_low"] for r in dinov2_ci]
+hi = [r["ci_high"] for r in dinov2_ci]
+ax.plot(sev, mean, marker="o", color="tab:blue")
+ax.fill_between(sev, lo, hi, alpha=0.2, color="tab:blue")
+ax.set_xlabel("Low-light severity")
+ax.set_ylabel("Accuracy (95% bootstrap CI shaded)")
+ax.set_title("DINOv2 accuracy with bootstrap confidence bands")
+plt.tight_layout()
+plt.savefig("/content/output/bootstrap_ci.png", dpi=150)
+print("Saved bootstrap_ci.png")
+
+for r in dinov2_ci:
+    print(r)
+
+# ========== Cell 8: Layer-wise CKA ==========
+print("\n>>> Cell 8: Layer-wise CKA analysis")
+
+def linear_cka(X, Y):
+    X = X - X.mean(0, keepdims=True)
+    Y = Y - Y.mean(0, keepdims=True)
+    hsic = np.linalg.norm(X.T @ Y, 'fro') ** 2
+    var1 = np.linalg.norm(X.T @ X, 'fro')
+    var2 = np.linalg.norm(Y.T @ Y, 'fro')
+    return hsic / (var1 * var2 + 1e-8)
+
+cka_matrix = np.zeros((N_DINOV2_LAYERS, 6))
+for layer in range(N_DINOV2_LAYERS):
+    clean_acts = dinov2_layerwise[0][layer]
+    for severity in range(6):
+        degraded_acts = dinov2_layerwise[severity][layer]
+        cka_matrix[layer, severity] = linear_cka(clean_acts, degraded_acts)
+
+plt.figure(figsize=(8, 6))
+im = plt.imshow(cka_matrix, aspect="auto", cmap="viridis", vmin=0, vmax=1)
+plt.colorbar(im, label="CKA similarity to clean")
+plt.xlabel("Low-light severity")
+plt.ylabel("DINOv2 transformer block (0 = earliest)")
+plt.title("Layer-wise representational drift under low light")
+plt.tight_layout()
+plt.savefig("/content/output/layerwise_cka.png", dpi=150)
+print("Saved layerwise_cka.png")
+
+drop = cka_matrix[:, 0] - cka_matrix[:, 5]
+max_drop_layer = int(np.argmax(drop))
+print(f"Layer with largest clean-vs-darkest CKA drop: {max_drop_layer}  drop = {drop[max_drop_layer]:.4f}")
+
+# ========== Cell 9: Frequency test ==========
+print("\n>>> Cell 9: Frequency-domain test")
+
+def eval_probe_on_corruption(probe, corruption_fn, severities):
+    accs = []
+    for severity in severities:
+        degraded = [corruption_fn(img, severity) for img in images]
+        pooled = get_dinov2_embeddings(degraded, collect_layers=False)
+        X_test_freq = pooled[idx_test]
+        acc = accuracy_score(y_test, probe.predict(X_test_freq))
+        accs.append(acc)
+    return accs
+
+lowpass_accs  = eval_probe_on_corruption(probe, low_pass, [1, 2, 3, 4, 5])
+highpass_accs = eval_probe_on_corruption(probe, high_pass, [1, 2, 3, 4, 5])
+
+plt.figure(figsize=(8, 5))
+plt.plot(range(1, 6), lowpass_accs, marker="o", label="Low-pass (keeps low freq)")
+plt.plot(range(1, 6), highpass_accs, marker="s", label="High-pass (keeps high freq)")
+plt.plot(range(0, 6), dinov2_accs, marker="^", linestyle="--", color="gray", label="Low-light (reference)")
+plt.xlabel("Corruption severity")
+plt.ylabel("DINOv2 linear probe accuracy")
+plt.title("Which frequency band does DINOv2 actually depend on?")
+plt.legend()
+plt.tight_layout()
+plt.savefig("/content/output/frequency_test.png", dpi=150)
+print("Saved frequency_test.png")
+
+print(f"Low-pass accuracies:  {lowpass_accs}")
+print(f"High-pass accuracies: {highpass_accs}")
+
+# ========== Summary ==========
+print("\n" + "=" * 60)
+print("NOTEBOOK 2 COMPLETE - SUMMARY")
+print("=" * 60)
+print("\n--- Linear Probe Accuracy (trained on clean) ---")
+for i, acc in enumerate(dinov2_accs):
+    print(f"  Severity {i}: {acc:.4f}")
+print(f"  Accuracy drop (sev 0 -> 5): {dinov2_accs[0] - dinov2_accs[5]:.4f}")
+
+print("\n--- Bootstrap 95% CI ---")
+for r in dinov2_ci:
+    print(f"  Severity {r['severity']}: {r['mean']:.4f} [{r['ci_low']:.4f}, {r['ci_high']:.4f}]")
+
+print("\n--- Layer-wise CKA ---")
+print(f"  Layer with largest drift: block {max_drop_layer} (drop={drop[max_drop_layer]:.4f})")
+print(f"  Mean CKA drop across all layers: {drop.mean():.4f}")
+print(f"  Earliest layer CKA drop (0): {drop[0]:.4f}")
+print(f"  Latest layer CKA drop ({N_DINOV2_LAYERS-1}): {drop[-1]:.4f}")
+
+print("\n--- Frequency Test ---")
+print(f"  Low-pass accuracies:  {[f'{a:.4f}' for a in lowpass_accs]}")
+print(f"  High-pass accuracies: {[f'{a:.4f}' for a in highpass_accs]}")
+print(f"  Low-pass > High-pass at matched severity: {all(l > h for l, h in zip(lowpass_accs, highpass_accs))}")
+
+print("\n--- DINOv3 Comparison ---")
+print("  Skipped (RUN_DINOV3 = False, requires HF approval)")
+
+print("\n--- Key Findings ---")
+if drop[0] > drop[-1]:
+    print("  ⚠ CKA drift concentrated in EARLY layers → patch-embedding bias hypothesis SUPPORTED")
+else:
+    print("  ⚠ CKA drift concentrated in LATE layers → attention/norm hypothesis SUPPORTED")
+if all(l > h for l, h in zip(lowpass_accs, highpass_accs)):
+    print("  ⚠ Low-pass preserved → DINOv2 leans on LOW-FREQUENCY features (hypothesis SUPPORTED)")
+else:
+    print("  ⚠ High-pass preserved better → DINOv2 uses HIGH-FREQUENCY features (hypothesis REJECTED)")
+print("=" * 60)
+[2026-08-22 07:10:12] FILE_OPERATION: {'timestamp': '2026-08-22T07:10:12.847967+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/dinov2_accuracy.png', 'local': 'colab_results/notebook2/dinov2_accuracy.png'}
+[2026-08-22 07:10:15] FILE_OPERATION: {'timestamp': '2026-08-22T07:10:15.847037+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/bootstrap_ci.png', 'local': 'colab_results/notebook2/bootstrap_ci.png'}
+[2026-08-22 07:10:18] FILE_OPERATION: {'timestamp': '2026-08-22T07:10:18.431893+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/layerwise_cka.png', 'local': 'colab_results/notebook2/layerwise_cka.png'}
+[2026-08-22 07:10:20] FILE_OPERATION: {'timestamp': '2026-08-22T07:10:20.236379+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/frequency_test.png', 'local': 'colab_results/notebook2/frequency_test.png'}
+[2026-08-22 07:10:21] FILE_OPERATION: {'timestamp': '2026-08-22T07:10:21.828286+00:00', 'event_type': 'file_operation', 'op': 'download', 'remote': '/content/output/corruption_types.png', 'local': 'colab_results/notebook2/corruption_types.png'}
