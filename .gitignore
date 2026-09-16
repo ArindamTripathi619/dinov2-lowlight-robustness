@@ -19,22 +19,26 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Virtual environments
+.venv/
+venv/
+env/
+
 # Datasets, model weights and local experiment artifacts are not versioned.
 # (Committed result images under colab_results/ stay tracked via the negation.)
 data/
 output/
+logs/
 *.png
 !colab_results/**/*.png
 *.pth
 *.pt
 
-# scratch logs from local runs
+# Scratch logs from local runs
 *.log
 
-# LaTeX build intermediates
-*.aux
-*.bbl
-*.blg
-*.brf
-*.out
-*.log
+# Launcher scripts from local debugging
+run_bg.sh
+run_notebook1_bg.sh
+run_notebook2_bg.sh
+launch_nb2.sh

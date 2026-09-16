@@ -355,7 +355,7 @@ def linear_cka(X, Y):
     hsic = np.linalg.norm(X.T @ Y, 'fro') ** 2
     var1 = np.linalg.norm(X.T @ X, 'fro')
     var2 = np.linalg.norm(Y.T @ Y, 'fro')
-    return hsic / (var1 * var2 + 1e-8)
+    return hsic / (np.sqrt(var1 * var2) + 1e-8)
 
 lora_cka_matrix = np.zeros((N_LORA_LAYERS, 6))
 for layer in range(N_LORA_LAYERS):
