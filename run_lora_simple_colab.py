@@ -174,8 +174,13 @@ class DINOv2Classifier(nn.Module):
 classifier = DINOv2Classifier(dinov2).to(device)
 
 # Optimizer
-lora_params = [p for p in classifier.parameters() if p.requires_grad]
+# Collect params disjointly: head first, then every remaining trainable (LoRA) param.
+# (The head would otherwise appear twice — once via classifier.parameters() and once
+# via classifier.head.parameters() — which makes AdamW raise "some parameters appear
+# in more than one parameter group".)
 head_params = list(classifier.head.parameters())
+head_ids = {id(p) for p in head_params}
+lora_params = [p for p in classifier.parameters() if p.requires_grad and id(p) not in head_ids]
 optimizer = torch.optim.AdamW([
     {"params": lora_params, "lr": 5e-5, "weight_decay": 0.01},
     {"params": head_params, "lr": 1e-3, "weight_decay": 0.01},
