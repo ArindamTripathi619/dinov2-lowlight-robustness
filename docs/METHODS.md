@@ -1,6 +1,6 @@
 # Methods Appendix
 
-*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`) as of commit `37405e3`.*
+*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`).*
 
 ---
 
@@ -23,14 +23,14 @@
 
 | Experiment | Source | n | Sampling |
 |------------|--------|---|----------|
-| Phase 1 (notebook 1) | CIFAR-10 **test** split | 1,000 | `default_rng(42).choice`, replace=False |
-| Phase 2 (notebook 2) | CIFAR-10 test split | 500 | `default_rng(42)`, replace=False |
-| Phase 3 training pool | CIFAR-10 test split | 5,000 | `default_rng(42).choice(len(raw_ds), 5000, replace=False)` |
-| Phase 3 test set | CIFAR-10 test split | 1,000 | `default_rng(42).choice(len(raw_ds), 1000, replace=False)` (independent draw) |
+| Phase 1 (notebook 1) | CIFAR-10 **test** split | 1,000 | `default_rng(42).choice(10000, 1000)`, replace=False |
+| Phase 2 (notebook 2) | CIFAR-10 test split | 500 | fresh `default_rng(42).choice(10000, 500)` — independent draw; overlaps Phase 1 by ~5% (chance) |
+| Phase 3 training pool | CIFAR-10 **train** split | 5,000 | `default_rng(42).choice(50000, 5000)` (same RNG instance as the test draw, consumed sequentially) |
+| Phase 3 test set | CIFAR-10 test split | 1,000 | `default_rng(42).choice(10000, 1000)` — identical index set to Phase 1's images |
 
-All splits stratified 70/30 train/test per probe (`train_test_split(..., test_size=0.3, random_state=42, stratify=labels)`).
+All probe splits stratified 70/30 (`train_test_split(..., test_size=0.3, random_state=42, stratify=labels)`); with equal `random_state` and label arrays, the original-model and LoRA probes receive **identical** test indices, so the Phase 3 comparison is same-images.
 
-**Note on protocol:** probes for original and LoRA models are each trained on their *own* clean-image embeddings, then evaluated on their *own* test split — the comparison is protocol-matched, though the test sets are not identical index-wise.
+**Notes on cross-phase comparability:** Phase 3's test set equals Phase 1's image set, which is why the original-model baselines match (0.9133 at severity 0 in both). Phase 2's 500-image set is a different random sample; its severity-0 accuracy (0.920) differing slightly from Phase 1's (0.913) is sampling noise, not inconsistency. Phase 3 trains on the **train** split, so no test image is seen during LoRA training.
 
 ---
 
@@ -165,6 +165,8 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 1. **AdamW parameter groups.** The classifier head originally appeared in both the LoRA group (`requires_grad` filter) and the head group, crashing AdamW ("some parameters appear in more than one parameter group"). Fixed by excluding head parameter `id()`s from the LoRA group.
 2. **Headless matplotlib.** All scripts force `matplotlib.use("Agg")` before any figure work (centralized in `utils.py`).
 3. **Notebook vs. script parity.** The `.py` runners are the canonical implementations; the `.ipynb` versions mirror them cell-by-cell. Where they diverged historically (the CKA bug existed in both), both were fixed.
+4. **CKA numeric record.** `output/notebook2/cka_matrix.csv` (produced by `cka_recompute.py`, same protocol as `run_notebook2.py`) is the authoritative numeric artifact for the layer × severity CKA matrix quoted in the docs. Early console logs predate the CKA fix and are superseded by this CSV.
+5. **Seed-consumption subtlety.** `load_cifar10_subset` creates a *fresh* `default_rng(42)` per call, so Phase 1/2 draws are independent samples, not nested subsets. The Phase 3 script creates one RNG instance and draws test (1,000) then train (5,000) sequentially — the test draw therefore coincides with Phase 1's set. Train-pool images come from the CIFAR-10 **train** split, so LoRA training never sees a test image.
 
 ---
 
