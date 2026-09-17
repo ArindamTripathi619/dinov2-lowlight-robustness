@@ -34,8 +34,9 @@ logs/
 *.png
 !colab_results/**/*.png
 !output/**/*.png
-*.pth
-*.pt
+*.csv
+!colab_results/**/*.csv
+!output/**/*.csv
 
 # Scratch logs from local runs
 *.log
