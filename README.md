@@ -20,6 +20,31 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 
 ---
 
+## Results Summary: How the Three Phases Connect
+
+Each phase answers one question and hands its finding to the next:
+
+| Phase | Question | Answer | Hands to next phase |
+|-------|----------|--------|---------------------|
+| **1 — Measure** | *How bad is it?* | Accuracy collapses **0.91 → 0.09**; embeddings drift to near-orthogonality (cos 1.00 → 0.16) | The failure is real, severe, and representational — *but where?* |
+| **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.82 at block 10 vs 0.57 at patch embed); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
+| **3 — Remediate** | *Can it be fixed cheaply?* | LoRA on those attention layers (0.99% of params, 70/30 dark/clean diet) restores **mean 0.60 → 0.81**, **worst-case 4.2×**, clean accuracy unchanged-or-better | Confirms the causal story: fix the localized shift, recover the robustness |
+
+All phases on one axis — accuracy per severity (Phase 3 run; the original column matches Phase 1 within run-to-run noise from the different test-sample sizes):
+
+| Severity | Original DINOv2 | Embedding drift (cos sim) | + LoRA | Gap recovered |
+|----------|-----------------|---------------------------|--------|---------------|
+| 0 (clean) | 0.913 | 1.000 | 0.960 | clean gets *better* |
+| 1 | 0.893 | 0.946 | 0.953 | +0.060 |
+| 2 | 0.863 | 0.810 | 0.943 | +0.080 |
+| 3 | 0.630 | 0.589 | 0.900 | +0.270 |
+| 4 | 0.237 | 0.309 | 0.773 | +0.537 |
+| 5 (darkest) | 0.080 | 0.161 | 0.337 | +0.257 |
+
+The drift column is the Phase 1/2 fingerprint: accuracy loss tracks embedding drift almost linearly. The LoRA column shows the recovery tracks the *same axis back up*. One phenomenon, measured, explained, and reversed.
+
+---
+
 ## Results
 
 ### Phase 1 — DINOv2 is not robust to darkness
