@@ -27,10 +27,13 @@ env/
 # Datasets, model weights and local experiment artifacts are not versioned.
 # (Committed result images under colab_results/ stay tracked via the negation.)
 data/
-output/
+output/**
+!output/notebook1/
+!output/notebook2/
 logs/
 *.png
 !colab_results/**/*.png
+!output/**/*.png
 *.pth
 *.pt
 

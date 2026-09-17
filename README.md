@@ -62,6 +62,8 @@ Linear probe (logistic regression on frozen embeddings), 1000 test images:
 
 Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~0.16). Collapse begins below severity 3.
 
+![Phase 1 accuracy and drift](output/notebook1/dinov2_lowlight_results.png)
+
 ### Phase 2 — The failure is localized, systematic, and low-frequency
 
 **Layer-wise CKA** (hooks on all 12 transformer blocks, drift measured clean → severity 5):
@@ -78,6 +80,10 @@ Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~
 **Frequency ablation** (low-pass vs. high-pass filtered inputs): low-pass-filtered images retain near-clean accuracy (~0.92 at severity 1) while high-pass destroys it (~0.59) — at every severity the low-frequency band dominates.
 
 → DINOv2 leans on **low-frequency luminance structure**, which is precisely what darkness removes.
+
+![Layer-wise CKA](output/notebook2/layerwise_cka.png)
+
+![Frequency test](output/notebook2/frequency_test.png)
 
 ### Phase 3 — LoRA on late attention layers recovers most of the loss
 
@@ -113,7 +119,7 @@ DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systema
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install torch torchvision scikit-learn matplotlib numpy scipy
+pip install -r requirements.txt
 python run_notebook1.py    # Phase 1 → output/notebook1/
 python run_notebook2.py    # Phase 2 → output/notebook2/
 ```
@@ -143,6 +149,8 @@ colab exec -s lora_run -f launch_lora.py    # nohup-detached launcher
 | `output/notebook1/`, `output/notebook2/` | Local results: CSVs, accuracy/drift plots, CKA heatmap, bootstrap CI, frequency test |
 | `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs) |
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
+| `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
+| `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |
 
 ## Reproducibility Notes
 
