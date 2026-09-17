@@ -65,7 +65,7 @@ Note the deliberate logical chain: H2+H3 *predict* the Phase 3 design. If drift 
 ![Phase 1 accuracy and drift](../output/notebook1/dinov2_lowlight_results.png)
 
 **Interpretation.**
-- **H1 supported.** Accuracy falls 0.82 — a cliff, not a slope. Collapse begins below severity 3.
+- **H1 supported.** Accuracy falls 0.82 — a cliff, not a slope: near-flat through severity 2, collapsing steeply between severity 2 and 4.
 - Accuracy loss tracks embedding drift almost linearly — the model isn't "confused," its feature space *moves*.
 - Chance is 0.10; at severity 5 the probe is barely above chance.
 
@@ -73,7 +73,7 @@ Note the deliberate logical chain: H2+H3 *predict* the Phase 3 design. If drift 
 
 ## 5. Phase 2 — Localize & Explain: Where and why does it break?
 
-**Method.** 500 images (disjoint regime check), forward hooks on all 12 transformer blocks capturing layer-wise CLS activations in the *same* forward passes. Three analyses:
+**Method.** 500 CIFAR-10 test images (an independent seed-42 draw from the same test split as Phase 1 — overlap with Phase 1's 1,000 images is ~5%, i.e. chance level for two random draws), forward hooks on all 12 transformer blocks capturing layer-wise CLS activations in the *same* forward passes. Three analyses:
 
 1. **Layer-wise CKA** — linear CKA between clean and degraded activations per block per severity. CKA ≈ 1 means the layer's representational geometry survived; ≈ 0 means it was rebuilt.
 2. **Frequency ablation** — FFT circular low-pass / high-pass filters at matched severities through the *unchanged* probe. If the model leans on low frequencies, low-pass should hurt less than high-pass.
@@ -81,14 +81,14 @@ Note the deliberate logical chain: H2+H3 *predict* the Phase 3 design. If drift 
 
 **Results** (`output/notebook2/`):
 
-CKA drop (clean → severity 5) by layer:
+CKA drop (clean → severity 5) by layer — full matrix in `output/notebook2/cka_matrix.csv`:
 
 | Layer | CKA drop |
 |-------|----------|
-| block 0 (patch embed) | 0.57 |
-| block 5 | 0.45 |
-| **block 10** | **0.82** ← max |
-| block 11 | 0.79 |
+| block 0 (patch embed) | 0.58 |
+| block 5 | 0.53 |
+| **block 10** | **0.81** ← max |
+| block 11 | 0.78 |
 
 **→ H2 supported: the drift concentrates in late attention layers.**
 

@@ -27,7 +27,7 @@ Each phase answers one question and hands its finding to the next:
 | Phase | Question | Answer | Hands to next phase |
 |-------|----------|--------|---------------------|
 | **1 — Measure** | *How bad is it?* | Accuracy collapses **0.91 → 0.09**; embeddings drift to near-orthogonality (cos 1.00 → 0.16) | The failure is real, severe, and representational — *but where?* |
-| **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.82 at block 10 vs 0.57 at patch embed); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
+| **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.81 at block 10 vs 0.58 at patch embed); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
 | **3 — Remediate** | *Can it be fixed cheaply?* | LoRA on those attention layers (0.99% of params, 70/30 dark/clean diet) restores **mean 0.60 → 0.81**, **worst-case 4.2×**, clean accuracy unchanged-or-better | Confirms the causal story: fix the localized shift, recover the robustness |
 
 All phases on one axis — accuracy per severity (Phase 3 run; the original column matches Phase 1 within run-to-run noise from the different test-sample sizes):
@@ -60,7 +60,7 @@ Linear probe (logistic regression on frozen embeddings), 1000 test images:
 | 4 | 0.220 | 0.309 |
 | 5 (darkest) | 0.093 | 0.161 |
 
-Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~0.16). Collapse begins below severity 3.
+Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~0.16) — near-flat through severity 2, collapsing steeply between severity 2 and 4.
 
 ![Phase 1 accuracy and drift](output/notebook1/dinov2_lowlight_results.png)
 
@@ -70,10 +70,14 @@ Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~
 
 | Layer | CKA drop |
 |-------|----------|
-| block 0 (patch embed) | 0.57 |
-| block 5 | 0.45 |
-| **block 10** | **0.82** ← max drift |
-| block 11 (final) | 0.79 |
+CKA drop (clean → severity 5) by layer — full matrix in `output/notebook2/cka_matrix.csv`:
+
+| Layer | CKA drop |
+|-------|----------|
+| block 0 (patch embed) | 0.58 |
+| block 5 | 0.53 |
+| **block 10** | **0.81** ← max drift |
+| block 11 (final) | 0.78 |
 
 → Degradation is **not uniform**: late attention layers shift their representations far more than early ones.
 
@@ -109,7 +113,7 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 ## The Story in One Paragraph
 
-DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.82 at block 10 vs 0.57 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.21 mean accuracy and 4.2× worst-case robustness at a training cost of ~10 GPU-minutes. Robustness to darkness in self-supervised ViTs is cheap to buy back — if you know where to look.
+DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.21 mean accuracy and 4.2× worst-case robustness at a training cost of ~10 GPU-minutes. Robustness to darkness in self-supervised ViTs is cheap to buy back — if you know where to look.
 
 ---
 
