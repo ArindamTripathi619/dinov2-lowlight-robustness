@@ -1,0 +1,14 @@
+# Core ML stack (CPU-local reference environment, Python 3.14.3)
+# Exact versions from the working .venv used to produce output/notebook1/ and output/notebook2/
+torch==2.13.0
+torchvision==0.28.0
+scikit-learn==1.9.0
+numpy==2.5.2
+scipy==1.18.1
+matplotlib==3.11.1
+pillow==12.3.0
+
+# Install CPU-only torch on Linux without a CUDA download (optional, smaller):
+#   pip install torch==2.13.0 torchvision==0.28.0 --index-url https://download.pytorch.org/whl/cpu
+# Then: pip install -r requirements.txt --no-deps is NOT needed; plain `pip install -r requirements.txt`
+# works — the pinned versions above resolve for both CUDA and CPU wheels.
