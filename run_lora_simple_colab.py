@@ -143,10 +143,14 @@ class AugmentedCIFAR10(Dataset):
     def __getitem__(self, idx):
         img = self.images[idx].copy()
         label = self.labels[idx]
-        if np.random.random() < 0.7:
-            severity = np.random.randint(2, 5)
+        # Per-sample RNG (seeded by index) instead of np.random global state:
+        # DataLoader workers fork without re-seeding NumPy, so a global-RNG-based
+        # augmentation would produce correlated streams across workers.
+        rng = np.random.default_rng(seed=idx)
+        if rng.random() < 0.7:
+            severity = int(rng.integers(2, 5))
             img = low_light(img, severity)
-        if np.random.random() < 0.5:
+        if rng.random() < 0.5:
             img = np.flip(img, axis=1).copy()
         if self.transform:
             img = self.transform(img)
