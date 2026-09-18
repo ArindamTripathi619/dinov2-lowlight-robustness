@@ -83,7 +83,9 @@ def contrast(image, severity, rng=None):
     """Contrast reduction, blending toward the image's grayscale mean.
 
     severity 0 = identity. Deterministic (rng accepted for parity, unused).
-    Follows the Hendrycks & Dietterich contrast-corruption convention.
+    In the spirit of Hendrycks & Dietterich's contrast corruption but blending
+    toward the scalar grayscale mean rather than their per-channel means —
+    documented here so nobody cites the exact HD formula for our numbers.
     """
     factors = [1.0, 0.8, 0.6, 0.4, 0.25, 0.15]
     img = image.astype(np.float32)

@@ -30,7 +30,8 @@ def parse_args():
     p.add_argument("--model", default="dinov2_vits14", help="torch.hub DINOv2 entry")
     p.add_argument("--corruption", default="low_light", choices=["low_light", "blur", "jpeg", "contrast"])
     p.add_argument("--epochs", type=int, default=10)
-    p.add_argument("--outdir", default="/content/output", help="where plots/CSV/adapters are written")
+    p.add_argument("--outdir", default=None,
+                   help="where plots/CSV/adapters are written (default: /content/output on Colab, ./output_lora elsewhere)")
     p.add_argument("--drift-csv", default=None,
                    help="optional CSV (layer,severity,cka,drop_from_clean) with measured drift; "
                         "default uses the embedded ViT-S/low-light profile")
@@ -38,6 +39,8 @@ def parse_args():
 
 
 ARGS = parse_args()
+if ARGS.outdir is None:
+    ARGS.outdir = "/content/output" if os.path.isdir("/content") else "./output_lora"
 os.makedirs(ARGS.outdir, exist_ok=True)
 
 import matplotlib
@@ -66,6 +69,12 @@ from torch.utils.data import Dataset, DataLoader
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Device: {device}")
+
+# Seed torch BEFORE any model creation so the LoRA-A init, head init, dropout,
+# and DataLoader shuffling are all deterministic functions of --seed. PyTorch
+# seeds its global RNG from entropy at process start; seeding after model init
+# (a previous version's bug) would leave initialization unseeded.
+torch.manual_seed(ARGS.seed)
 
 # === Load CIFAR-10 ===
 print("\n>>> Loading CIFAR-10")
@@ -316,9 +325,6 @@ if FULL_FT:
     print(f"  full-FT optimizer: backbone lr={backbone_lr}, head lr=1e-3")
 criterion = nn.CrossEntropyLoss()
 
-# Seed torch RNG after model init (deterministic head init + dropout + shuffling)
-torch.manual_seed(ARGS.seed)
-
 # === Train ===
 print("\n>>> Training")
 num_epochs = ARGS.epochs
@@ -434,10 +440,11 @@ print("\n>>> Generating comparison plots")
 
 # Plot 1: Accuracy comparison
 fig, ax = plt.subplots(figsize=(8, 5))
+adapted_label = "Full fine-tune" if FULL_FT else "LoRA-adapted DINOv2"
 ax.plot(range(6), orig_accs, marker="o", label="Original DINOv2", color="tab:blue")
-ax.plot(range(6), lora_accs, marker="s", label="LoRA-adapted DINOv2", color="tab:green")
+ax.plot(range(6), lora_accs, marker="s", label=adapted_label, color="tab:green")
 ax.set_xlabel("Low-light severity"); ax.set_ylabel("Accuracy")
-ax.set_title("DINOv2 Original vs LoRA: Low-Light Robustness")
+ax.set_title(f"DINOv2 Original vs {adapted_label}: {ARGS.corruption} Robustness")
 ax.set_ylim(0, 1); ax.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(ARGS.outdir, "lora_vs_orig_accuracy.png"), dpi=150)
