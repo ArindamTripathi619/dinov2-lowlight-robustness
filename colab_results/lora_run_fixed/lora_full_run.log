@@ -1,0 +1,84 @@
+============================================================
+LoRA Fine-Tuning Experiment (Simplified)
+============================================================
+Device: cuda
+
+>>> Loading CIFAR-10
+Test: 1000, Train: 5000
+
+>>> Loading DINOv2
+Downloading: "https://github.com/facebookresearch/dinov2/zipball/main" to /root/.cache/torch/hub/main.zip
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+Downloading: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth" to /root/.cache/torch/hub/checkpoints/dinov2_vits14_pretrain.pth
+  0%|          | 0.00/84.2M [00:00<?, ?B/s]  5%|▌         | 4.50M/84.2M [00:00<00:01, 47.1MB/s] 23%|██▎       | 19.5M/84.2M [00:00<00:00, 112MB/s]  47%|████▋     | 39.6M/84.2M [00:00<00:00, 157MB/s] 74%|███████▍  | 62.2M/84.2M [00:00<00:00, 189MB/s]100%|██████████| 84.2M/84.2M [00:00<00:00, 185MB/s]
+
+>>> Applying LoRA to attention layers
+Total params: 22,277,760
+Trainable (LoRA): 221,184 (0.99%)
+LoRA modules: 24 (2 per block x 12 blocks)
+Training: 5000 images (70% with low-light aug)
+
+>>> Training LoRA adapters
+  Epoch 1/10: loss=0.9252, acc=0.6940
+  Epoch 2/10: loss=0.2829, acc=0.9062
+  Epoch 3/10: loss=0.2119, acc=0.9316
+  Epoch 4/10: loss=0.1947, acc=0.9344
+  Epoch 5/10: loss=0.1586, acc=0.9462
+  Epoch 6/10: loss=0.1362, acc=0.9528
+  Epoch 7/10: loss=0.1262, acc=0.9564
+  Epoch 8/10: loss=0.1223, acc=0.9606
+  Epoch 9/10: loss=0.1114, acc=0.9646
+  Epoch 10/10: loss=0.0956, acc=0.9708
+Saved lora_training_curves.png
+
+>>> Extracting embeddings with LoRA model
+  severity 0: (1000, 384)
+  severity 1: (1000, 384)
+  severity 2: (1000, 384)
+  severity 3: (1000, 384)
+  severity 4: (1000, 384)
+  severity 5: (1000, 384)
+
+>>> Linear probe evaluation
+  severity 0: 0.953
+  severity 1: 0.953
+  severity 2: 0.937
+  severity 3: 0.883
+  severity 4: 0.807
+  severity 5: 0.377
+
+>>> Loading original DINOv2 for comparison
+Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main
+
+>>> Generating comparison plots
+Saved lora_vs_orig_accuracy.png
+
+============================================================
+LORA EXPERIMENT COMPLETE
+============================================================
+
+LoRA config: r=8, alpha=16, targets=[attn.qkv, attn.proj]
+Trainable: 221,184 / 22,277,760 (0.99%)
+Training: 10 epochs, 5000 images (70% low-light aug)
+
+Severity     Original       LoRA      Delta
+------------------------------------------
+0              0.9133     0.9533    +0.0400
+1              0.9033     0.9533    +0.0500
+2              0.8600     0.9367    +0.0767
+3              0.6033     0.8833    +0.2800
+4              0.2133     0.8067    +0.5933
+5              0.0733     0.3767    +0.3033
+
+Mean accuracy: Original=0.5944, LoRA=0.8183, Delta=+0.2239
+Sev 5 (darkest): Original=0.0733, LoRA=0.3767, Delta=+0.3033
+
+--- Verdict ---
+✅ LoRA improved mean accuracy by +0.2239
+✅ LoRA improved worst-case (sev 5) by +0.3033
+============================================================

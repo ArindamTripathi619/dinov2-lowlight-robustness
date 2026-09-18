@@ -106,21 +106,21 @@ Frequency ablation: low-pass preserves near-clean accuracy (~0.92 at severity 1)
 
 **Design rationale.** H2+H3 localize the failure in attention layers of a frozen 22M-param backbone. Full fine-tuning would be wasteful and risks destroying the pretrained representation. **LoRA** (rank 8, α 16) on attention QKV + output projections trains **221K params = 0.99%** of the network.
 
-**Training diet.** 5,000 train images, **70% low-light-augmented** (random severity 2–4, plus horizontal flips) / 30% clean — dark enough to force adaptation, clean enough to not forget. 10 epochs, AdamW with separate LR groups (adapters 5e-5, head 1e-3), batch 64, ~10 minutes on a free-tier Colab T4.
+**Training diet.** 5,000 train images, **70% low-light-augmented** (random severity 2–4, plus horizontal flips; per-sample seeded RNG so DataLoader workers cannot produce correlated augmentation streams) / 30% clean — dark enough to force adaptation, clean enough to not forget. 10 epochs, AdamW with separate LR groups (adapters 5e-5, head 1e-3), batch 64, ~10 minutes on a free-tier Colab T4.
 
-**Results** (1000-image test set, matched protocol, `colab_results/lora_run/`):
+**Results** (1000-image test set, matched protocol, artifact of record `colab_results/lora_run_fixed/`):
 
 | Severity | Original | LoRA | Δ |
 |----------|----------|------|-----|
-| 0 (clean) | 0.913 | 0.960 | +0.047 |
-| 3 | 0.630 | 0.900 | +0.270 |
-| 4 | 0.237 | 0.773 | **+0.537** |
-| 5 (darkest) | 0.080 | 0.337 | **+0.257** |
-| **Mean** | **0.603** | **0.811** | **+0.208** |
+| 0 (clean) | 0.913 | 0.953 | +0.040 |
+| 3 | 0.603 | 0.883 | +0.280 |
+| 4 | 0.213 | 0.807 | **+0.593** |
+| 5 (darkest) | 0.073 | 0.377 | **+0.303** |
+| **Mean** | **0.594** | **0.818** | **+0.224** |
 
-**→ H4 supported.** Worst-case 4.2× improvement, no clean-image penalty (it rose +0.047). Training converged smoothly (loss 0.94 → 0.14, no divergence, no overfitting signature).
+**→ H4 supported.** Worst-case 5.1× improvement (0.073 → 0.377), no clean-image penalty (it rose +0.040). Training converged smoothly (loss 0.93 → 0.10, no divergence, no overfitting signature).
 
-![Original vs LoRA](../colab_results/lora_run/lora_vs_orig_accuracy.png)
+![Original vs LoRA](../colab_results/lora_run_fixed/lora_vs_orig_accuracy.png)
 
 ---
 
@@ -160,6 +160,10 @@ Two silent bugs shaped our confidence in the results — documented here because
 
 While porting an optimizer fix into the LoRA notebook, an edit referenced `head_ids` before `head_params` was defined. Static validation before commit caught it. **Lesson:** script-vs-notebook code drift is a real hazard; order-of-definition bugs hide easily in notebook cells.
 
+### 8.4 Worker-correlated augmentation + unmatched eval noise (subtle RNG hygiene)
+
+Two related issues surfaced during a full-codebase audit and re-run. First, augmentation randomness came from NumPy's *global* RNG inside `__getitem__` while `num_workers=2` — but DataLoader workers fork without re-seeding NumPy, so both workers emitted correlated severity/flip/noise streams. Second, the evaluation-time noise in `low_light` was drawn independently for the LoRA pass and the original-model pass, so the two models were never compared on identical corrupted images (visible only as small run-to-run jitter in the baselines — the noise-free severity-0 matched exactly, which is what gave it away). Fixes: per-sample `default_rng(seed=idx)` for training, and precomputed seeded corrupted test arrays shared by both models. **Lesson:** *any* call to a global RNG inside a DataLoader worker or a comparison loop is a bug-in-waiting; and an exactly-matching baseline alongside jittering ones is a diagnostic signature worth learning to read. (See `docs/METHODS.md` §7.3, §9.6–9.7.)
+
 ---
 
 ## 9. Limitations
@@ -177,8 +181,8 @@ While porting an optimizer fix into the LoRA notebook, an edit referenced `head_
 - A **complete, reproducible three-phase pipeline** (measure → localize/explain → remediate) built on a shared, tested `utils.py`.
 - **Quantified the failure**: 0.91 → 0.09 accuracy, embeddings drifting to near-orthogonality.
 - **Localized and mechanistically explained it**: late-layer CKA drift + low-frequency dependence.
-- **Demonstrated the fix**: 0.99% of parameters, ~10 GPU-minutes, +0.21 mean / 4.2× worst-case recovery with no clean penalty.
-- **Hardened the science along the way**: corrected CKA formula, independent bootstrap seeds, deduplicated optimizer groups — each validated before results were trusted.
+- **Demonstrated the fix**: 0.99% of parameters, ~10 GPU-minutes, +0.22 mean / 5.1× worst-case recovery with no clean penalty.
+- **Hardened the science along the way**: corrected CKA formula, independent bootstrap seeds, deduplicated optimizer groups, per-sample augmentation RNG, matched-noise evaluation — each validated before results were trusted.
 - All findings, figures, and full training logs are versioned in this repository.
 
 ---

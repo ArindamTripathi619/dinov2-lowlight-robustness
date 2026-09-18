@@ -40,8 +40,10 @@ logs/
 *.pth
 *.pt
 
-# Scratch logs from local runs
+# Scratch logs from local runs (the small fixed-run LoRA log is the numeric
+# artifact of record for the docs' Phase 3 tables and is explicitly tracked)
 *.log
+!colab_results/lora_run_fixed/lora_full_run.log
 
 # Launcher scripts from local debugging
 run_bg.sh

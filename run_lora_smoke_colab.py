@@ -6,7 +6,7 @@ Based on CKA findings: drift concentrated in late attention layers (blocks 10-11
 """
 
 import sys, os, subprocess
-os.makedirs("/content/output", exist_ok=True)
+os.makedirs("/content/output_smoke", exist_ok=True)
 os.chdir("/content")
 
 import matplotlib
@@ -198,7 +198,7 @@ criterion = nn.CrossEntropyLoss()
 
 # === Train ===
 print("\n>>> Training LoRA adapters")
-num_epochs = 10
+num_epochs = 2
 train_losses, train_accs = [], []
 
 for epoch in range(num_epochs):
@@ -225,7 +225,7 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 ax1.plot(train_losses, marker="o"); ax1.set_title("Training Loss"); ax1.set_xlabel("Epoch")
 ax2.plot(train_accs, marker="o", color="green"); ax2.set_title("Training Accuracy"); ax2.set_xlabel("Epoch")
 plt.tight_layout()
-plt.savefig("/content/output/lora_training_curves.png", dpi=150)
+plt.savefig("/content/output_smoke/lora_training_curves.png", dpi=150)
 print("Saved lora_training_curves.png")
 
 # === Extract embeddings with LoRA model ===
@@ -245,10 +245,14 @@ def get_embeddings(model, image_list, batch_size=64):
             feats.append(out.cpu())
     return torch.cat(feats, dim=0).numpy()
 
-lora_pooled = {}
-for severity in range(6):
-    lora_pooled[severity] = get_embeddings(classifier, degraded_eval[severity])
-    print(f"  severity {severity}: {lora_pooled[severity].shape}")
+# === Precompute degraded test sets ONCE (matched-noise evaluation) ===
+# The noise in low_light is stochastic; drawing it separately for the LoRA and
+# original models would give each slightly different test images. Seeding one
+# RNG per severity and reusing the arrays makes the comparison image-matched.
+eval_rng = {s: np.random.default_rng(1000 + s) for s in range(6)}
+degraded_eval = {
+    s: [low_light(img, s, rng=eval_rng[s]) for img in images] for s in range(6)
+}
 
 # === Linear probe ===
 print("\n>>> Linear probe evaluation")
@@ -265,15 +269,6 @@ for severity in range(6):
     acc = accuracy_score(y_test, probe.predict(lora_pooled[severity][idx_test]))
     lora_accs.append(acc)
     print(f"  severity {severity}: {acc:.3f}")
-
-# === Precompute degraded test sets ONCE (matched-noise evaluation) ===
-# The noise in low_light is stochastic; drawing it separately for the LoRA and
-# original models would give each slightly different test images. Seeding one
-# RNG per severity and reusing the arrays makes the comparison image-matched.
-eval_rng = {s: np.random.default_rng(1000 + s) for s in range(6)}
-degraded_eval = {
-    s: [low_light(img, s, rng=eval_rng[s]) for img in images] for s in range(6)
-}
 
 # === Compare with original DINOv2 ===
 print("\n>>> Loading original DINOv2 for comparison")
@@ -317,7 +312,7 @@ ax.set_xlabel("Low-light severity"); ax.set_ylabel("Accuracy")
 ax.set_title("DINOv2 Original vs LoRA: Low-Light Robustness")
 ax.set_ylim(0, 1); ax.legend()
 plt.tight_layout()
-plt.savefig("/content/output/lora_vs_orig_accuracy.png", dpi=150)
+plt.savefig("/content/output_smoke/lora_vs_orig_accuracy.png", dpi=150)
 print("Saved lora_vs_orig_accuracy.png")
 
 # === Summary ===

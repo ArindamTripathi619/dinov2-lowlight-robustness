@@ -145,6 +145,10 @@ return hsic / (np.sqrt(var1 * var2) + 1e-8)
 
 Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated at all 6 severities on the 1,000-image test set; the original model is evaluated identically for the comparison.
 
+**Matched-noise evaluation (fixed after the first full run).** The noise in `low_light` is stochastic; in the *first* run it was drawn independently for the LoRA pass and the original-model pass, so each was evaluated on slightly different corrupted images (visible as run-to-run jitter in the original column, e.g. sev-5 baseline 0.080 vs 0.073, while the noise-free sev-0 matched exactly at 0.9133). The script of record now precomputes the corrupted test arrays **once** per severity (seeded `default_rng(1000 + severity)`) and feeds the identical arrays to both models — the comparison is image-matched. For the same reason, eval-time noise is deterministic across reruns.
+
+**Artifact of record.** The results quoted in the docs come from the post-augmentation-fix, matched-noise-script run: `colab_results/lora_run_fixed/` (log + both plots). The earlier `colab_results/lora_run/` artifacts predate both fixes and are retained for comparison only.
+
 ---
 
 ## 8. Random Seed Registry
@@ -156,7 +160,8 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 | Phase 3 test set | 42 (independent RNG instance) | 1,000-image draw |
 | All probe splits | 42 | stratified 70/30 |
 | Bootstrap | severity index (0–5) | per-severity resampling independence |
-| LoRA per-batch corruption / flips | unseeded `np.random` | training-time augmentation |
+| LoRA per-batch corruption / flips | per-sample `default_rng(seed=idx)` | training-time augmentation; worker-correlation fix (see §9.6) |
+| Eval-time corruption (Phase 3) | 1000 + severity | matched-noise comparison; see §7.3 |
 
 ---
 
@@ -167,6 +172,8 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 3. **Notebook vs. script parity.** The `.py` runners are the canonical implementations; the `.ipynb` versions mirror them cell-by-cell. Where they diverged historically (the CKA bug existed in both), both were fixed.
 4. **CKA numeric record.** `output/notebook2/cka_matrix.csv` (produced by `cka_recompute.py`, same protocol as `run_notebook2.py`) is the authoritative numeric artifact for the layer × severity CKA matrix quoted in the docs. Early console logs predate the CKA fix and are superseded by this CSV.
 5. **Seed-consumption subtlety.** `load_cifar10_subset` creates a *fresh* `default_rng(42)` per call, so Phase 1/2 draws are independent samples, not nested subsets. The Phase 3 script creates one RNG instance and draws test (1,000) then train (5,000) sequentially — the test draw therefore coincides with Phase 1's set. Train-pool images come from the CIFAR-10 **train** split, so LoRA training never sees a test image.
+6. **Worker-correlated augmentation (Phase 3, fixed).** The first LoRA implementation drew augmentation randomness from NumPy's *global* RNG inside `__getitem__` with `num_workers=2`; DataLoader workers fork without re-seeding NumPy, so both workers produced correlated severity/flip/noise streams. Fixed with per-sample `default_rng(seed=idx)` — deterministic per image, statistically independent across images — and the training noise itself is now threaded through the same per-sample RNG (`low_light(..., rng=rng)`). The original published run predated this fix; the run of record (`colab_results/lora_run_fixed/`) uses it. Impact assessed as benign (marginal rates were correct; correlation reduces augmentation diversity without biasing), but dark-end numbers improved modestly with the fix (sev-5 LoRA 0.337 → 0.377).
+7. **`low_light` seeding.** Severity 0 is deterministic (brightness scaling only). Severities ≥ 1 add Gaussian noise; everywhere in the run of record this comes from an explicit seeded generator (per-sample during training, `1000 + severity` during eval), never the global stream.
 
 ---
 
