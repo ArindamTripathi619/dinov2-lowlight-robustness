@@ -357,6 +357,26 @@ plt.tight_layout()
 plt.savefig(os.path.join(ARGS.outdir, "lora_training_curves.png"), dpi=150)
 print("Saved lora_training_curves.png")
 
+# === Save adapter checkpoint (for sim-to-real transfer, e.g. ExDark) ===
+# Only lora_A/lora_B tensors — the frozen backbone weights are unchanged, so a
+# consumer rebuilds LoRA with the saved block_ranks and loads this state.
+adapter_state = {
+    k: v.cpu().clone()
+    for k, v in dinov2.state_dict().items()
+    if "lora_A" in k or "lora_B" in k
+}
+ckpt = {
+    "config": {
+        "model": ARGS.model, "corruption": ARGS.corruption, "layers": ARGS.layers,
+        "rank": ARGS.rank, "alpha": ARGS.alpha, "mix": ARGS.mix, "seed": ARGS.seed,
+        "epochs": num_epochs, "block_ranks": {str(k): v for k, v in block_ranks.items()},
+        "trainable_params": trainable_params, "total_params": total_params,
+    },
+    "adapter_state": adapter_state,
+}
+torch.save(ckpt, os.path.join(ARGS.outdir, "lora_adapters.pt"))
+print(f"Saved lora_adapters.pt ({len(adapter_state)} adapter tensors)")
+
 # === Precompute degraded test sets ONCE (matched-noise evaluation) ===
 # The corruption noise is stochastic; drawing it separately for the LoRA and
 # original passes would give each slightly different test images. Seeding one
