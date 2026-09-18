@@ -9,6 +9,7 @@ Fixed: removed Jupyter magic, uses shared utils, headless matplotlib,
 
 import sys
 import os
+import argparse
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -17,7 +18,7 @@ import numpy as np
 from utils import (
     DEVICE, load_dinov2, load_cifar10_subset, DINOV2_PREPROCESS,
     get_embeddings, get_embeddings_with_hooks, register_layer_hooks,
-    low_light, low_pass, high_pass,
+    low_light, low_pass, high_pass, get_corruption,
     train_linear_probe, evaluate_across_severities, bootstrap_accuracy_ci,
     linear_cka, compute_cka_matrix,
     plot_accuracy_vs_severity, plot_bootstrap_ci, plot_cka_heatmap,
@@ -25,17 +26,42 @@ from utils import (
     save_results_csv, save_fig, setup_output_dir,
 )
 
-OUTPUT_DIR = setup_output_dir("./output/notebook2")
+
+def parse_args():
+    p = argparse.ArgumentParser(description="Phase 2: CKA localization, bootstrap CI, frequency test")
+    p.add_argument("--corruption", default="low_light", choices=["low_light", "blur", "jpeg", "contrast"],
+                   help="corruption family for the severity sweep and CKA (default: low_light)")
+    p.add_argument("--model", default="dinov2_vits14",
+                   help="torch.hub DINOv2 entry, e.g. dinov2_vits14 or dinov2_vitb14")
+    p.add_argument("--n-images", type=int, default=500)
+    p.add_argument("--seed", type=int, default=42, help="sample draw seed")
+    p.add_argument("--output", default=None,
+                   help="output dir (default: output/notebook2[_{corruption}][_{model}])")
+    return p.parse_args()
+
+
+ARGS = parse_args()
+CORRUPTION_FN = get_corruption(ARGS.corruption)
+
+if ARGS.output is not None:
+    OUT = ARGS.output
+else:
+    OUT = "./output/notebook2"
+    if ARGS.corruption != "low_light":
+        OUT += f"_{ARGS.corruption}"
+    if ARGS.model != "dinov2_vits14":
+        OUT += f"_{ARGS.model.replace('dinov2_', '')}"
+OUTPUT_DIR = setup_output_dir(OUT)
 
 print("=" * 60)
-print("Notebook 2: DINOv2 Advanced Low-Light Analysis")
+print(f"Notebook 2: DINOv2 Advanced Analysis — corruption={ARGS.corruption}, model={ARGS.model}")
 print(f"Device: {DEVICE}")
 print("=" * 60)
 
 # --- Cell 1: Load data ---
 print("\n>>> Cell 1: Load CIFAR-10 subset")
-N_IMAGES = 500
-images, labels = load_cifar10_subset(n_images=N_IMAGES, train=False)
+N_IMAGES = ARGS.n_images
+images, labels = load_cifar10_subset(n_images=N_IMAGES, train=False, seed=ARGS.seed)
 
 # --- Cell 2: Visualize corruption types ---
 print("\n>>> Cell 2: Visualize corruption types")
@@ -43,7 +69,7 @@ plot_corruption_grid(images, save_path=os.path.join(OUTPUT_DIR, "corruption_type
 
 # --- Cell 3: Load DINOv2 with hooks ---
 print("\n>>> Cell 3: Load DINOv2 ViT-S/14 with hooks")
-model, n_blocks = load_dinov2()
+model, n_blocks = load_dinov2(model_name=ARGS.model)
 hooks_dict = {}
 register_layer_hooks(model, hooks_dict)
 print(f"DINOv2 loaded, {n_blocks} transformer blocks hooked.")
@@ -53,7 +79,7 @@ print("\n>>> Cell 4: Extract embeddings across all low-light severities")
 dinov2_pooled = {}
 dinov2_layerwise = {}
 for severity in range(6):
-    degraded = [low_light(img, severity) for img in images]
+    degraded = [CORRUPTION_FN(img, severity) for img in images]
     pooled, layerwise = get_embeddings_with_hooks(model, degraded, hooks_dict)
     dinov2_pooled[severity] = pooled
     dinov2_layerwise[severity] = layerwise
@@ -72,8 +98,8 @@ for severity in range(6):
 
 plot_accuracy_vs_severity(
     [{"severity": i, "accuracy": a} for i, a in enumerate(dinov2_accs)],
-    title="DINOv2 (ViT-S/14) accuracy vs low-light severity, CIFAR-10",
-    save_path=os.path.join(OUTPUT_DIR, "dinov2_accuracy.png"),
+    title=f"DINOv2 ({ARGS.model.replace('dinov2_', '')}) accuracy vs {ARGS.corruption} severity, CIFAR-10",
+    save_path=os.path.join(OUTPUT_DIR, "accuracy_curve.png"),
 )
 
 # --- Cell 6: Bootstrap CI ---
@@ -94,7 +120,7 @@ cka_matrix = compute_cka_matrix(dinov2_layerwise[0], dinov2_layerwise, n_blocks)
 
 plot_cka_heatmap(
     cka_matrix,
-    title="Layer-wise representational drift under low light",
+    title=f"Layer-wise representational drift under {ARGS.corruption}",
     save_path=os.path.join(OUTPUT_DIR, "layerwise_cka.png"),
 )
 
@@ -125,8 +151,9 @@ print(f"  High-pass accuracies: {[f'{a:.4f}' for a in highpass_accs]}")
 
 plot_frequency_test(
     lowpass_accs, highpass_accs, dinov2_accs,
-    title="Which frequency band does DINOv2 actually depend on?",
+    title=f"Frequency dependence vs {ARGS.corruption} sensitivity",
     save_path=os.path.join(OUTPUT_DIR, "frequency_test.png"),
+    ref_label=f"{ARGS.corruption} (reference)",
 )
 
 # --- Summary ---
