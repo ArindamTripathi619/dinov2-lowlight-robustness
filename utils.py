@@ -27,10 +27,14 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # ---------------------------------------------------------------------------
 # Corruption functions
 # ---------------------------------------------------------------------------
-def low_light(image, severity):
+def low_light(image, severity, rng=None):
     """Darken an image stepwise and add shot-noise, simulating low light.
 
     severity: 0 (no change) through 5 (very dark, noisy).
+    rng: optional numpy Generator for the noise. If None, NumPy's global
+    generator is used — fine for single-threaded eval; pass an explicit
+    per-sample generator inside DataLoader workers (they fork without
+    re-seeding the global stream).
     """
     brightness_factors = [1.0, 0.75, 0.55, 0.38, 0.25, 0.15]
     noise_std          = [0,    2,    4,    6,    9,    13]
@@ -38,8 +42,71 @@ def low_light(image, severity):
     noise  = noise_std[severity]
     img = image.astype(np.float32) * factor
     if noise > 0:
-        img = img + np.random.normal(0, noise, img.shape)
+        gen = rng if rng is not None else np.random
+        img = img + gen.normal(0, noise, img.shape)
     return np.clip(img, 0, 255).astype(np.uint8)
+
+
+def blur(image, severity, rng=None):
+    """Gaussian blur, stepwise increasing radius. severity 0 = identity.
+
+    Deterministic (rng accepted for signature parity, unused).
+    """
+    from PIL import Image, ImageFilter
+    radii = [0.0, 0.5, 1.0, 2.0, 3.5, 5.5]
+    if radii[severity] == 0:
+        return image.copy()
+    img = Image.fromarray(image)
+    return np.array(img.filter(ImageFilter.GaussianBlur(radius=radii[severity])))
+
+
+def jpeg(image, severity, rng=None):
+    """JPEG compression, stepwise decreasing quality. severity 0 = identity.
+
+    Severity 0 returns the image untouched: JPEG is lossy even at q100
+    (chroma subsampling), and severity 0 must be the pristine image —
+    the linear probe trains on it.
+    Deterministic (rng accepted for signature parity, unused).
+    """
+    if severity == 0:
+        return image.copy()
+    import io
+    from PIL import Image
+    qualities = [100, 60, 40, 25, 15, 8]
+    buf = io.BytesIO()
+    Image.fromarray(image).save(buf, format="JPEG", quality=qualities[severity])
+    buf.seek(0)
+    return np.array(Image.open(buf).convert("RGB"))
+
+
+def contrast(image, severity, rng=None):
+    """Contrast reduction, blending toward the image's grayscale mean.
+
+    severity 0 = identity. Deterministic (rng accepted for parity, unused).
+    Follows the Hendrycks & Dietterich contrast-corruption convention.
+    """
+    factors = [1.0, 0.8, 0.6, 0.4, 0.25, 0.15]
+    img = image.astype(np.float32)
+    gray = img.mean(axis=2, keepdims=True)
+    img = factors[severity] * img + (1.0 - factors[severity]) * gray
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
+# Registry: corruption name -> function with the uniform
+# (image, severity, rng=None) -> uint8-HxWx3 signature.
+CORRUPTIONS = {
+    "low_light": low_light,
+    "blur": blur,
+    "jpeg": jpeg,
+    "contrast": contrast,
+}
+
+
+def get_corruption(name):
+    """Return the corruption function registered under `name`."""
+    if name not in CORRUPTIONS:
+        raise KeyError(f"Unknown corruption {name!r}; available: {sorted(CORRUPTIONS)}")
+    return CORRUPTIONS[name]
 
 
 def _fft_filter(image, cutoff_frac, keep="low"):
@@ -82,10 +149,13 @@ DINOV2_PREPROCESS = T.Compose([
 ])
 
 
-def load_dinov2(device=None):
-    """Load DINOv2 ViT-S/14 and return (model, num_blocks)."""
+def load_dinov2(device=None, model_name="dinov2_vits14"):
+    """Load a DINOv2 model from torch.hub and return (model, num_blocks).
+
+    model_name: any hub entry, e.g. "dinov2_vits14" (22M) or "dinov2_vitb14" (86M).
+    """
     device = device or DEVICE
-    model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
+    model = torch.hub.load("facebookresearch/dinov2", model_name)
     model.eval().to(device)
     return model, len(model.blocks)
 
@@ -367,13 +437,17 @@ def plot_cka_heatmap(cka_matrix, title="Layer-wise representational drift under 
 
 def plot_frequency_test(lowpass_accs, highpass_accs, ref_accs,
                         title="Which frequency band does DINOv2 actually depend on?",
-                        save_path=None):
-    """Plot frequency-domain corruption results."""
+                        save_path=None, ref_label="Low-light (reference)"):
+    """Plot frequency-domain corruption results.
+
+    ref_label: what the dashed reference curve represents — the caller's
+    severity-sweep corruption (e.g. "blur (reference)").
+    """
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(range(1, 6), lowpass_accs, marker="o", label="Low-pass (keeps low freq)")
     ax.plot(range(1, 6), highpass_accs, marker="s", label="High-pass (keeps high freq)")
     ax.plot(range(0, 6), ref_accs, marker="^", linestyle="--", color="gray",
-            label="Low-light (reference)")
+            label=ref_label)
     ax.set_xlabel("Corruption severity")
     ax.set_ylabel("DINOv2 linear probe accuracy")
     ax.set_title(title)
