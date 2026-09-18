@@ -28,18 +28,18 @@ Each phase answers one question and hands its finding to the next:
 |-------|----------|--------|---------------------|
 | **1 — Measure** | *How bad is it?* | Accuracy collapses **0.91 → 0.09**; embeddings drift to near-orthogonality (cos 1.00 → 0.16) | The failure is real, severe, and representational — *but where?* |
 | **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.81 at block 10 vs 0.58 at patch embed); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
-| **3 — Remediate** | *Can it be fixed cheaply?* | LoRA on those attention layers (0.99% of params, 70/30 dark/clean diet) restores **mean 0.60 → 0.81**, **worst-case 4.2×**, clean accuracy unchanged-or-better | Confirms the causal story: fix the localized shift, recover the robustness |
+| **3 — Remediate** | *Can it be fixed cheaply?* | LoRA on those attention layers (0.99% of params, 70/30 dark/clean diet) restores **mean 0.59 → 0.82**, **worst-case 5.1×**, clean accuracy unchanged-or-better | Confirms the causal story: fix the localized shift, recover the robustness |
 
-All phases on one axis — accuracy per severity (Phase 3 run; the original column matches Phase 1 within run-to-run noise from the different test-sample sizes):
+All phases on one axis — accuracy per severity (Phase 3 fixed-augmentation run; the original column matches Phase 1 within eval-noise jitter):
 
 | Severity | Original DINOv2 | Embedding drift (cos sim) | + LoRA | Gap recovered |
 |----------|-----------------|---------------------------|--------|---------------|
-| 0 (clean) | 0.913 | 1.000 | 0.960 | clean gets *better* |
-| 1 | 0.893 | 0.946 | 0.953 | +0.060 |
-| 2 | 0.863 | 0.810 | 0.943 | +0.080 |
-| 3 | 0.630 | 0.589 | 0.900 | +0.270 |
-| 4 | 0.237 | 0.309 | 0.773 | +0.537 |
-| 5 (darkest) | 0.080 | 0.161 | 0.337 | +0.257 |
+| 0 (clean) | 0.913 | 1.000 | 0.953 | clean gets *better* |
+| 1 | 0.903 | 0.946 | 0.953 | +0.050 |
+| 2 | 0.860 | 0.810 | 0.937 | +0.077 |
+| 3 | 0.603 | 0.589 | 0.883 | +0.280 |
+| 4 | 0.213 | 0.309 | 0.807 | +0.593 |
+| 5 (darkest) | 0.073 | 0.161 | 0.377 | +0.303 |
 
 The drift column is the Phase 1/2 fingerprint: accuracy loss tracks embedding drift almost linearly. The LoRA column shows the recovery tracks the *same axis back up*. One phenomenon, measured, explained, and reversed.
 
@@ -91,29 +91,29 @@ CKA drop (clean → severity 5) by layer — full matrix in `output/notebook2/ck
 
 ### Phase 3 — LoRA on late attention layers recovers most of the loss
 
-LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params = 0.99%** of the network, trained 10 epochs on 5000 images (70% darkened / 30% clean). Free-tier Colab T4, ~10 minutes.
+LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params = 0.99%** of the network, trained 10 epochs on 5000 images (70% darkened / 30% clean). Free-tier Colab T4, ~10 minutes of training. This is the **run of record**: per-sample seeded augmentation RNG and matched-noise evaluation (see `docs/METHODS.md` §7.3, §9.6–9.7); artifacts in `colab_results/lora_run_fixed/`.
 
 | Severity | Original | LoRA | Δ |
 |----------|----------|------|-----|
-| 0 (clean) | 0.913 | 0.960 | +0.047 |
-| 1 | 0.893 | 0.953 | +0.060 |
-| 2 | 0.863 | 0.943 | +0.080 |
-| 3 | 0.630 | 0.900 | **+0.270** |
-| 4 | 0.237 | 0.773 | **+0.537** |
-| 5 (darkest) | 0.080 | 0.337 | **+0.257** |
-| **Mean** | **0.603** | **0.811** | **+0.208** |
+| 0 (clean) | 0.913 | 0.953 | +0.040 |
+| 1 | 0.903 | 0.953 | +0.050 |
+| 2 | 0.860 | 0.937 | +0.077 |
+| 3 | 0.603 | 0.883 | **+0.280** |
+| 4 | 0.213 | 0.807 | **+0.593** |
+| 5 (darkest) | 0.073 | 0.377 | **+0.303** |
+| **Mean** | **0.594** | **0.818** | **+0.224** |
 
-**Worst-case accuracy improved 4.2×**, the near-failure regime (severity 4) recovered to 0.77, and clean accuracy *rose* — no catastrophic forgetting from the mixed diet.
+**Worst-case accuracy improved 5.1×** (0.073 → 0.377), the near-failure regime (severity 4) recovered to 0.81, and clean accuracy *rose* — no catastrophic forgetting from the mixed diet.
 
-![Original vs LoRA accuracy](colab_results/lora_run/lora_vs_orig_accuracy.png)
+![Original vs LoRA accuracy](colab_results/lora_run_fixed/lora_vs_orig_accuracy.png)
 
-![LoRA training curves](colab_results/lora_run/lora_training_curves.png)
+![LoRA training curves](colab_results/lora_run_fixed/lora_training_curves.png)
 
 ---
 
 ## The Story in One Paragraph
 
-DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.21 mean accuracy and 4.2× worst-case robustness at a training cost of ~10 GPU-minutes. Robustness to darkness in self-supervised ViTs is cheap to buy back — if you know where to look.
+DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.22 mean accuracy and 5.1× worst-case robustness at a training cost of ~10 GPU-minutes. Robustness to darkness in self-supervised ViTs is cheap to buy back — if you know where to look.
 
 ---
 
