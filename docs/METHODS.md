@@ -149,6 +149,35 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 
 **Artifact of record.** The results quoted in the docs come from the post-augmentation-fix, matched-noise-script run: `colab_results/lora_run_fixed/` (log + both plots). The earlier `colab_results/lora_run/` artifacts predate both fixes and are retained for comparison only.
 
+### 7.4 Phase 3 v2 grid (six arms)
+
+All arms share the §7.2 diet (5,000 images, 70% corrupted / 30% clean, 10 epochs, AdamW) and the §7.3 matched-noise evaluation. The Phase 0 refactor made each arm a flag combination of one script; artifacts of record in `colab_results/sessionD/<arm>/` (log, plots, `lora_adapters.pt`).
+
+| Arm | Invocation | Trainable params | Notes |
+|-----|------------|------------------|-------|
+| `seed{42,43,44}_all` | `--seed {42,43,44} --layers all` | 221,184 (0.99%) | uniform rank-8 error bars |
+| `late` | `--seed 42 --layers late` | 55,296 (0.25%) | rank-8 on blocks 9–11 only |
+| `drift` | `--seed 42 --layers drift` | 172,800 (0.78%) | per-block ranks ∝ CKA drop (below) |
+| `fullft` | `--seed 42 --layers fullft` | 22,056,576 (100%) | backbone lr 1e-5, head lr 1e-3; optimizer param groups disjoint |
+
+**Drift-weighted rank allocation.** Ranks are proportional to the sev-5 CKA drop profile of §4's artifact (`output/notebook2/cka_matrix.csv`), embedded in the script as `DEFAULT_DRIFT = [0.58, 0.61, 0.44, 0.47, 0.53, 0.53, 0.58, 0.68, 0.76, 0.77, 0.81, 0.78]`. Allocation: block-wise rank = `round(r × drop_i / max(drop))`; blocks rounding below 1 would be dropped entirely (none at r = 8 with this profile), giving `{0:6, 1:6, 2:4, 3:5, 4:5, 5:5, 6:6, 7:7, 8:8, 9:8, 10:8, 11:8}` — all 24 modules adapted, 172,800 trainable. `--drift-csv` overrides the embedded profile with a recomputed CKA matrix.
+
+**Cross-seed comparability caveat.** Each run draws its own 1,000-image test set seeded by `--seed` (§5 registry), so rows with different seeds differ in both init *and* test draw. Within any row, Original vs adapted columns are image- and noise-matched.
+
+### 7.5 ExDark real-dark suite (`run_exdark_baseline.py`)
+
+| Item | Value |
+|------|-------|
+| Dataset | ExDark, 7,363 images, 12 classes (Kaggle mirror `mangosata/exclusivelydarkimagedataset-from-csbdu`, per-class counts match official stats) |
+| Labels | directory structure (no lighting tags survive in any public mirror) |
+| Darkness axis | empirical: mean Rec.601 luminance per image (0–255 scale); dataset median 33.1, range 0.5–157.3 |
+| Probe | logistic regression on frozen DINOv2 embeddings, stratified 70/30, `random_state=42` |
+| Passes | (1) raw, (2) CLAHE-enhanced (`cv2.createCLAHE`, tile 8×8, clip 2.0, on L-channel of LAB), (3) adapter transfer — rebuild LoRA from `lora_adapters.pt` (adapter tensors + per-block rank config), load into a fresh pristine hub model, embed, probe on the same split |
+| Feature cache | `--cache-feats` memoizes raw+CLAHE base-model features (model-keyed npz in the output dir); transfer runs share it via copy |
+| Environment | local CPU, streaming batches of 16 (peak RSS ~1 GB) |
+
+Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness only; ExDark images are used exclusively for evaluation; the probe split (`random_state=42`) is identical across all passes, so raw-vs-adapted deltas are computed on the same test indices.
+
 ---
 
 ## 8. Random Seed Registry
@@ -162,6 +191,8 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 | Bootstrap | severity index (0–5) | per-severity resampling independence |
 | LoRA per-batch corruption / flips | per-sample `default_rng(seed=idx)` | training-time augmentation; worker-correlation fix (see §9.6) |
 | Eval-time corruption (Phase 3) | 1000 + severity | matched-noise comparison; see §7.3 |
+| Phase 3 v2 arms | `--seed` per arm (42/43/44) | test-set draw, torch init, shuffling — see §7.4 comparability caveat |
+| ExDark suite | 42 | stratified 70/30 split, identical across all passes |
 
 ---
 

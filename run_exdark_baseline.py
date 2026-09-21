@@ -55,6 +55,8 @@ def parse_args():
     p.add_argument("--adapters-rank", type=int, default=8,
                    help="base rank used when the adapters were trained (fallback if ckpt lacks config)")
     p.add_argument("--max-per-class", type=int, default=None, help="cap images per class (smoke tests)")
+    p.add_argument("--cache-feats", action="store_true",
+                   help="cache/ reuse raw+CLAHE base-model features across runs (model-keyed npz in the output dir)")
     return p.parse_args()
 
 
@@ -75,24 +77,31 @@ print("=" * 60)
 # ---------------------------------------------------------------------------
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG")
 
-images, labels, luminance = [], [], []
+paths, labels, luminance = [], [], []
 for ci, cls in enumerate(CLASSES):
     folder = os.path.join(ARGS.data_root, cls)
     files = sorted(f for f in os.listdir(folder) if f.endswith(IMG_EXTS))
     if ARGS.max_per_class:
         files = files[: ARGS.max_per_class]
+    n_ok = 0
     for fname in files:
-        img = np.array(Image.open(os.path.join(folder, fname)).convert("RGB"))
-        images.append(img)
+        img = cv2.imread(os.path.join(folder, fname), cv2.IMREAD_COLOR)
+        if img is None:
+            print(f"  WARNING: unreadable, skipping {cls}/{fname}")
+            continue
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        paths.append(os.path.join(folder, fname))
         labels.append(ci)
         # Empirical darkness axis: mean Rec.601 luminance in [0, 255]
         lum = float((0.299 * img[..., 0] + 0.587 * img[..., 1] + 0.114 * img[..., 2]).mean())
         luminance.append(lum)
-    print(f"  {cls}: {len(files)} images")
+        del img
+        n_ok += 1
+    print(f"  {cls}: {n_ok}/{len(files)} images")
 
 labels = np.array(labels)
 luminance = np.array(luminance)
-print(f"Total: {len(images)} images")
+print(f"Total: {len(paths)} images")
 print(f"Luminance: mean={luminance.mean():.1f}, median={np.median(luminance):.1f}, "
       f"[min={luminance.min():.1f}, max={luminance.max():.1f}]")
 
@@ -105,8 +114,9 @@ def clahe_enhance(img_bgr):
     return cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
 
 
-print("Computing CLAHE-enhanced copies...")
-images_clahe = [clahe_enhance(img) for img in images]
+# NOTE: CLAHE is applied in-flight inside embed() (streaming). Never materialize
+# all enhanced frames — the raw set alone (7,363 multi-MP photos) plus a copy
+# exhausted 30GB RAM (two silent SIGKILLs at this exact point).
 
 
 # ---------------------------------------------------------------------------
@@ -115,17 +125,39 @@ images_clahe = [clahe_enhance(img) for img in images]
 model, n_blocks = load_dinov2(model_name=ARGS.model)
 print(f"DINOv2 loaded, {n_blocks} blocks.")
 
+# --- Optional feature cache: base-model raw+CLAHE feats are transfer-run invariant ---
+_cache_path = os.path.join(OUT, f"feature_cache_{ARGS.model}.npz") if ARGS.cache_feats else None
+if _cache_path and os.path.exists(_cache_path):
+    _z = np.load(_cache_path)
+    raw_feats, clahe_feats = _z["raw"], _z["clahe"]
+    print(f"Loaded cached base features: raw {raw_feats.shape}, clahe {clahe_feats.shape}")
+else:
+    raw_feats = None  # computed below, in protocol order
+    clahe_feats = None
+
 
 @torch.no_grad()
-def embed(model_, img_list, batch_size=32):
+def embed(model_, path_list, batch_size=16, clahe=False):
+    """Stream images from disk: decode -> (optional CLAHE) -> preprocess -> forward.
+    Only one batch is resident in memory at a time."""
     feats = []
-    for i in range(0, len(img_list), batch_size):
-        batch = img_list[i:i + batch_size]
+    for i in range(0, len(path_list), batch_size):
+        batch = []
+        for pth in path_list[i:i + batch_size]:
+            img = cv2.imread(pth, cv2.IMREAD_COLOR)
+            if img is None:
+                raise RuntimeError(f"unreadable at embed time: {pth}")
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            if clahe:
+                img = clahe_enhance(img)
+            batch.append(img)
         tensors = torch.stack([DINOV2_PREPROCESS(img) for img in batch]).to(DEVICE)
         out = model_(tensors)
         if out.dim() == 3:
             out = out[:, 0, :]
         feats.append(out.cpu())
+        print(f"\r    embedded {min(i + batch_size, len(path_list))}/{len(path_list)}", end="", flush=True)
+    print()
     return torch.cat(feats, dim=0).numpy()
 
 
@@ -182,14 +214,19 @@ def probe_protocol(feats, tag):
 results = {}
 
 print("\n>>> Pass 1: raw real-dark embeddings")
-raw_feats = embed(model, images)
+if raw_feats is None:
+    raw_feats = embed(model, paths)
 probe_raw, acc_raw, idx_test, y_test = probe_protocol(raw_feats, "raw")
 results["raw"] = acc_raw
 
 print("\n>>> Pass 2: CLAHE-enhanced embeddings")
-clahe_feats = embed(model, images_clahe)
+if clahe_feats is None:
+    clahe_feats = embed(model, paths, clahe=True)
 probe_clahe, acc_clahe, _, _ = probe_protocol(clahe_feats, "clahe")
 results["clahe"] = acc_clahe
+if _cache_path and not os.path.exists(_cache_path):
+    np.savez_compressed(_cache_path, raw=raw_feats, clahe=clahe_feats)
+    print(f"Cached base features -> {_cache_path}")
 
 # --- Darkness-response curve (quintiles of luminance, on the raw pass) ---
 print("\n>>> Darkness-response curve (raw pass, luminance quintiles)")
@@ -228,7 +265,7 @@ if ARGS.adapters and os.path.exists(ARGS.adapters):
     ckpt = torch.load(ARGS.adapters, map_location="cpu", weights_only=False)
     rebuild_with_adapters(ckpt)
     model.eval().to(DEVICE)
-    lora_feats = embed(model, images)
+    lora_feats = embed(model, paths)
     # Freeze everything again for probing (probe trains on frozen features)
     for p_ in model.parameters():
         p_.requires_grad = False

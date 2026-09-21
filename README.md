@@ -109,11 +109,25 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 ![LoRA training curves](colab_results/lora_run_fixed/lora_training_curves.png)
 
+**Phase 3 v2 — the full comparison grid.** The Phase 0 refactor of `run_lora_simple_colab.py` turned each extension into a flag, enabling the three arms the original single-run design lacked: multi-seed error bars, CKA-guided rank allocation, and the full fine-tuning baseline. Artifacts: `colab_results/sessionD/`; full discussion in `docs/RESEARCH.md` §6.1–6.2.
+
+| Arm | Trainable params | Mean acc (sev 0–5) | Sev 5 (darkest) | Clean (sev 0) |
+|-----|-----------------|--------------------|-----------------|---------------|
+| Original (frozen) | 0 | 0.598 | 0.083 | 0.913 |
+| Uniform LoRA r8 (seeds 42 / 43 / 44) | 221,184 (0.99%) | 0.815 / 0.828 / 0.839 | 0.387 / 0.370 / 0.413 | 0.960–0.980 |
+| Late-only (blocks 9–11, r8) | 55,296 (0.25%) | 0.686 | 0.160 | 0.937 |
+| **Drift-weighted ranks (∝ CKA drop)** | **172,800 (0.78%)** | **0.811** | 0.380 | 0.963 |
+| Full fine-tuning | 22,056,576 (100%) | 0.810 | 0.393 | 0.947 |
+
+**Read:** CKA-guided ranks match uniform LoRA and full fine-tuning at **0.78%** of the trainable parameters; full FT buys no extra robustness and posts the *worst* clean accuracy (forgetting cost); late-only shows the drift profile needs a total-budget floor. The ~2.4-point seed spread sets the resolution of any comparison — parity is claimed, superiority is not.
+
+**Sim-to-real (ExDark, 7,363 real low-light photographs).** Frozen DINOv2 probes at **0.725** with a *flat* darkness-response curve (darkest quintile 0.713 vs brightest 0.704); CLAHE buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse. Synthetic-dark adapters (drift arm, trained only on CIFAR darkness) lift real-dark accuracy to **0.743 (+1.9 pts)**; the uniform arm transfers **0.741 (+1.6 pts)** — indistinguishable, matching the synthetic-grid parity. Genuine transfer, but only ~9% of the +21-point gain the same adapters buy on the synthetic severity axis. The study quantifies the sim-to-real gap rather than assuming it away.
+
 ---
 
 ## The Story in One Paragraph
 
-DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.22 mean accuracy and 5.1× worst-case robustness at a training cost of ~10 GPU-minutes. Robustness to darkness in self-supervised ViTs is cheap to buy back — if you know where to look.
+DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.22 mean accuracy and 5.1× worst-case robustness at a training cost of ~10 GPU-minutes — and letting the CKA diagnostic allocate the adaptation budget (drift-weighted ranks) matches both uniform LoRA and full fine-tuning at 0.78% of the parameters. On real darkness the story sharpens: ExDark accuracy is flat across luminance and enhancement buys nothing, yet synthetic-dark adapters still transfer +1.9 points — synthetic extreme darkening and real low light are different regimes, and the gap is now measured, not assumed.
 
 ---
 
@@ -147,11 +161,12 @@ colab exec -s lora_run -f launch_lora.py    # nohup-detached launcher
 | `utils.py` | Shared library: corruption fns, DINOv2 loading, hook extraction, linear probe, CKA, bootstrap CI, plotting |
 | `run_notebook1.py` / `run_notebook1_colab.py` | Phase 1 runner (local / Colab) |
 | `run_notebook2.py` / `run_notebook2_colab.py` | Phase 2 runner: CKA, frequency ablation, bootstrap CIs (local / Colab) |
-| `run_lora_simple_colab.py` | Phase 3: manual LoRA (no PEFT dependency) — used for the results above |
+| `run_lora_simple_colab.py` | Phase 3: manual LoRA (no PEFT dependency) — parameterized (rank/layers/seed/corruption/model); produced the results above |
+| `run_exdark_baseline.py` | ExDark real-dark suite: 12-class probe, darkness-response curve, CLAHE control, adapter transfer (streaming, feature cache) |
 | `run_lora_finetune_colab.py` | Phase 3 alternative using the PEFT library |
 | `dinov2_*.ipynb` | Original notebook forms of all three phases |
 | `output/notebook1/`, `output/notebook2/` | Local results: CSVs, accuracy/drift plots, CKA heatmap, bootstrap CI, frequency test |
-| `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs) |
+| `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs, Phase 3 v2 grid in `sessionD/`) |
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
 | `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
 | `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |
@@ -162,4 +177,5 @@ colab exec -s lora_run -f launch_lora.py    # nohup-detached launcher
 - Phase 1/2 linear probes: 80/20 train/test split on clean embeddings, evaluated per severity
 - CKA: linear CKA with `sqrt` normalization (`CKA = HSIC(X,Y) / sqrt(HSIC(X,X)·HSIC(Y,Y))`), unbiased by clean-vs-degraded sample pairing
 - Bootstrap: 1000 resamples, per-severity independent RNG seeds
-- LoRA: AdamW with deduplicated parameter groups (head params excluded from the adapter group), lr as in script, batch 32, 10 epochs
+- LoRA: AdamW with deduplicated parameter groups (head params excluded from the adapter group), lr as in script, batch 64, 10 epochs
+- ExDark suite: stratified 70/30 split (seed 42) identical across all passes; adapters rebuilt from the rank config embedded in `lora_adapters.pt`
