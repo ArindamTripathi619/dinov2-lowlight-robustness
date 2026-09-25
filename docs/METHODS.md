@@ -149,7 +149,7 @@ Same protocol as §6: probe on clean LoRA embeddings (70/30, seed 42), evaluated
 
 **Artifact of record.** The results quoted in the docs come from the post-augmentation-fix, matched-noise-script run: `colab_results/lora_run_fixed/` (log + both plots). The earlier `colab_results/lora_run/` artifacts predate both fixes and are retained for comparison only.
 
-### 7.4 Phase 3 v2 grid (six arms)
+### 7.4 Phase 3 v2 grid (nine arms)
 
 All arms share the §7.2 diet (5,000 images, 70% corrupted / 30% clean, 10 epochs, AdamW) and the §7.3 matched-noise evaluation. The Phase 0 refactor made each arm a flag combination of one script; artifacts of record in `colab_results/sessionD/<arm>/` (log, plots, `lora_adapters.pt`).
 
@@ -157,10 +157,10 @@ All arms share the §7.2 diet (5,000 images, 70% corrupted / 30% clean, 10 epoch
 |-----|------------|------------------|-------|
 | `seed{42,43,44}_all` | `--seed {42,43,44} --layers all` | 221,184 (0.99%) | uniform rank-8 error bars |
 | `late` | `--seed 42 --layers late` | 55,296 (0.25%) | rank-8 on blocks 9–11 only |
-| `drift` | `--seed 42 --layers drift` | 172,800 (0.78%) | per-block ranks ∝ CKA drop (below) |
-| `fullft` | `--seed 42 --layers fullft` | 22,056,576 (100%) | backbone lr 1e-5, head lr 1e-3; optimizer param groups disjoint |
+| `drift` | `--seed {42,43,44} --layers drift` | 172,800 (0.78%) | per-block ranks ∝ CKA drop (below); 3-seed replicated |
+| `fullft` | `--seed {42,43,44} --layers fullft` | 22,056,576 (100%) | backbone lr 1e-5, head lr 1e-3; optimizer param groups disjoint; 3-seed replicated |
 
-**Drift-weighted rank allocation.** Ranks are proportional to the sev-5 CKA drop profile of §4's artifact (`output/notebook2/cka_matrix.csv`), embedded in the script as `DEFAULT_DRIFT = [0.58, 0.61, 0.44, 0.47, 0.53, 0.53, 0.58, 0.68, 0.76, 0.77, 0.81, 0.78]`. Allocation: block-wise rank = `round(r × drop_i / max(drop))`; blocks rounding below 1 would be dropped entirely (none at r = 8 with this profile), giving `{0:6, 1:6, 2:4, 3:5, 4:5, 5:5, 6:6, 7:7, 8:8, 9:8, 10:8, 11:8}` — all 24 modules adapted, 172,800 trainable. `--drift-csv` overrides the embedded profile with a recomputed CKA matrix.
+**Drift-weighted rank allocation.** Ranks are proportional to the sev-5 CKA drop profile of §4's artifact (`output/notebook2/cka_matrix.csv`), embedded in the script as `DEFAULT_DRIFT = [0.58, 0.61, 0.44, 0.47, 0.53, 0.53, 0.58, 0.68, 0.76, 0.77, 0.81, 0.78]`. Allocation: block-wise rank = `round(r × drop_i / max(drop))`; blocks rounding below 1 would be dropped entirely (none at r = 8 with this profile), giving `{0:6, 1:6, 2:4, 3:5, 4:5, 5:5, 6:6, 7:7, 8:7, 9:8, 10:8, 11:8}` (block 8: 8 × 0.763/0.815 = 7.49 → 7) — all 24 modules adapted, 172,800 trainable. `--drift-csv` overrides the embedded profile with a recomputed CKA matrix.
 
 **Cross-seed comparability caveat.** Each run draws its own 1,000-image test set seeded by `--seed` (§5 registry), so rows with different seeds differ in both init *and* test draw. Within any row, Original vs adapted columns are image- and noise-matched.
 

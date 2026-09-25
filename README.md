@@ -111,15 +111,15 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 **Phase 3 v2 — the full comparison grid.** The Phase 0 refactor of `run_lora_simple_colab.py` turned each extension into a flag, enabling the three arms the original single-run design lacked: multi-seed error bars, CKA-guided rank allocation, and the full fine-tuning baseline. Artifacts: `colab_results/sessionD/`; full discussion in `docs/RESEARCH.md` §6.1–6.2.
 
-| Arm | Trainable params | Mean acc (sev 0–5) | Sev 5 (darkest) | Clean (sev 0) |
+| Arm | Trainable params | Mean acc ± SD (3 seeds) | Sev 5 mean | Clean mean |
 |-----|-----------------|--------------------|-----------------|---------------|
 | Original (frozen) | 0 | 0.598 | 0.083 | 0.913 |
-| Uniform LoRA r8 (seeds 42 / 43 / 44) | 221,184 (0.99%) | 0.815 / 0.828 / 0.839 | 0.387 / 0.370 / 0.413 | 0.960–0.980 |
+| Uniform LoRA r8 | 221,184 (0.99%) | 0.827 ± 0.012 (0.815–0.839) | 0.390 | 0.972 |
 | Late-only (blocks 9–11, r8) | 55,296 (0.25%) | 0.686 | 0.160 | 0.937 |
-| **Drift-weighted ranks (∝ CKA drop)** | **172,800 (0.78%)** | **0.811** | 0.380 | 0.963 |
-| Full fine-tuning | 22,056,576 (100%) | 0.810 | 0.393 | 0.947 |
+| **Drift-weighted ranks (∝ CKA drop)** | **172,800 (0.78%)** | **0.825 ± 0.016 (0.811–0.842)** | 0.371 | 0.973 |
+| Full fine-tuning | 22,056,576 (100%) | 0.831 ± 0.019 (0.810–0.846) | 0.436 | 0.960 |
 
-**Read:** CKA-guided ranks match uniform LoRA and full fine-tuning at **0.78%** of the trainable parameters; full FT buys no extra robustness and posts the *worst* clean accuracy (forgetting cost); late-only shows the drift profile needs a total-budget floor. The ~2.4-point seed spread sets the resolution of any comparison — parity is claimed, superiority is not.
+**Read:** CKA-guided ranks match uniform LoRA and full fine-tuning at **0.78%** of the trainable parameters — now with 3-seed error bars on every headline arm, all ranges fully overlapping; full FT buys no extra mean robustness and posts the *worst* clean accuracy (forgetting cost, replicating across seeds); late-only shows the drift profile needs a total-budget floor. Per-arm SDs (±1.2–1.9 points) set the resolution of any comparison — parity is claimed, superiority is not. Per-severity cells for all nine arms: `docs/RESEARCH.md` §6.1; 3-seed table: `output/seed_replication/seed_analysis.csv`.
 
 **Sim-to-real (ExDark, 7,363 real low-light photographs).** Frozen DINOv2 probes at **0.725** with a *flat* darkness-response curve (darkest quintile 0.713 vs brightest 0.704); CLAHE buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse. Synthetic-dark adapters (drift arm, trained only on CIFAR darkness) lift real-dark accuracy to **0.743 (+1.9 pts)**; the uniform arm transfers **0.741 (+1.6 pts)** — indistinguishable, matching the synthetic-grid parity. Genuine transfer, but only ~9% of the +21-point gain the same adapters buy on the synthetic severity axis. The study quantifies the sim-to-real gap rather than assuming it away.
 
