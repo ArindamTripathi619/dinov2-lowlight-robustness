@@ -1,0 +1,90 @@
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+============================================================
+LoRA Fine-Tuning Experiment (parameterized)
+  rank=8 alpha=16 mix=0.7 layers=drift
+  seed=43 model=dinov2_vits14 corruption=low_light epochs=10
+============================================================
+Device: cuda
+
+>>> Loading CIFAR-10
+Test: 1000, Train: 5000
+
+>>> Loading DINOv2
+Downloading: "https://github.com/facebookresearch/dinov2/zipball/main" to /root/.cache/torch/hub/main.zip
+Downloading: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth" to /root/.cache/torch/hub/checkpoints/dinov2_vits14_pretrain.pth
+  0%|          | 0.00/84.2M [00:00<?, ?B/s] 14%|█▍        | 12.0M/84.2M [00:00<00:00, 126MB/s] 56%|█████▌    | 46.9M/84.2M [00:00<00:00, 266MB/s] 97%|█████████▋| 81.8M/84.2M [00:00<00:00, 311MB/s]100%|██████████| 84.2M/84.2M [00:00<00:00, 287MB/s]
+
+>>> Applying adaptation to attention layers
+  Drift-weighted ranks: {0: 6, 1: 6, 2: 4, 3: 5, 4: 5, 5: 5, 6: 6, 7: 7, 8: 7, 9: 8, 10: 8, 11: 8}
+Total params: 22,229,376
+Trainable (LoRA/adapters): 172,800 (0.78%)
+LoRA modules: 24 across 12 targeted block(s)
+Training: 5000 images (70% corruption aug, low_light)
+
+>>> Training
+  Epoch 1/10: loss=0.8816, acc=0.7084
+  Epoch 2/10: loss=0.2666, acc=0.9132
+  Epoch 3/10: loss=0.1885, acc=0.9362
+  Epoch 4/10: loss=0.1444, acc=0.9528
+  Epoch 5/10: loss=0.1093, acc=0.9662
+  Epoch 6/10: loss=0.0854, acc=0.9748
+  Epoch 7/10: loss=0.0714, acc=0.9802
+  Epoch 8/10: loss=0.0506, acc=0.9876
+  Epoch 9/10: loss=0.0332, acc=0.9936
+Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main
+  Epoch 10/10: loss=0.0227, acc=0.9984
+Saved lora_training_curves.png
+Saved lora_adapters.pt (48 adapter tensors)
+
+>>> Extracting embeddings with LoRA model
+  severity 0: (1000, 384)
+  severity 1: (1000, 384)
+  severity 2: (1000, 384)
+  severity 3: (1000, 384)
+  severity 4: (1000, 384)
+  severity 5: (1000, 384)
+
+>>> Linear probe evaluation
+  severity 0: 0.980
+  severity 1: 0.977
+  severity 2: 0.967
+  severity 3: 0.930
+  severity 4: 0.757
+  severity 5: 0.317
+
+>>> Loading original DINOv2 for comparison
+
+>>> Generating comparison plots
+Saved lora_vs_orig_accuracy.png
+
+============================================================
+LORA EXPERIMENT COMPLETE
+============================================================
+
+Config: corruption=low_light, model=dinov2_vits14, layers=drift
+  rank=8, alpha=16, per-block ranks={0: 6, 1: 6, 2: 4, 3: 5, 4: 5, 5: 5, 6: 6, 7: 7, 8: 7, 9: 8, 10: 8, 11: 8}
+  mix=0.7, seed=43, epochs=10
+Trainable: 172,800 / 22,229,376 (0.78%)
+Training: 10 epochs, 5000 images (70% low_light aug)
+
+Severity     Original       LoRA      Delta
+------------------------------------------
+0              0.9433     0.9800    +0.0367
+1              0.9400     0.9767    +0.0367
+2              0.8833     0.9667    +0.0833
+3              0.6200     0.9300    +0.3100
+4              0.2000     0.7567    +0.5567
+5              0.1000     0.3167    +0.2167
+
+Mean accuracy: Original=0.6144, LoRA=0.8211, Delta=+0.2067
+Sev 5 (darkest): Original=0.1000, LoRA=0.3167, Delta=+0.2167
+
+--- Verdict ---
+✅ LoRA improved mean accuracy by +0.2067
+✅ LoRA improved worst-case (sev 5) by +0.2167
+============================================================

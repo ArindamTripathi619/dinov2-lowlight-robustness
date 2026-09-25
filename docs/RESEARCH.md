@@ -133,17 +133,21 @@ Phase 3 v2 turns the original single-run result into a defensible comparison gri
 | Uniform LoRA r8, seed 43 | 221,184 (0.99%) | 0.980 | 0.967 | 0.917 | 0.757 | 0.370 | 0.828 |
 | Uniform LoRA r8, seed 44 | 221,184 (0.99%) | 0.977 | 0.967 | 0.930 | 0.777 | 0.413 | 0.839 |
 | Late-only LoRA (blocks 9–11, r8) | 55,296 (0.25%) | 0.937 | 0.903 | 0.723 | 0.460 | 0.160 | 0.686 |
-| **Drift-weighted LoRA** (ranks ∝ CKA drop) | 172,800 (0.78%) | 0.963 | 0.937 | 0.890 | 0.750 | 0.380 | 0.811 |
-| Full fine-tuning (backbone lr 1e-5, head lr 1e-3) | 22,056,576 (100%) | 0.947 | 0.923 | 0.890 | 0.750 | 0.393 | 0.810 |
+| **Drift-weighted LoRA**, seed 42 (ranks ∝ CKA drop) | 172,800 (0.78%) | 0.963 | 0.937 | 0.890 | 0.750 | 0.380 | 0.811 |
+| Drift-weighted LoRA, seed 43 | 172,800 (0.78%) | 0.980 | 0.977 | 0.967 | 0.930 | 0.757 | 0.317 | 0.821 |
+| Drift-weighted LoRA, seed 44 | 172,800 (0.78%) | 0.977 | 0.973 | 0.973 | 0.930 | 0.780 | 0.417 | 0.842 |
+| Full fine-tuning, seed 42 (backbone lr 1e-5, head lr 1e-3) | 22,056,576 (100%) | 0.947 | 0.923 | 0.890 | 0.750 | 0.393 | 0.810 |
+| Full fine-tuning, seed 43 | 22,056,576 (100%) | 0.963 | 0.960 | 0.960 | 0.937 | 0.803 | 0.453 | 0.846 |
+| Full fine-tuning, seed 44 | 22,056,576 (100%) | 0.970 | 0.970 | 0.943 | 0.900 | 0.783 | 0.460 | 0.838 |
 
 *Note on cross-seed comparability:* each run draws its own 1,000-image test set (seeded per `--seed`), so rows using different seeds are not directly comparable cell-by-cell; within a row, Original vs adapted is image-matched and noise-matched. The three uniform rows therefore measure configuration-level variance (init + test draw), not pure init variance.
 
 **Findings from the grid:**
 
-1. **Parity at a fraction of the cost.** Drift-weighted (0.811), uniform (0.815/0.828/0.839 across seeds), and full fine-tuning (0.810) are statistically indistinguishable — while drift-weighting trains **0.78%** of the parameters and full FT trains 100%. The CKA diagnostic identified where adaptation budget matters.
-2. **Full FT buys nothing and costs clean accuracy.** Its mean (0.810) is at the bottom of the LoRA range, and its clean accuracy (0.947) is the *worst of all adapted arms* (LoRA arms: 0.960–0.980) — the predicted forgetting cost, now measured.
+1. **Parity at a fraction of the cost — now with 3-seed error bars on every headline arm.** Across seeds 42/43/44: drift-weighted 0.825 ± 0.016, uniform 0.827 ± 0.012, full fine-tuning 0.831 ± 0.019. All three ranges fully overlap — while drift-weighting trains **0.78%** of the parameters and full FT trains 100%. The CKA diagnostic identified where adaptation budget matters.
+2. **Full FT buys nothing on mean robustness and costs clean accuracy.** Its mean (0.831 ± 0.019) is statistically indistinguishable from both LoRA arms, and its clean accuracy is the *worst of all adapted arms* (seed mean 0.960 vs 0.972–0.973 for LoRA arms) — the predicted forgetting cost, now replicating across all three seeds. Full FT shows a hint of better extreme-dark accuracy (sev-5 mean 0.436 vs 0.371–0.390), but per-severity seed spread (0.04–0.10 across arms) keeps even that within noise.
 3. **Late-only is a useful negative result.** CKA says drift is late-concentrated, but rank-8 on blocks 9–11 only (0.25% of params) reaches just 0.686 — total adaptation budget matters too; the drift profile says where budget helps, not that early blocks need none.
-4. **Seed spread is real.** Uniform means span 0.815–0.839 (~2.4 points). Any claim of one adapter configuration *beating* another by less than this spread would be unjustified — which is exactly why drift-vs-uniform is claimed as *parity*, not superiority.
+4. **Seed spread is real and now quantified per arm.** SDs: uniform ±1.2, drift ±1.6, full-FT ±1.9 points (ranges 0.815–0.839 / 0.811–0.842 / 0.810–0.846). Any claim of one configuration *beating* another by less than ~1.5 points is unjustified — which is exactly why drift-vs-uniform is claimed as *parity*, not superiority.
 
 ### 6.2 Sim-to-real: does synthetic-dark adaptation transfer to real darkness?
 
@@ -211,7 +215,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 - **Real-dark validation is bounded by ExDark's luminance range.** ExDark is dark but not extreme; the flat accuracy curve shows the synthetic collapse (an extreme, lower-luminance regime) simply does not manifest there. Findings about *extreme* darkness remain synthetic-only.
 - **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; ViT-B generality is planned but unverified here.
 - **Linear probe ceiling.** A stronger head might partially compensate for feature drift; we measured the *linear* story deliberately.
-- **Residual single-run arms.** Uniform LoRA has 3-seed error bars (spread ~2.4 points); the drift-weighted and full-FT arms are single runs each. Given that spread, we claim only parity — superiority of either would need matching seed replication. Rank × mix-ratio sweep remains future work.
+- **Seed noise and test-draw confound.** All three headline arms now carry 3-seed error bars (uniform ±1.2, drift ±1.6, full-FT ±1.9 points), but each seed also draws its own 1,000-image test set, so these SDs include test-draw variance, and per-severity spread is wide (0.04–0.10 at sev-5) — extreme-dark comparisons in particular remain underpowered. Rank × mix-ratio sweep remains future work.
 
 ---
 
@@ -221,7 +225,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 - **Quantified the failure**: 0.91 → 0.09 accuracy, embeddings drifting to near-orthogonality.
 - **Localized and mechanistically explained it**: late-layer CKA drift + low-frequency dependence.
 - **Demonstrated the fix**: 0.99% of parameters, ~10 GPU-minutes, +0.22 mean / 5.1× worst-case recovery with no clean penalty.
-- **Closed the advisor's loop**: CKA-guided rank allocation matches uniform LoRA (0.811 vs 0.815–0.839) and full fine-tuning (0.810) at 0.78% of parameters, with the late-only ablation (0.686) showing the drift profile is informative but total budget also matters.
+- **Closed the advisor's loop with replicated evidence**: CKA-guided rank allocation matches uniform LoRA (0.825 ± 0.016 vs 0.827 ± 0.012, 3 seeds each) and full fine-tuning (0.831 ± 0.019) at 0.78% of parameters, with the late-only ablation (0.686) showing the drift profile is informative but total budget also matters.
 - **Quantified the sim-to-real gap**: real-dark baseline (0.725, flat luminance curve, null CLAHE control) and adapter transfer (+1.9 pts from synthetic-only training) on 7,363 real ExDark photographs.
 - **Hardened the science along the way**: corrected CKA formula, independent bootstrap seeds, deduplicated optimizer groups, per-sample augmentation RNG, matched-noise evaluation — each validated before results were trusted.
 - All findings, figures, and full training logs are versioned in this repository.
@@ -233,7 +237,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 1. **ViT-B generality** — does the late-layer drift signature hold at 86M params?
 2. **Corruption family expansion** — blur, JPEG, contrast: is this low-light-specific or general fragility? (Infrastructure shipped in the Phase 0 refactor: `--corruption blur|jpeg|contrast`, no code changes needed.)
 3. **LoRA sweep** — rank ∈ {4, 8, 16, 32} × mix ratio ∈ {50/50, 70/30, 90/10}: what is the *minimal* effective intervention?
-4. **Seed-replicate the drift and full-FT arms** — the uniform arm's 2.4-point seed spread sets the resolution any comparison needs.
+4. ~~Seed-replicate the drift and full-FT arms~~ — **done**: all three headline arms now have 3-seed error bars (uniform 0.827 ± 0.012, drift 0.825 ± 0.016, full-FT 0.831 ± 0.019; ranges fully overlap).
 5. **Real-dark adaptation** — the transfer result (+1.9 pts) is a floor, not a ceiling: fine-tune the probe (not just adapters) on a *small* real-dark split, or adapt with real-dark data mixed into the diet, and measure how much of the remaining gap closes. The ExDark infrastructure (darkness axis, CLAHE control, feature cache) supports this directly.
 6. ~~CKA drift as a predictor~~ — **done in Phase 3 v2**: per-layer drift measured in Phase 2 was converted directly into rank allocation, matching uniform LoRA at 22% fewer parameters.
 
