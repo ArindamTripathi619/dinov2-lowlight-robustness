@@ -192,14 +192,15 @@ Cosine drift tracks accuracy loss in every family — the "feature space moves" 
 |--------------|----------------------:|-----|----------------|
 | JPEG, drift-weighted | 0.586 → **0.779** | **+19.3** | biggest LoRA win yet; worst-case (sev-5) +25.7 pts |
 | JPEG, uniform | (session E) | — | chain completed upstream of the drift arm; eval retained |
+| blur, drift-weighted | 0.526 → **0.703** | **+17.7** | re-evaluated from retained session-E adapters; sev-5 0.143 → 0.303 |
+| blur, uniform r8 | 0.526 → 0.698 | +17.2 | parity again; drift edges worst-case (0.303 vs 0.270) |
 | contrast, uniform r8 | 0.885 → 0.960 | +7.5 | mild corruption, mild recovery |
 | contrast, drift-weighted | 0.885 → 0.954 | +6.9 | **graceful where drift-weighting has no signal** |
-| blur, both arms | trained; adapters retained | — | salvage truncated the eval logs; re-evaluate from adapters before quoting |
 
 Three findings:
 
-1. **The remediation generalizes.** Drift-weighted LoRA delivers the largest absolute gain of the study on JPEG (+19.3 pts) — a corruption it was never designed for — using only that family's own CKA drift profile for rank allocation.
-2. **The allocation rule is honest.** Contrast's CKA profile is ~flat (§5.1), so drift-weighting has no misallocated budget to fix — and it gracefully matches uniform (+6.9 vs +7.5, within the ±1.5-pt seed noise of §6.1). The rule degrades to uniform when the diagnostic says the failure is diffuse; it does not manufacture an advantage.
+1. **The remediation generalizes.** Drift-weighted LoRA delivers large gains on corruptions it was never designed for — JPEG +19.3 pts, blur +17.7 — using each family's own CKA drift profile for rank allocation. Gain size tracks fragility across the whole grid: low_light +22.4 > JPEG +19.3 ≈ blur +17.7 > contrast +7, i.e. adaptation recovers what the corruption destroys, and the Phase-1 curves predict where LoRA will pay.
+2. **The allocation rule is honest — and repeats its low-light signature.** On contrast the profile is ~flat (§5.1) and drift-weighting gracefully matches uniform (+6.9 vs +7.5). On blur — a frequency-destroying corruption with a genuinely late-heavy profile — drift again matches uniform on mean (+17.7 vs +17.2) while matching or edging worst-case (sev-5 0.303 vs 0.270), exactly as in the low-light grid (§6.1). The blur numbers come from a protocol-faithful re-evaluation of the retained session-E adapters (`run_blur_adapter_eval.py`); the re-evaluated original column reproduces Phase-1 exactly, certifying comparability.
 3. **Gain size tracks fragility.** +19.3 (JPEG, sev-5 0.273) > +7 (contrast, sev-5 0.840): adaptation recovers what the corruption destroys, so near-ceiling families have little to recover. The Phase-1 curves predict where LoRA will pay.
 
 Artifacts: `colab_results/kaggle_sessionF/` (per-arm plots + full logs), `colab_results/sessionE/`; numeric protocol in `docs/METHODS.md` §7.6.
@@ -273,7 +274,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 - **Synthetic-first design; real data used for validation only.** Our corruptions simulate darkness and frequency loss, not ISP pipelines, color casts, or exposure metadata. The ExDark suite (§6.2) quantifies the sim-to-real gap — adaptation transfers, but only ~9% of the synthetic-axis gain — rather than closing it.
 - **Real-dark validation is bounded by ExDark's luminance range.** ExDark is dark but not extreme; the flat accuracy curve shows the synthetic collapse (an extreme, lower-luminance regime) simply does not manifest there. Findings about *extreme* darkness remain synthetic-only.
 - **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; ViT-B generality is planned but unverified here.
-- **Corruption-family LoRA arms are single-seed (seed 42).** The §6.1 error bars (±1.2–1.9 pts across seeds) come from the low-light family; JPEG/contrast family deltas (+19.3/+6.9) exceed that noise comfortably, but family-level parity claims (contrast drift vs uniform) are single-seed and should not be over-read. Blur arms pending re-evaluation.
+- **Corruption-family LoRA arms are single-seed (seed 42).** The §6.1 error bars (±1.2–1.9 pts across seeds) come from the low-light family; family deltas (+19.3 JPEG, +17.7 blur, +6.9 contrast) exceed that noise comfortably, but family-level parity claims (drift vs uniform within blur or contrast) are single-seed and should not be over-read.
 - **Biased CKA estimator in the published allocation.** The drift-weighted ranks derive from the biased estimator's profile; the unbiased recompute shifts 3 of 12 block ranks by one (§5.1) without changing the late-heavy structure. A LoRA re-run on the unbiased profile is planned but unverified.
 - **Linear probe ceiling.** A stronger head might partially compensate for feature drift; we measured the *linear* story deliberately.
 - **Seed noise and test-draw confound.** All three headline arms now carry 3-seed error bars (uniform ±1.2, drift ±1.6, full-FT ±1.9 points), but each seed also draws its own 1,000-image test set, so these SDs include test-draw variance, and per-severity spread is wide (0.04–0.10 at sev-5) — extreme-dark comparisons in particular remain underpowered. Rank × mix-ratio sweep remains future work.
@@ -296,7 +297,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 ## 11. Future Work
 
 1. **ViT-B generality** — does the late-layer drift signature hold at 86M params?
-2. ~~Corruption family expansion~~ — **Phase-1 curves done** (blur/JPEG/contrast fragility + CKA profiles; §5.1, §6.3) and **Phase-3 arms done for JPEG/contrast** (session F; §6.3). Remaining: re-evaluate the blur LoRA arms from the retained session-E adapters (logs truncated on salvage), and add a noise/saturation family if the frequency-destruction claim needs a third positive control.
+2. ~~Corruption family expansion~~ — **done end-to-end**: Phase-1 curves + CKA profiles for all four families (§5.1, §6.3) and Phase-3 LoRA arms for low_light, JPEG, blur, contrast — including the blur arms recovered from retained adapters after the session-E log truncation (§6.3). Remaining optional: a noise/saturation family as a third positive control for the frequency-destruction claim.
 3. **LoRA sweep** — rank ∈ {4, 8, 16, 32} × mix ratio ∈ {50/50, 70/30, 90/10}: what is the *minimal* effective intervention?
 4. ~~Seed-replicate the drift and full-FT arms~~ — **done**: all three headline arms now have 3-seed error bars (uniform 0.827 ± 0.012, drift 0.825 ± 0.016, full-FT 0.831 ± 0.019; ranges fully overlap).
 5. **Real-dark adaptation** — the transfer result (+1.9 pts) is a floor, not a ceiling: fine-tune the probe (not just adapters) on a *small* real-dark split, or adapt with real-dark data mixed into the diet, and measure how much of the remaining gap closes. The ExDark infrastructure (darkness axis, CLAHE control, feature cache) supports this directly.

@@ -1,6 +1,6 @@
 # Methods Appendix
 
-*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`, `run_readout_repair.py`, `cka_unbiased_recompute.py`, `stats_tools.py`, `scripts/build_kaggle_kernel.py`).*
+*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`, `run_readout_repair.py`, `cka_unbiased_recompute.py`, `run_blur_adapter_eval.py`, `stats_tools.py`, `scripts/build_kaggle_kernel.py`).*
 
 ---
 
@@ -213,11 +213,11 @@ Phase-3 arms for the new corruption families, all through the same §7.2/§7.3 p
 | jpeg, drift-weighted ranks | Kaggle T4 | 0.586 → **0.779** (+19.3 pts; worst-case sev-5 +25.7) | `colab_results/kaggle_sessionF/jpeg_drift/` |
 | contrast, uniform r8 | Kaggle T4 | 0.885 → 0.960 (+7.5) | `colab_results/kaggle_sessionF/contrast_uniform/` |
 | contrast, drift-weighted ranks | Kaggle T4 | 0.885 → 0.954 (+6.9) | `colab_results/kaggle_sessionF/contrast_drift/` |
-| blur, uniform r8 | Colab T4 | trained to convergence; **eval log truncated on salvage** | `colab_results/sessionE/blur_uniform/` (adapters kept) |
-| blur, drift-weighted ranks | Colab T4 | trained to convergence; **eval log truncated on salvage** | `colab_results/sessionE/blur_drift/` (adapters kept) |
+| blur, uniform r8 | Colab T4 (train) + local CPU (re-eval) | 0.526 → **0.698** (+17.2; sev-5 0.143 → 0.270) | train `colab_results/sessionE/blur_uniform/`; eval `output/blur_reeval/blur_uniform/` |
+| blur, drift-weighted ranks | Colab T4 (train) + local CPU (re-eval) | 0.526 → **0.703** (+17.7; sev-5 0.143 → 0.303) | train `colab_results/sessionE/blur_drift/`; eval `output/blur_reeval/blur_drift/` |
 | jpeg, uniform r8 | Colab T4 | trained; eval complete, numbers folded into the family analysis | `colab_results/sessionE/jpeg_uniform/` |
 
-Blur-arm evaluation must be re-run from the retained adapters before any blur number is quoted. The drift-vs-uniform contrast comparison (+6.9 vs +7.5, overlapping given the ±1.5-pt seed noise of §6.1) is itself a result: the contrast CKA drift profile is ~flat (max drop 0.30, *falling* in late blocks), so drift-weighting has no misallocated budget to fix — and gracefully loses nothing.
+The sessionE blur arms trained to convergence on Colab T4 but their eval logs were truncated on salvage; both were re-evaluated from the retained `lora_adapters.pt` checkpoints with `run_blur_adapter_eval.py`, which rebuilds the LoRA backbone from the checkpoint's `block_ranks` config (the rebuild path proven in §7.5's transfer pass) and replays the §7.3 protocol exactly — matched-noise eval corruption (`1000 + severity`), probe on severity-0 embeddings, 70/30 split (`random_state=42`), original-model pass on the identical corrupted arrays. Comparability certificate: the re-evaluated original-model column reproduces the Phase-1 curve **exactly** (0.913/0.873/0.620/0.387/0.220/0.143). The blur drift-vs-uniform pair (+17.7 vs +17.2, sev-5 0.303 vs 0.270) repeats the low-light pattern: parity on mean within seed noise, drift arm matching or edging worst-case — on a profile derived from blur's own CKA matrix (block ranks `{0:4 … 8:8, 9:8, 10:8, 11:7}`). The drift-vs-uniform contrast comparison (+6.9 vs +7.5, overlapping given the ±1.5-pt seed noise of §6.1) is itself a result: the contrast CKA drift profile is ~flat (max drop 0.30, *falling* in late blocks), so drift-weighting has no misallocated budget to fix — and gracefully loses nothing.
 
 ### 7.7 Readout-staleness decomposition (`run_readout_repair.py`)
 
@@ -267,6 +267,7 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 | ExDark suite | 42 | stratified 70/30 split, identical across all passes |
 | Corruption-family GPU arms (sessions E/F) | 42 | uniform + drift arms, blur/jpeg/contrast |
 | Readout-repair decomposition | 42 | test draw, probe split, permutation resampling (5,000) |
+| Blur adapter re-evaluation | 42 | test draw + eval corruption (`1000 + severity`), identical to §7.3; adapters from sessionE (seed 42) |
 
 ---
 

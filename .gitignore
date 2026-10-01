@@ -65,3 +65,7 @@ colab_results/sessionA/
 # Readout-repair results of record (dir sits under the output/** ignore)
 !output/readout_repair/
 !output/readout_repair/**
+
+# Blur adapter re-evaluation results of record (same situation)
+!output/blur_reeval/
+!output/blur_reeval/**
