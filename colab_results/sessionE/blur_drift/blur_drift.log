@@ -1,0 +1,29 @@
+Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+============================================================
+LoRA Fine-Tuning Experiment (parameterized)
+  rank=8 alpha=16 mix=0.7 layers=drift
+  seed=42 model=dinov2_vits14 corruption=blur epochs=10
+============================================================
+Device: cuda
+
+>>> Loading CIFAR-10
+Test: 1000, Train: 5000
+
+>>> Loading DINOv2
+
+>>> Applying adaptation to attention layers
+  Drift profile from /content/output/nb2_blur/cka_matrix.csv
+  Drift-weighted ranks: {0: 4, 1: 4, 2: 3, 3: 3, 4: 3, 5: 4, 6: 5, 7: 6, 8: 8, 9: 8, 10: 8, 11: 7}
+Total params: 22,201,728
+Trainable (LoRA/adapters): 145,152 (0.65%)
+LoRA modules: 24 across 12 targeted block(s)
+Training: 5000 images (70% corruption aug, blur)
+
+>>> Training
+  Epoch 1/10: loss=1.3252, acc=0.5558

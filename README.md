@@ -121,6 +121,12 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 **Read:** CKA-guided ranks match uniform LoRA and full fine-tuning at **0.78%** of the trainable parameters — now with 3-seed error bars on every headline arm, all ranges fully overlapping; full FT buys no extra mean robustness and posts the *worst* clean accuracy (forgetting cost, replicating across seeds); late-only shows the drift profile needs a total-budget floor. Per-arm SDs (±1.2–1.9 points) set the resolution of any comparison — parity is claimed, superiority is not. Per-severity cells for all nine arms: `docs/RESEARCH.md` §6.1; 3-seed table: `output/seed_replication/seed_analysis.csv`.
 
+**Corruption-family expansion (blur / JPEG / contrast).** The failure and the fix are not low-light-specific. Phase-1 fragility: severity-5 accuracy 0.143 (blur), 0.273 (JPEG), 0.840 (contrast) vs 0.087 (low-light). CKA drift profiles are late-concentrated for every *frequency-destroying* corruption (low_light, blur, JPEG — peaks at blocks 8–10) and ~flat for contrast (frequency-preserving, max drop 0.30). LoRA arms on free-tier GPU (Kaggle T4, `colab_results/kaggle_sessionF/`): **JPEG + drift-weighted ranks 0.586 → 0.779 (+19.3 pts, the study's biggest win)**; contrast uniform +7.5 vs drift +6.9 — the allocation rule gracefully matches uniform exactly where its diagnostic says there is nothing to reallocate. Blur arms trained (session-E adapters retained); eval logs truncated on salvage, numbers pending re-run. Full story: `docs/RESEARCH.md` §5.1, §6.3; protocol: `docs/METHODS.md` §7.6, §11.
+
+**Readout-staleness decomposition (`colab_results/readout_repair/`).** How much of the collapse is a stale linear head vs broken features? A severity-adapted probe (retrained per severity on the same train fold) recovers **+8.7 pts at sev-3, +25.3 at sev-4, +30.0 at sev-5** (n = 1,000, paired-permutation p ≤ 0.0032) — yet still plateaus at 0.377 vs 0.913 clean, and its predictions collapse onto one class as darkness deepens (top1_share 0.14 → 0.73, dominant *frog*). Readout staleness is real; feature drift remains the binding constraint — which is why LoRA (features) works and why the fixed-readout LoRA result already sits at the adapted-readout ceiling. Upstream's ViT-B pilot (+22.5 pp, n = 120) confirmed at proper power: `docs/RESEARCH.md` §6.4.
+
+**Robustness checks.** The drift-allocation rule survives switching to the unbiased CKA estimator (blocks 9–11 keep max rank; 3 of 12 block ranks shift by one — `docs/METHODS.md` §4), and the CKA pipeline is deterministic across CPU and T4 to ~1e-6, so CPU- and GPU-produced artifacts are directly comparable.
+
 **Sim-to-real (ExDark, 7,363 real low-light photographs).** Frozen DINOv2 probes at **0.725** with a *flat* darkness-response curve (darkest quintile 0.713 vs brightest 0.704); CLAHE buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse. Synthetic-dark adapters (drift arm, trained only on CIFAR darkness) lift real-dark accuracy to **0.743 (+1.9 pts)**; the uniform arm transfers **0.741 (+1.6 pts)** — indistinguishable, matching the synthetic-grid parity. Genuine transfer, but only ~9% of the +21-point gain the same adapters buy on the synthetic severity axis. The study quantifies the sim-to-real gap rather than assuming it away.
 
 ---
@@ -152,6 +158,19 @@ colab upload -s lora_run run_lora_simple_colab.py /content/run_lora_simple_colab
 colab exec -s lora_run -f launch_lora.py    # nohup-detached launcher
 ```
 
+### Kaggle GPU (corruption-family grid, free tier)
+
+Kaggle is now the primary GPU channel (persistent kernels, 30 GPU-h/week). Build the self-contained kernel (all runtime files embedded — script kernels ship only one file), push, poll, pull:
+
+```bash
+.venv/bin/python3 scripts/build_kaggle_kernel.py        # → /tmp/kaggle_kernel/
+cd /tmp/kaggle_kernel && kaggle kernels push -p .       # enable_gpu: true + accelerator nvidiaTeslaT4
+kaggle kernels status arindamtripathi/corrgrid-tail
+kaggle kernels output arindamtripathi/corrgrid-tail -p /tmp/kg_out
+```
+
+The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle dataset, and runs the `grid_tail.sh` arm chain. Full protocol: `docs/METHODS.md` §11.
+
 ---
 
 ## Repository Layout
@@ -163,10 +182,16 @@ colab exec -s lora_run -f launch_lora.py    # nohup-detached launcher
 | `run_notebook2.py` / `run_notebook2_colab.py` | Phase 2 runner: CKA, frequency ablation, bootstrap CIs (local / Colab) |
 | `run_lora_simple_colab.py` | Phase 3: manual LoRA (no PEFT dependency) — parameterized (rank/layers/seed/corruption/model); produced the results above |
 | `run_exdark_baseline.py` | ExDark real-dark suite: 12-class probe, darkness-response curve, CLAHE control, adapter transfer (streaming, feature cache) |
+| `run_readout_repair.py` | Readout-staleness decomposition: fixed vs severity-adapted probe, paired permutation tests, collapse metrics |
+| `cka_unbiased_recompute.py` | Unbiased-CKA (Kornblith App. B) robustness recompute of the drift-allocation profile |
+| `stats_tools.py` | Torch-free statistics module: unbiased CKA, Wilson CI, paired/curve permutation tests, BH-FDR, participation ratio, readout-collapse metrics |
+| `scripts/build_kaggle_kernel.py` | Builds the self-contained Kaggle kernel (base64-embedded package files + CIFAR mount + GPU guard); regenerates the v6 kernel byte-identically |
+| `scripts/kaggle/grid_tail.sh` | Corruption-arm chain executed inside the Kaggle kernel |
 | `run_lora_finetune_colab.py` | Phase 3 alternative using the PEFT library |
 | `dinov2_*.ipynb` | Original notebook forms of all three phases |
 | `output/notebook1/`, `output/notebook2/` | Local results: CSVs, accuracy/drift plots, CKA heatmap, bootstrap CI, frequency test |
-| `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs, Phase 3 v2 grid in `sessionD/`) |
+| `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs, Phase 3 v2 grid in `sessionD/`, corruption-family sessions E + F) |
+| `colab_results/kaggle_sessionF/` | Kaggle T4 corruption-grid artifacts: jpeg/contrast drift + uniform arms, nb2_contrast Phase-2 run, full kernel + per-arm logs |
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
 | `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
 | `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |

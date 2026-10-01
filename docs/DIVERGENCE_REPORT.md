@@ -90,3 +90,77 @@ requirement.
 *Facts in this report are reproducible via: `git fetch upstream` then
 `git log --oneline main..upstream/main`, `git log --oneline upstream/main..main`,
 `git diff --name-only $(git merge-base main upstream/main) upstream/main` (and `main`).*
+
+---
+
+## 8. Addendum (2026-09-28): upstream force-push, ports, and H4 at scale
+
+### 8.1 Upstream rewrote its history — merge-base is gone
+
+Upstream force-pushed a rewritten history: new root `752c8bd`, content-identical to the
+old base `fc9ea04`. Consequence: **`git merge-base main upstream/main` is now empty** —
+GitHub classifies the fork as unrelated history and **blocks the PR**. This supersedes
+§6's "merge `upstream/main` into `main`" mechanics (a normal merge is no longer possible
+without `--allow-unrelated-histories`, which would produce an unreadable history).
+
+**Rebase plan (supersedes §6 step 1 mechanically, not in spirit):**
+
+1. `git rebase --onto upstream/main <old-root> main` — replay our 14 commits onto
+   upstream's new root.
+2. Resolve the **same 6 overlapping files** of §3 (roles unchanged: ours win for
+   runners/docs, upstream wins for `paper/`, `src/`, `tests/`, CI, configs).
+3. Adopt upstream housekeeping landed after the rewrite (pip-audit CI workflow,
+   torch-free `src/common.py`) rather than re-fighting it.
+4. Re-verify: `tests/run_tests.py` + our smoke; then PR to upstream.
+
+§6's *rationale* (fork integrates, upstream reviews its own untouched trees) is
+unaffected — only the git mechanics change.
+
+### 8.2 What was ported from upstream (and what deliberately was not)
+
+Ported and verified locally (`stats_tools.py`, torch-free; sanity-checked: `cka_u(X,X)=1.0`,
+independent data ≈ 0.014):
+
+- Unbiased linear CKA (Kornblith et al. 2019, App. B) → robustness check §8.3 below.
+- Curve/permutation null tests, paired permutation test, Wilson CI, BH-FDR.
+- Participation ratio (spectral concentration of the drift covariance).
+- `readout_collapse_metrics` (top1_share / entropy_ratio / dominant class) — their F6
+  "99% frog" analysis, now backing our §6.4 signature.
+
+Deliberately **not** ported: upstream's deterministic-noise corruption primitive (would
+break byte-comparability with every committed result in this repo; our seeded-noise
+protocol stands until the merged repo re-baselines), and their `configs/` manifest
+(adopt at rebase time, step 3 above).
+
+Audit result that matters for novelty: upstream's `src/lora.py` has **no drift
+allocation** — our drift-weighted rank allocation remains the unique contribution at
+the intersection of the two lines. Their ViT-B late-vs-early CKA gap pilot
+(+0.32 → +0.44) supersedes our planned ViT-B curve run; the remaining open novelty is
+**GPU-scale drift-weighted LoRA on ViT-B**.
+
+### 8.3 Upstream's H4 confirmed at proper power
+
+Upstream's H4 (readout-staleness) pilot: +22.5 pp at sev-4 from a severity-adapted
+probe, n = 120, ViT-B. We ported the arm hardened (`run_readout_repair.py` — strict
+same-train-fold control, paired permutation p, Wilson CIs) and ran it at n = 1,000,
+ViT-S: **+25.3 pp at sev-4 (p = 0.0002), +30.0 pp at sev-5** — with the new finding that
+adaptation is flat-to-negative at sev 1–2 (probe-level echo of their grace regime) and
+that even the adapted readout plateaus at 0.377 vs 0.913 clean, keeping feature drift
+the dominant bottleneck (`docs/RESEARCH.md` §6.4).
+
+Relatedly, their F5 tension ("darkness ≠ generic frequency damage": dark 61.7% vs
+low-pass 80.0% vs high-pass 14.2% at sev-3) is compatible with our §5.1 extension:
+darkness is *one* frequency-destroying corruption, not the only one — blur/JPEG
+reproduce the late-drift signature, contrast (frequency-preserving) does not. Both
+claims survive at different scopes; the merged paper should state both scopes
+explicitly. Their grace regime (sev-1 helps, 95.0 > 93.3 at n = 120) vs our sev-1 dip
+(0.903 < 0.913 at n = 1,000) remains an open n-vs-noise question to settle on the
+merged base.
+
+### 8.4 Unbiased-CKA verdict (affects their allocator review)
+
+Recomputing our CKA matrix with their (ported) unbiased estimator shifts the
+r = 8 allocation at 3 of 12 blocks (one rank each; `docs/METHODS.md` §4) while blocks
+9–11 keep maximum rank under both estimators. **The drift-allocation claim survives
+estimator choice**; reviewers running their estimator will reproduce the late-heavy
+structure, not the exact rank vector.

@@ -1,0 +1,26 @@
+[{"stream_name":"stdout","time":0.905102413,"data":"CWD: /kaggle/working\n"}
+,{"stream_name":"stdout","time":0.905351426,"data":"staged utils.py\n"}
+,{"stream_name":"stdout","time":0.905525329,"data":"staged run_notebook2.py\n"}
+,{"stream_name":"stdout","time":0.905816798,"data":"staged run_lora_simple_colab.py\n"}
+,{"stream_name":"stdout","time":0.905894494,"data":"staged grid_tail.sh\n"}
+,{"stream_name":"stdout","time":0.905962655,"data":"staged jpeg_cka_matrix.csv\n"}
+,{"stream_name":"stdout","time":0.912330874,"data":"mount hits: [('dir', '/kaggle/input/datasets/arindamtripathi/cifar10-python')]\n"}
+,{"stream_name":"stdout","time":0.912396682,"data":"using dir /kaggle/input/datasets/arindamtripathi/cifar10-python\n"}
+,{"stream_name":"stdout","time":4.152492761,"data":"data ready: ['batches.meta', 'data_batch_1', 'data_batch_2'] ...\n"}
+,{"stream_name":"stdout","time":11.128104188,"data":"cuda: True\n"}
+,{"stream_name":"stdout","time":11.175134855,"data":"gpu: Tesla T4\n"}
+,{"stream_name":"stdout","time":11.175486175,"data":"jpeg cka profile staged\n"}
+,{"stream_name":"stdout","time":732.753280369,"data":"drift jpeg exit 0\n"}
+,{"stream_name":"stdout","time":732.753356779,"data":"===== CHAIN contrast START =====\n"}
+,{"stream_name":"stdout","time":791.548328133,"data":"nb2 contrast exit 0\n"}
+,{"stream_name":"stdout","time":1507.279829097,"data":"uniform contrast exit 0\n"}
+,{"stream_name":"stdout","time":2223.075261884,"data":"drift contrast exit 0\n"}
+,{"stream_name":"stdout","time":2223.075903585,"data":"grid exit: 0\n"}
+,{"stream_name":"stdout","time":2223.07592865,"data":"GRID_COMPLETE\n"}
+,{"stream_name":"stderr","time":2225.733816904,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":2225.733873367,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":2226.032994693,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":2226.033021472,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":2226.698419105,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":2228.088048419,"data":"[NbConvertApp] Writing 388781 bytes to __results__.html\n"}
+]

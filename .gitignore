@@ -50,3 +50,18 @@ run_bg.sh
 run_notebook1_bg.sh
 run_notebook2_bg.sh
 launch_nb2.sh
+
+# Upstream snapshot used for the merge/rebase (reference copy, not repo content)
+upstream_src/
+
+# Result records under colab_results/ are versioned like sessionD's
+!colab_results/**/*.log
+!colab_results/**/*.json
+!colab_results/**/*.pt
+
+# sessionA: superseded duplicate adapter checkpoints (sessionD holds the arms of record)
+colab_results/sessionA/
+
+# Readout-repair results of record (dir sits under the output/** ignore)
+!output/readout_repair/
+!output/readout_repair/**

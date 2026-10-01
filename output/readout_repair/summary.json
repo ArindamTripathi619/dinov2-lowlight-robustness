@@ -1,0 +1,68 @@
+{
+  "corruption": "low_light",
+  "model": "dinov2_vits14",
+  "n_images": 1000,
+  "seed": 42,
+  "severities": [
+    {
+      "severity": 0,
+      "fixed_acc": 0.9133333333333333,
+      "adapted_acc": 0.9133333333333333,
+      "recovery_pp": 0.0,
+      "fixed_top1_share": 0.12,
+      "fixed_entropy_ratio": 0.9966046256863683,
+      "fixed_dominant": "deer",
+      "p_paired": 1.0
+    },
+    {
+      "severity": 1,
+      "fixed_acc": 0.9,
+      "adapted_acc": 0.89,
+      "recovery_pp": -1.0000000000000009,
+      "fixed_top1_share": 0.12,
+      "fixed_entropy_ratio": 0.9966337899638942,
+      "fixed_dominant": "deer",
+      "p_paired": 0.1801639672065587
+    },
+    {
+      "severity": 2,
+      "fixed_acc": 0.86,
+      "adapted_acc": 0.84,
+      "recovery_pp": -2.0000000000000018,
+      "fixed_top1_share": 0.13666666666666666,
+      "fixed_entropy_ratio": 0.9956519743098471,
+      "fixed_dominant": "deer",
+      "p_paired": 0.15076984603079385
+    },
+    {
+      "severity": 3,
+      "fixed_acc": 0.6333333333333333,
+      "adapted_acc": 0.72,
+      "recovery_pp": 8.666666666666668,
+      "fixed_top1_share": 0.21,
+      "fixed_entropy_ratio": 0.9482549924161106,
+      "fixed_dominant": "frog",
+      "p_paired": 0.003199360127974405
+    },
+    {
+      "severity": 4,
+      "fixed_acc": 0.24333333333333335,
+      "adapted_acc": 0.49666666666666665,
+      "recovery_pp": 25.33333333333333,
+      "fixed_top1_share": 0.6166666666666667,
+      "fixed_entropy_ratio": 0.5837494956413175,
+      "fixed_dominant": "frog",
+      "p_paired": 0.0001999600079984003
+    },
+    {
+      "severity": 5,
+      "fixed_acc": 0.07666666666666666,
+      "adapted_acc": 0.37666666666666665,
+      "recovery_pp": 30.0,
+      "fixed_top1_share": 0.7333333333333333,
+      "fixed_entropy_ratio": 0.2596361547435616,
+      "fixed_dominant": "frog",
+      "p_paired": 0.0001999600079984003
+    }
+  ]
+}

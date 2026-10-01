@@ -128,6 +128,19 @@ drop = cka_matrix[:, 0] - cka_matrix[:, 5]
 max_drop_layer = int(np.argmax(drop))
 print(f"Layer with largest clean-vs-darkest CKA drop: {max_drop_layer}  drop = {drop[max_drop_layer]:.4f}")
 
+# Persist the layer x severity CKA matrix as the numeric record (same columns
+# as cka_recompute.py's artifact of record; --drift-csv compatible).
+import csv as _csv
+cka_csv = os.path.join(OUTPUT_DIR, "cka_matrix.csv")
+with open(cka_csv, "w", newline="") as f:
+    w = _csv.writer(f)
+    w.writerow(["layer", "severity", "cka", "drop_from_clean"])
+    for li in range(cka_matrix.shape[0]):
+        for si in range(cka_matrix.shape[1]):
+            w.writerow([li, si, f"{cka_matrix[li, si]:.6f}",
+                        f"{cka_matrix[li, 0] - cka_matrix[li, si]:.6f}"])
+print(f"Saved {cka_csv}")
+
 # --- Cell 8: Frequency test ---
 print("\n>>> Cell 8: Frequency-domain test")
 

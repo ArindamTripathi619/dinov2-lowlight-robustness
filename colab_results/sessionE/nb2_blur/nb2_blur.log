@@ -1,0 +1,97 @@
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+============================================================
+Notebook 2: DINOv2 Advanced Analysis — corruption=blur, model=dinov2_vits14
+Device: cuda
+============================================================
+
+>>> Cell 1: Load CIFAR-10 subset
+Loaded 500 images from CIFAR-10 (test), classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+>>> Cell 2: Visualize corruption types
+  Saved /content/output/nb2_blur/corruption_types.png
+
+>>> Cell 3: Load DINOv2 ViT-S/14 with hooks
+Downloading: "https://github.com/facebookresearch/dinov2/zipball/main" to /root/.cache/torch/hub/main.zip
+Downloading: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth" to /root/.cache/torch/hub/checkpoints/dinov2_vits14_pretrain.pth
+  0%|          | 0.00/84.2M [00:00<?, ?B/s]  5%|▌         | 4.38M/84.2M [00:00<00:01, 45.2MB/s] 11%|█         | 8.88M/84.2M [00:00<00:01, 46.0MB/s] 47%|████▋     | 39.9M/84.2M [00:00<00:00, 172MB/s]  85%|████████▍ | 71.5M/84.2M [00:00<00:00, 235MB/s]100%|██████████| 84.2M/84.2M [00:00<00:00, 192MB/s]
+DINOv2 loaded, 12 transformer blocks hooked.
+
+>>> Cell 4: Extract embeddings across all low-light severities
+  severity 0: embeddings (500, 384)
+  severity 1: embeddings (500, 384)
+  severity 2: embeddings (500, 384)
+  severity 3: embeddings (500, 384)
+  severity 4: embeddings (500, 384)
+  severity 5: embeddings (500, 384)
+
+>>> Cell 5: Linear probe accuracy under low light
+  severity 0: accuracy = 0.920
+  severity 1: accuracy = 0.887
+  severity 2: accuracy = 0.747
+  severity 3: accuracy = 0.380
+  severity 4: accuracy = 0.227
+  severity 5: accuracy = 0.147
+  Saved /content/output/nb2_blur/accuracy_curve.png
+
+>>> Cell 6: Bootstrap confidence intervals
+  sev 0: 0.9200 [0.8733, 0.9600]
+  sev 1: 0.8867 [0.8333, 0.9400]
+  sev 2: 0.7467 [0.6800, 0.8133]
+  sev 3: 0.3800 [0.3067, 0.4600]
+  sev 4: 0.2267 [0.1600, 0.3000]
+  sev 5: 0.1467 [0.0867, 0.2000]
+  Saved /content/output/nb2_blur/bootstrap_ci.png
+
+>>> Cell 7: Layer-wise CKA analysis
+  Saved /content/output/nb2_blur/layerwise_cka.png
+Layer with largest clean-vs-darkest CKA drop: 10  drop = 0.8035
+Saved /content/output/nb2_blur/cka_matrix.csv
+
+>>> Cell 8: Frequency-domain test
+  Low-pass accuracies:  ['0.9200', '0.9067', '0.8667', '0.6267', '0.3800']
+  High-pass accuracies: ['0.5933', '0.3600', '0.3067', '0.2400', '0.1800']
+  Saved /content/output/nb2_blur/frequency_test.png
+
+============================================================
+NOTEBOOK 2 COMPLETE - SUMMARY
+============================================================
+
+--- Linear Probe Accuracy (trained on clean) ---
+  Severity 0: 0.9200
+  Severity 1: 0.8867
+  Severity 2: 0.7467
+  Severity 3: 0.3800
+  Severity 4: 0.2267
+  Severity 5: 0.1467
+  Accuracy drop (sev 0 -> 5): 0.7733
+
+--- Bootstrap 95% CI ---
+  Severity 0: 0.9200 [0.8733, 0.9600]
+  Severity 1: 0.8867 [0.8333, 0.9400]
+  Severity 2: 0.7467 [0.6800, 0.8133]
+  Severity 3: 0.3800 [0.3067, 0.4600]
+  Severity 4: 0.2267 [0.1600, 0.3000]
+  Severity 5: 0.1467 [0.0867, 0.2000]
+
+--- Layer-wise CKA ---
+  Layer with largest drift: block 10 (drop=0.8035)
+  Mean CKA drop across all layers: 0.5243
+  Earliest layer CKA drop (0): 0.3827
+  Latest layer CKA drop (11): 0.7353
+
+--- Frequency Test ---
+  Low-pass accuracies:  ['0.9200', '0.9067', '0.8667', '0.6267', '0.3800']
+  High-pass accuracies: ['0.5933', '0.3600', '0.3067', '0.2400', '0.1800']
+  Low-pass > High-pass: True
+
+--- Key Findings ---
+  CKA drift concentrated in LATE layers -> attention/norm hypothesis SUPPORTED
+  Low-pass preserved -> DINOv2 leans on LOW-FREQUENCY features (hypothesis SUPPORTED)
+
+Output directory: /content/output/nb2_blur
+============================================================

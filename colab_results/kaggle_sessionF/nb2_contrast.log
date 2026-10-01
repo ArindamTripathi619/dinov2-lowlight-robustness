@@ -1,0 +1,95 @@
+Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+============================================================
+Notebook 2: DINOv2 Advanced Analysis — corruption=contrast, model=dinov2_vits14
+Device: cuda
+============================================================
+
+>>> Cell 1: Load CIFAR-10 subset
+Loaded 500 images from CIFAR-10 (test), classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+>>> Cell 2: Visualize corruption types
+  Saved output/nb2_contrast/corruption_types.png
+
+>>> Cell 3: Load DINOv2 ViT-S/14 with hooks
+DINOv2 loaded, 12 transformer blocks hooked.
+
+>>> Cell 4: Extract embeddings across all low-light severities
+  severity 0: embeddings (500, 384)
+  severity 1: embeddings (500, 384)
+  severity 2: embeddings (500, 384)
+  severity 3: embeddings (500, 384)
+  severity 4: embeddings (500, 384)
+  severity 5: embeddings (500, 384)
+
+>>> Cell 5: Linear probe accuracy under low light
+  severity 0: accuracy = 0.920
+  severity 1: accuracy = 0.920
+  severity 2: accuracy = 0.913
+  severity 3: accuracy = 0.913
+  severity 4: accuracy = 0.893
+  severity 5: accuracy = 0.860
+  Saved output/nb2_contrast/accuracy_curve.png
+
+>>> Cell 6: Bootstrap confidence intervals
+  sev 0: 0.9200 [0.8733, 0.9600]
+  sev 1: 0.9200 [0.8733, 0.9600]
+  sev 2: 0.9133 [0.8667, 0.9535]
+  sev 3: 0.9133 [0.8667, 0.9600]
+  sev 4: 0.8933 [0.8400, 0.9333]
+  sev 5: 0.8600 [0.8000, 0.9133]
+  Saved output/nb2_contrast/bootstrap_ci.png
+
+>>> Cell 7: Layer-wise CKA analysis
+  Saved output/nb2_contrast/layerwise_cka.png
+Layer with largest clean-vs-darkest CKA drop: 8  drop = 0.3027
+Saved output/nb2_contrast/cka_matrix.csv
+
+>>> Cell 8: Frequency-domain test
+  Low-pass accuracies:  ['0.9200', '0.9067', '0.8667', '0.6267', '0.3800']
+  High-pass accuracies: ['0.5933', '0.3600', '0.3067', '0.2400', '0.1800']
+  Saved output/nb2_contrast/frequency_test.png
+
+============================================================
+NOTEBOOK 2 COMPLETE - SUMMARY
+============================================================
+
+--- Linear Probe Accuracy (trained on clean) ---
+  Severity 0: 0.9200
+  Severity 1: 0.9200
+  Severity 2: 0.9133
+  Severity 3: 0.9133
+  Severity 4: 0.8933
+  Severity 5: 0.8600
+  Accuracy drop (sev 0 -> 5): 0.0600
+
+--- Bootstrap 95% CI ---
+  Severity 0: 0.9200 [0.8733, 0.9600]
+  Severity 1: 0.9200 [0.8733, 0.9600]
+  Severity 2: 0.9133 [0.8667, 0.9535]
+  Severity 3: 0.9133 [0.8667, 0.9600]
+  Severity 4: 0.8933 [0.8400, 0.9333]
+  Severity 5: 0.8600 [0.8000, 0.9133]
+
+--- Layer-wise CKA ---
+  Layer with largest drift: block 8 (drop=0.3027)
+  Mean CKA drop across all layers: 0.1622
+  Earliest layer CKA drop (0): 0.1250
+  Latest layer CKA drop (11): 0.1348
+
+--- Frequency Test ---
+  Low-pass accuracies:  ['0.9200', '0.9067', '0.8667', '0.6267', '0.3800']
+  High-pass accuracies: ['0.5933', '0.3600', '0.3067', '0.2400', '0.1800']
+  Low-pass > High-pass: True
+
+--- Key Findings ---
+  CKA drift concentrated in LATE layers -> attention/norm hypothesis SUPPORTED
+  Low-pass preserved -> DINOv2 leans on LOW-FREQUENCY features (hypothesis SUPPORTED)
+
+Output directory: output/nb2_contrast
+============================================================

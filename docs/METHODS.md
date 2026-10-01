@@ -1,6 +1,6 @@
 # Methods Appendix
 
-*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`).*
+*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`, `run_readout_repair.py`, `cka_unbiased_recompute.py`, `stats_tools.py`, `scripts/build_kaggle_kernel.py`).*
 
 ---
 
@@ -54,7 +54,39 @@ img = clip(img, 0, 255)
 
 Noise is i.i.d. per pixel per channel, drawn **without a fixed seed** (severity-level stochasticity; accuracy aggregates over ≥500 images make this negligible).
 
-### 3.2 Frequency filters (`low_pass` / `high_pass`)
+### 3.2 `blur(image, severity)`
+
+```python
+img.filter(ImageFilter.GaussianBlur(radius=radii[severity]))
+```
+
+| Severity | 0 | 1 | 2 | 3 | 4 | 5 |
+|----------|---|---|---|---|---|---|
+| Gaussian radius (px) | 0.0 (identity) | 0.5 | 1.0 | 2.0 | 3.5 | 5.5 |
+
+Deterministic (`rng` accepted for signature parity, unused).
+
+### 3.3 `jpeg(image, severity)`
+
+PIL JPEG re-encode at stepwise decreasing quality. **Severity 0 returns the image untouched** — JPEG is lossy even at q100 (chroma subsampling), and severity 0 must be the pristine image the linear probe trains on. Deterministic.
+
+| Severity | 0 | 1 | 2 | 3 | 4 | 5 |
+|----------|---|---|---|---|---|---|
+| JPEG quality | pristine | 60 | 40 | 25 | 15 | 8 |
+
+### 3.4 `contrast(image, severity)`
+
+```python
+img = factors[s] * img + (1 - factors[s]) * img.mean(axis=2, keepdims=True)
+```
+
+Blend toward the image's **scalar grayscale mean** (not Hendrycks & Dietterich's per-channel means — documented here so nobody cites the exact HD formula for our numbers). Deterministic.
+
+| Severity | 0 | 1 | 2 | 3 | 4 | 5 |
+|----------|---|---|---|---|---|---|
+| Contrast factor | 1.0 (identity) | 0.8 | 0.6 | 0.4 | 0.25 | 0.15 |
+
+### 3.5 Frequency filters (`low_pass` / `high_pass`)
 
 Circular FFT mask applied per channel; cutoff expressed as a fraction of the max image-domain radius from the spectrum center.
 
@@ -91,6 +123,14 @@ return hsic / (np.sqrt(var1 * var2) + 1e-8)
 - Numerical epsilon 1e-8; theoretical range [0, 1], CKA(X, X) = 1.
 - Applied per transformer block (0–11), comparing **CLS activations of the same images** under clean vs. degraded input.
 - **History:** the original implementation omitted the `sqrt`, squaring all values (severity-5 values up to ≈ 79.9). Ordering across layers was preserved (squaring is monotonic), so the late-layer conclusion held; all reported values in this repo use the corrected formula.
+
+**Unbiased estimator robustness check (`cka_unbiased_recompute.py`).** The biased (HSIC-ratio) estimator is known to inflate similarity for finite n. We recomputed the full layer × severity matrix with the unbiased linear CKA (Kornblith et al. 2019, App. B, via `stats_tools.cka_u`; same images, same protocol) → `output/notebook2/cka_matrix_unbiased.csv` (via `stats_tools.linear_cka_unbiased`)
+
+- Biased allocation: `{0:6, 1:6, 2:4, 3:5, 4:5, 5:5, 6:6, 7:7, 8:7, 9:8, 10:8, 11:8}` (115,200 params)
+- Unbiased allocation: `{0:5, 1:6, 2:4, 3:4, 4:5, 5:5, 6:6, 7:7, 8:8, 9:8, 10:8, 11:8}` (113,664 params)
+- **Allocations differ** at blocks 0 (6→5), 3 (5→4), 8 (7→8), but the late-heavy structure is **estimator-robust**: blocks 9–11 hold maximum rank 8 under both estimators, and the unbiased estimator *strengthens* late concentration (block 10 sev-5 drop 0.815 → 0.859). The published drift-arm results remain valid; a re-run with the unbiased profile would change 3 of 12 block ranks (−1,536 params). Noted as estimator-sensitivity for the merged paper; no result depends on the biased values.
+
+**Cross-device determinism certificate.** The Phase-2 CKA matrix computed locally (CPU) and inside the Kaggle T4 kernel agree to the 6th decimal place (~1e-6 float noise) — the embedding+CKA pipeline is deterministic across CPU/CUDA implementations, which certifies that GPU- and CPU-produced artifacts in this repo are directly comparable.
 
 ---
 
@@ -164,6 +204,38 @@ All arms share the §7.2 diet (5,000 images, 70% corrupted / 30% clean, 10 epoch
 
 **Cross-seed comparability caveat.** Each run draws its own 1,000-image test set seeded by `--seed` (§5 registry), so rows with different seeds differ in both init *and* test draw. Within any row, Original vs adapted columns are image- and noise-matched.
 
+### 7.6 Corruption-family grid (blur / JPEG / contrast; sessions E + F)
+
+Phase-3 arms for the new corruption families, all through the same §7.2/§7.3 protocol via `run_lora_simple_colab.py --corruption {blur,jpeg,contrast}`:
+
+| Arm | Where | Before → After (mean over sev 0–5) | Artifact of record |
+|-----|-------|-------------------------------------|--------------------|
+| jpeg, drift-weighted ranks | Kaggle T4 | 0.586 → **0.779** (+19.3 pts; worst-case sev-5 +25.7) | `colab_results/kaggle_sessionF/jpeg_drift/` |
+| contrast, uniform r8 | Kaggle T4 | 0.885 → 0.960 (+7.5) | `colab_results/kaggle_sessionF/contrast_uniform/` |
+| contrast, drift-weighted ranks | Kaggle T4 | 0.885 → 0.954 (+6.9) | `colab_results/kaggle_sessionF/contrast_drift/` |
+| blur, uniform r8 | Colab T4 | trained to convergence; **eval log truncated on salvage** | `colab_results/sessionE/blur_uniform/` (adapters kept) |
+| blur, drift-weighted ranks | Colab T4 | trained to convergence; **eval log truncated on salvage** | `colab_results/sessionE/blur_drift/` (adapters kept) |
+| jpeg, uniform r8 | Colab T4 | trained; eval complete, numbers folded into the family analysis | `colab_results/sessionE/jpeg_uniform/` |
+
+Blur-arm evaluation must be re-run from the retained adapters before any blur number is quoted. The drift-vs-uniform contrast comparison (+6.9 vs +7.5, overlapping given the ±1.5-pt seed noise of §6.1) is itself a result: the contrast CKA drift profile is ~flat (max drop 0.30, *falling* in late blocks), so drift-weighting has no misallocated budget to fix — and gracefully loses nothing.
+
+### 7.7 Readout-staleness decomposition (`run_readout_repair.py`)
+
+Decomposes the Phase-1 collapse into *feature drift* vs *readout staleness* (the severity-adapted-probe control from upstream's H4, ported and hardened): Arm A = the §6 probe trained on clean embeddings, fixed across severities; Arm B = a probe retrained per severity on degraded versions of the **same train fold** (strict same-fold control — no test-fold reuse). Paired permutation test (5,000 permutations, seed 42) on per-image correctness; Wilson 95% CIs; `readout_collapse_metrics` (top1_share / entropy_ratio / dominant class) on Arm A predictions. n = 1,000 test images (seed 42), low_light, DINOv2 ViT-S/14, local CPU.
+
+Artifact: `colab_results/readout_repair/` (results.csv, summary.json); runner writes to `output/readout_repair/` by default.
+
+| Severity | Arm A fixed | Arm B adapted | Δ | p (paired perm.) |
+|----------|-------------|---------------|-----|------|
+| 0 | 0.913 | 0.913 | +0.0 | — |
+| 1 | 0.900 | 0.890 | −1.0 | 0.18 |
+| 2 | 0.860 | 0.840 | −2.0 | 0.15 |
+| 3 | 0.633 | 0.720 | **+8.7** | 0.0032 |
+| 4 | 0.243 | 0.497 | **+25.3** | 0.0002 |
+| 5 | 0.077 | 0.377 | **+30.0** | 0.0002 |
+
+Readout collapse signature (Arm A): top1_share 0.14 (sev 2, dominant *deer*) → 0.73 (sev 5, dominant *frog*); entropy_ratio 1.00 → 0.26. **Interpretation:** at low severity, readout repair is flat-to-negative (a probe-level echo of upstream's "grace regime"); from severity 3 the readout is genuinely stale and adaptation recovers a third to half of the gap — but the majority of the loss stays in the features (sev-5 ceiling 0.377 vs 0.913 clean), confirming the LoRA result's premise that *features*, not the linear head, are the bottleneck.
+
 ### 7.5 ExDark real-dark suite (`run_exdark_baseline.py`)
 
 | Item | Value |
@@ -193,6 +265,8 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 | Eval-time corruption (Phase 3) | 1000 + severity | matched-noise comparison; see §7.3 |
 | Phase 3 v2 arms | `--seed` per arm (42/43/44) | test-set draw, torch init, shuffling — see §7.4 comparability caveat |
 | ExDark suite | 42 | stratified 70/30 split, identical across all passes |
+| Corruption-family GPU arms (sessions E/F) | 42 | uniform + drift arms, blur/jpeg/contrast |
+| Readout-repair decomposition | 42 | test draw, probe split, permutation resampling (5,000) |
 
 ---
 
@@ -224,4 +298,36 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 
 Colab reference (Phase 3): torch 2.11.0+cu128, torchvision 0.26.0+cu128, sklearn 1.6.1, Tesla T4 (15.6 GB), CUDA 12.8.
 
+Kaggle reference (corruption-family session F): Kaggle T4 image (Python 3.12), single Tesla T4; exact torch version per the retained kernel log (`colab_results/kaggle_sessionF/kernel_run.log`).
+
 Pinned versions for local reproduction: see `requirements.txt`.
+
+---
+
+## 11. Kaggle GPU channel (free-tier, session F onward)
+
+Primary GPU channel after Colab availability became unreliable. A Kaggle **script kernel ships only the single `code_file`**, so all runtime files are packaged as base64 blobs inside one generated script.
+
+**Build** (`scripts/build_kaggle_kernel.py` — repo-resident, /tmp-wipe-proof):
+
+```bash
+.venv/bin/python3 scripts/build_kaggle_kernel.py [--pkg /tmp/kaggle_kernel]
+# packages: utils.py, run_notebook2.py, run_lora_simple_colab.py (repo root),
+#           scripts/kaggle/grid_tail.sh (the arm chain),
+#           colab_results/sessionE/nb2_jpeg/cka_matrix.csv (jpeg drift profile)
+```
+
+Generated: `<pkg>/kaggle_corrgrid_tail.py` (byte-identical to the kernel of record; verified by `diff` against the v6 run's artifact) + `kernel-metadata.json`. Per-file source overrides: `--source name=path`.
+
+**Push and run.** Both GPU knobs matter — omitting either leaves the kernel on CPU:
+
+```bash
+cd /tmp/kaggle_kernel && kaggle kernels push -p .
+# kernel-metadata.json: "enable_gpu": true, AND accelerator nvidiaTeslaT4
+kaggle kernels status arindamtripathi/corrgrid-tail   # poll
+kaggle kernels output arindamtripathi/corrgrid-tail -p /tmp/kg_out  # pull
+```
+
+Kernel runtime behavior (embedded driver): extracts packaged files to cwd (Kaggle mounts `/kaggle/working` as the capture dir), extracts CIFAR-10 from the private dataset mount `arindamtripathi/cifar10-python` (162 MB, staged once via the Kaggle datasets API; falls back to torchvision download), **hard-aborts if CUDA is unavailable** (no wasted run), then executes `grid_tail.sh` and prints `GRID_COMPLETE`/`GRID_FAILED` as the terminal marker.
+
+**Quota:** 30 GPU-hours/week (verified phone-verified account). v6's three-arm chain used ~37 min wall on T4. Kernels persist server-side across laptop reboots — the channel's key advantage over Colab sessions and /tmp-based staging.
