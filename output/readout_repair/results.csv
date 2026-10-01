@@ -1,0 +1,13 @@
+corruption,severity,arm,accuracy,ci_low,ci_high,top1_share,n_classes_used,entropy_ratio,dominant_class,dominant_class_name,p_vs_fixed
+low_light,0,fixed,0.9133,0.8760,0.9402,0.1200,10,0.9966,4,deer,1.0000
+low_light,0,adapted,0.9133,0.8760,0.9402,0.1200,10,0.9966,4,deer,1.0000
+low_light,1,fixed,0.9000,0.8608,0.9291,0.1200,10,0.9966,4,deer,1.0000
+low_light,1,adapted,0.8900,0.8495,0.9206,0.1133,10,0.9976,0,airplane,0.1802
+low_light,2,fixed,0.8600,0.8162,0.8947,0.1367,10,0.9957,4,deer,1.0000
+low_light,2,adapted,0.8400,0.7943,0.8771,0.1167,10,0.9963,0,airplane,0.1508
+low_light,3,fixed,0.6333,0.5774,0.6859,0.2100,10,0.9483,6,frog,1.0000
+low_light,3,adapted,0.7200,0.6667,0.7678,0.1500,10,0.9875,4,deer,0.0032
+low_light,4,fixed,0.2433,0.1982,0.2949,0.6167,9,0.5837,6,frog,1.0000
+low_light,4,adapted,0.4967,0.4405,0.5529,0.1433,10,0.9875,8,ship,0.0002
+low_light,5,fixed,0.0767,0.0516,0.1124,0.7333,3,0.2596,6,frog,1.0000
+low_light,5,adapted,0.3767,0.3237,0.4327,0.1533,10,0.9895,4,deer,0.0002

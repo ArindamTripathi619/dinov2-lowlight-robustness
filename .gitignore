@@ -19,22 +19,49 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Virtual environments
+.venv/
+venv/
+env/
+
 # Datasets, model weights and local experiment artifacts are not versioned.
 # (Committed result images under colab_results/ stay tracked via the negation.)
 data/
-output/
+output/**
+!output/notebook1/
+!output/notebook2/
+logs/
 *.png
 !colab_results/**/*.png
+!output/**/*.png
+*.csv
+!colab_results/**/*.csv
+!output/**/*.csv
 *.pth
 *.pt
 
-# scratch logs from local runs
+# Scratch logs from local runs (the small fixed-run LoRA log is the numeric
+# artifact of record for the docs' Phase 3 tables and is explicitly tracked)
 *.log
+!colab_results/lora_run_fixed/lora_full_run.log
 
-# LaTeX build intermediates
-*.aux
-*.bbl
-*.blg
-*.brf
-*.out
-*.log
+# Launcher scripts from local debugging
+run_bg.sh
+run_notebook1_bg.sh
+run_notebook2_bg.sh
+launch_nb2.sh
+
+# Upstream snapshot used for the merge/rebase (reference copy, not repo content)
+upstream_src/
+
+# Result records under colab_results/ are versioned like sessionD's
+!colab_results/**/*.log
+!colab_results/**/*.json
+!colab_results/**/*.pt
+
+# sessionA: superseded duplicate adapter checkpoints (sessionD holds the arms of record)
+colab_results/sessionA/
+
+# Readout-repair results of record (dir sits under the output/** ignore)
+!output/readout_repair/
+!output/readout_repair/**

@@ -1,0 +1,24 @@
+[{"stream_name":"stdout","time":1.72597087,"data":"input tree hits: []\n"}
+,{"stream_name":"stdout","time":1.726060705,"data":"input listing (2 levels):\n"}
+,{"stream_name":"stdout","time":1.726086638,"data":"   /kaggle/input/datasets -\u003e ['arindamtripathi']\n"}
+,{"stream_name":"stdout","time":1.726278974,"data":"       /kaggle/input/datasets/arindamtripathi -\u003e ['cifar10-python']\n"}
+,{"stream_name":"stdout","time":1.72635806,"data":"no dataset mount usable — runners will self-download via torchvision\n"}
+,{"stream_name":"stdout","time":1.726386165,"data":"data dir present (download pending): []\n"}
+,{"stream_name":"stdout","time":14.556057938,"data":"cuda: True\n"}
+,{"stream_name":"stdout","time":14.60280436,"data":"gpu: Tesla T4\n"}
+,{"stream_name":"stderr","time":14.603061969,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":14.603093083,"data":"  File \"/kaggle/src/script.py\", line 47, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":14.603264899,"data":"    shutil.copy(\"jpeg_cka_matrix.csv\", \"output/nb2_jpeg/cka_matrix.csv\")\n"}
+,{"stream_name":"stderr","time":14.603435544,"data":"  File \"/usr/lib/python3.12/shutil.py\", line 435, in copy\n"}
+,{"stream_name":"stderr","time":14.605113653,"data":"    copyfile(src, dst, follow_symlinks=follow_symlinks)\n"}
+,{"stream_name":"stderr","time":14.605130013,"data":"  File \"/usr/lib/python3.12/shutil.py\", line 260, in copyfile\n"}
+,{"stream_name":"stderr","time":14.605372151,"data":"    with open(src, 'rb') as fsrc:\n"}
+,{"stream_name":"stderr","time":14.605406729,"data":"         ^^^^^^^^^^^^^^^\n"}
+,{"stream_name":"stderr","time":14.60543918,"data":"FileNotFoundError: [Errno 2] No such file or directory: 'jpeg_cka_matrix.csv'\n"}
+,{"stream_name":"stderr","time":21.973463004,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":21.97353198,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":22.442505137,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":22.442538575,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":23.275664899,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":25.047555963,"data":"[NbConvertApp] Writing 283801 bytes to __results__.html\n"}
+]
