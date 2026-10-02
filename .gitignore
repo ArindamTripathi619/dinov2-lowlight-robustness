@@ -69,3 +69,9 @@ colab_results/sessionA/
 # Blur adapter re-evaluation results of record (same situation)
 !output/blur_reeval/
 !output/blur_reeval/**
+
+# Track 1 drift-proxy results of record (same situation)
+!output/drift_proxy/
+!output/drift_proxy/**
+!output/drift_proxy_dinov2_check/
+!output/drift_proxy_dinov2_check/**

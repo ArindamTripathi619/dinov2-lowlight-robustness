@@ -73,9 +73,27 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   ≥ 0.8 on ≥ 2 corruptions; and top-k modules by proxy contain the top-k by CKA.
 - Deliverable: `run_drift_proxy.py` (hooks on all modules, proxy + CKA + agreement
   report) + `docs/DPA_DESIGN.md` §1.
+- [x] **Gate RUN (2026-10-02, CPU, CIFAR-10 test n=1000 seed 42, severity 5): NO-GO.**
+  Best proxy `cos_drop`: ρ = 0.752 (blur) / 0.676 (low_light) — under the 0.8 bar on
+  both corruptions (energy_drop 0.68/0.66; mean_shift ≈ 0; cov_shift ≈ 0 at n=1000).
+  Same verdict on a ViT-S/14 harness check (n=300; energy_drop ρ ≈ 0.70 both) — the
+  shortfall is not ResNet-specific. Two mechanistic findings: (a) CKA is
+  scale-invariant while every candidate except cos_drop is scale-sensitive, and
+  low-light amplitude shrink does NOT drive late-stage CKA drop — the drift CKA sees
+  is structural, which amplitude statistics cannot rank; (b) mean_shift is structurally
+  blind for blur (exactly 0 at every 1×1-conv downsample: Gaussian blur preserves DC).
+  **Fallback adopted per plan: full CKA stays the profiler** (forward-only, proven);
+  paper claim = "single cheap profiling pass", not "cheap proxy". Harness itself is
+  validated and model-agnostic (`output/drift_proxy/`, `output/drift_proxy_dinov2_check/`).
 - Fallback if it fails: keep full CKA as the profiler (it is forward-only anyway and
   already proven); the paper claim weakens to "single cheap profiling pass" instead of
   "cheap proxy". **The paper does not die here.**
+- [ ] `docs/DPA_DESIGN.md` §1 (after the §6 prior-art searches; record the gate outcome
+  above as the profiler-selection evidence).
+- Note: ResNet-50 profile itself is strongly late-heavy under both corruptions
+  (layer4.2 CKA drop 0.64 blur / 0.79 low_light vs layer1 0.06/0.14) — first CNN data
+  point for Track 3's cross-architecture story; attn/mlp sub-modules of ViT-S also
+  profiled by the same harness (Track 3 granularity for free).
 
 ### Track 2 — ViT-B drift-weighted LoRA (kernels v8 + v9; ~2–4 GPU-hours)
 - v8: ViT-B/14 CKA drift profile under low_light + jpeg (forward hooks on 12 blocks,

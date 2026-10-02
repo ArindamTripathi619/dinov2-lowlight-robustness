@@ -1,0 +1,180 @@
+{
+  "meta": {
+    "model": "resnet50",
+    "model_desc": "torchvision resnet50 IMAGENET1K_V1 (76.130%)",
+    "torch_version": "2.13.0+cu130",
+    "device": "cpu",
+    "n_images": 1000,
+    "seed": 42,
+    "severity": 5,
+    "corruptions": [
+      "blur",
+      "low_light"
+    ],
+    "n_modules": 25,
+    "modules": [
+      "layer1",
+      "layer1.0",
+      "layer1.0.downsample",
+      "layer1.1",
+      "layer1.2",
+      "layer2",
+      "layer2.0",
+      "layer2.0.downsample",
+      "layer2.1",
+      "layer2.2",
+      "layer2.3",
+      "layer3",
+      "layer3.0",
+      "layer3.0.downsample",
+      "layer3.1",
+      "layer3.2",
+      "layer3.3",
+      "layer3.4",
+      "layer3.5",
+      "layer4",
+      "layer4.0",
+      "layer4.0.downsample",
+      "layer4.1",
+      "layer4.2",
+      "avgpool"
+    ],
+    "vit_token": "cls",
+    "max_depth": 2
+  },
+  "gate": {
+    "verdict": "NO-GO",
+    "best_proxy": "cos_drop",
+    "per_proxy": {
+      "energy_drop": {
+        "rho": {
+          "blur": 0.6791361357500966,
+          "low_light": 0.6613960663324335
+        },
+        "containment_at_k": {
+          "blur": 0.6,
+          "low_light": 0.6
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "mean_shift": {
+        "rho": {
+          "blur": -0.0775163902815272,
+          "low_light": 0.03200925568839182
+        },
+        "containment_at_k": {
+          "blur": 0.0,
+          "low_light": 0.0
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "cov_shift": {
+        "rho": {
+          "blur": 0.07674508291554186,
+          "low_light": 0.07443116081758581
+        },
+        "containment_at_k": {
+          "blur": 0.0,
+          "low_light": 0.0
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "cos_drop": {
+        "rho": {
+          "blur": 0.7524103355187043,
+          "low_light": 0.6760509062861552
+        },
+        "containment_at_k": {
+          "blur": 0.8,
+          "low_light": 0.6
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      }
+    },
+    "rho_threshold": 0.8,
+    "topk": 5,
+    "gate_criterion": "Spearman rho >= 0.8 on >= 2 corruptions AND full containment at k=5"
+  },
+  "agreement_by_corruption": {
+    "blur": {
+      "energy_drop": {
+        "spearman_rho": 0.6791361357500966,
+        "spearman_p": 0.00018928145055469904,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.6
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": -0.0775163902815272,
+        "spearman_p": 0.7126539228552946,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.07674508291554186,
+        "spearman_p": 0.7153961438826623,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.7524103355187043,
+        "spearman_p": 1.4359912618163043e-05,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.8
+        }
+      }
+    },
+    "low_light": {
+      "energy_drop": {
+        "spearman_rho": 0.6613960663324335,
+        "spearman_p": 0.00031815004872591844,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.6
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.03200925568839182,
+        "spearman_p": 0.8792728939342727,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.07443116081758581,
+        "spearman_p": 0.7236432709672564,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.6760509062861552,
+        "spearman_p": 0.0002076859397417822,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.6
+        }
+      }
+    }
+  }
+}
