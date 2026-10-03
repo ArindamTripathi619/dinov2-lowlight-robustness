@@ -97,9 +97,19 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   profiled by the same harness (Track 3 granularity for free).
 
 ### Track 2 — ViT-B drift-weighted LoRA (kernels v8 + v9; ~2–4 GPU-hours)
-- v8: ViT-B/14 CKA drift profile under low_light + jpeg (forward hooks on 12 blocks,
-  86M params; fits T4 easily for forward passes).
-- v9: LoRA arms on ViT-B: uniform r8 vs drift-weighted (ViT-B-allocated ranks) vs
+- [x] **v8 DONE (2026-10-03, kernel `vitb-drift-profile` v1, T4, 259 s):** ViT-B/14
+  CKA+proxy profile, low_light + jpeg, severities 1–5, n=1000 (`output/vitb_profile/`;
+  harness = `run_drift_profile.py`, the Tracks 2+3 shared sweep runner). Findings:
+  (a) gate NO-GO on a third architecture with the same signature — cos_drop ρ=0.88 on
+  jpeg vs 0.68 on low_light (scale-invariance diagnosis now spans ResNet-50, ViT-S,
+  ViT-B); (b) **MLP sublayers drift more than attention** under photometric corruption
+  (low_light sev5: blocks.11.mlp 0.80 vs blocks.11.attn 0.62) — sublayer resolution the
+  ViT-S whole-block CKA could not see; (c) block-level profiles late-heavy (b10–b11
+  0.65–0.68 low_light; 0.78–0.89 jpeg), consistent with ViT-S. v9 allocation inputs:
+  `drift_profile_sev5_{low_light,jpeg}.csv` — NOTE: rows cover all 37 profiled modules
+  (patch_embed, blocks.k, blocks.k.attn/mlp); the LoRA consumer needs the 12
+  blocks.k rows re-indexed 0–11.
+- [ ] v9: LoRA arms on ViT-B: uniform r8 vs drift-weighted (ViT-B-allocated ranks) vs
   late-only, seed 42, cifar10-python dataset mount reused.
 - Claims it closes: (a) the current paper's ViT-B generality item; (b) first
   cross-architecture profile pair (ViT-S vs ViT-B).
