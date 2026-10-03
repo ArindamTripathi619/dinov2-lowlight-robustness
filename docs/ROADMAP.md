@@ -73,7 +73,7 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   ≥ 0.8 on ≥ 2 corruptions; and top-k modules by proxy contain the top-k by CKA.
 - Deliverable: `run_drift_proxy.py` (hooks on all modules, proxy + CKA + agreement
   report) + `docs/DPA_DESIGN.md` §1.
-- [x] **Gate RUN (2026-10-02, CPU, CIFAR-10 test n=1000 seed 42, severity 5): NO-GO.**
+- [x] **Gate RUN (2026-10-03, CPU, CIFAR-10 test n=1000 seed 42, severity 5): NO-GO.**
   Best proxy `cos_drop`: ρ = 0.752 (blur) / 0.676 (low_light) — under the 0.8 bar on
   both corruptions (energy_drop 0.68/0.66; mean_shift ≈ 0; cov_shift ≈ 0 at n=1000).
   Same verdict on a ViT-S/14 harness check (n=300; energy_drop ρ ≈ 0.70 both) — the
@@ -88,8 +88,9 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
 - Fallback if it fails: keep full CKA as the profiler (it is forward-only anyway and
   already proven); the paper claim weakens to "single cheap profiling pass" instead of
   "cheap proxy". **The paper does not die here.**
-- [ ] `docs/DPA_DESIGN.md` §1 (after the §6 prior-art searches; record the gate outcome
-  above as the profiler-selection evidence).
+- [x] `docs/DPA_DESIGN.md` §1 (after the §6 prior-art searches; records the gate outcome
+  above as the profiler-selection evidence, the allocation-signal taxonomy, and the
+  SSR adjacency; §2–§5 stubs pending Tracks 2–4).
 - Note: ResNet-50 profile itself is strongly late-heavy under both corruptions
   (layer4.2 CKA drop 0.64 blur / 0.79 low_light vs layer1 0.06/0.14) — first CNN data
   point for Track 3's cross-architecture story; attn/mlp sub-modules of ViT-S also
@@ -200,7 +201,7 @@ Colab for iteration; multi-seed jobs as separate short sessions emitting JSONs.
    first pass with CIFAR-10-C-style degradations, ImageNet-subset for the real pass.
 3. Build v8 kernel (ViT-B CKA profile) and queue it on Kaggle (Track 2) — independent
    of #2, uses the established kernel-builder pipeline.
-4. Prior-art searches (advisor offered): drift-proxy allocation (RepSAM/AdaLoRA
-   adjacency), selective test-time recalibration (TENT adjacency). Do these *before*
-   writing DPA_DESIGN claims.
+4. [x] Prior-art searches (advisor offered): drift-proxy allocation (RepSAM/AdaLoRA
+   adjacency), selective test-time recalibration (TENT adjacency). Done 2026-10-03 —
+   novelty verdicts in `docs/DPA_DESIGN.md` §1.3/§4/§6 before writing DPA_DESIGN claims.
 5. Send PR #1 to arghya (his review gates the merge, not the research).
