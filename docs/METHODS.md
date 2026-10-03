@@ -1,6 +1,6 @@
 # Methods Appendix
 
-*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`, `run_readout_repair.py`, `cka_unbiased_recompute.py`, `run_blur_adapter_eval.py`, `stats_tools.py`, `scripts/build_kaggle_kernel.py`).*
+*Exact parameters, formulas, data protocol, and environment for every experiment in this study. All values verified against source (`utils.py`, `run_notebook1.py`, `run_notebook2.py`, `run_lora_simple_colab.py`, `cka_recompute.py`, `run_readout_repair.py`, `cka_unbiased_recompute.py`, `run_blur_adapter_eval.py`, `run_drift_proxy.py`, `run_drift_profile.py`, `stats_tools.py`, `scripts/build_kaggle_kernel.py`).*
 
 ---
 
@@ -217,7 +217,7 @@ Phase-3 arms for the new corruption families, all through the same §7.2/§7.3 p
 | blur, drift-weighted ranks | Colab T4 (train) + local CPU (re-eval) | 0.526 → **0.703** (+17.7; sev-5 0.143 → 0.303) | train `colab_results/sessionE/blur_drift/`; eval `output/blur_reeval/blur_drift/` |
 | jpeg, uniform r8 | Colab T4 | trained; eval complete, numbers folded into the family analysis | `colab_results/sessionE/jpeg_uniform/` |
 
-The sessionE blur arms trained to convergence on Colab T4 but their eval logs were truncated on salvage; both were re-evaluated from the retained `lora_adapters.pt` checkpoints with `run_blur_adapter_eval.py`, which rebuilds the LoRA backbone from the checkpoint's `block_ranks` config (the rebuild path proven in §7.5's transfer pass) and replays the §7.3 protocol exactly — matched-noise eval corruption (`1000 + severity`), probe on severity-0 embeddings, 70/30 split (`random_state=42`), original-model pass on the identical corrupted arrays. Comparability certificate: the re-evaluated original-model column reproduces the Phase-1 curve **exactly** (0.913/0.873/0.620/0.387/0.220/0.143). The blur drift-vs-uniform pair (+17.7 vs +17.2, sev-5 0.303 vs 0.270) repeats the low-light pattern: parity on mean within seed noise, drift arm matching or edging worst-case — on a profile derived from blur's own CKA matrix (block ranks `{0:4 … 8:8, 9:8, 10:8, 11:7}`). The drift-vs-uniform contrast comparison (+6.9 vs +7.5, overlapping given the ±1.5-pt seed noise of §6.1) is itself a result: the contrast CKA drift profile is ~flat (max drop 0.30, *falling* in late blocks), so drift-weighting has no misallocated budget to fix — and gracefully loses nothing.
+The sessionE blur arms trained to convergence on Colab T4 but their eval logs were truncated on salvage; both were re-evaluated from the retained `lora_adapters.pt` checkpoints with `run_blur_adapter_eval.py`, which rebuilds the LoRA backbone from the checkpoint's `block_ranks` config (the rebuild path proven in §7.9's transfer pass) and replays the §7.3 protocol exactly — matched-noise eval corruption (`1000 + severity`), probe on severity-0 embeddings, 70/30 split (`random_state=42`), original-model pass on the identical corrupted arrays. Comparability certificate: the re-evaluated original-model column reproduces the Phase-1 curve **exactly** (0.913/0.873/0.620/0.387/0.220/0.143). The blur drift-vs-uniform pair (+17.7 vs +17.2, sev-5 0.303 vs 0.270) repeats the low-light pattern: parity on mean within seed noise, drift arm matching or edging worst-case — on a profile derived from blur's own CKA matrix (block ranks `{0:4 … 8:8, 9:8, 10:8, 11:7}`). The drift-vs-uniform contrast comparison (+6.9 vs +7.5, overlapping given the ±1.5-pt seed noise of §6.1) is itself a result: the contrast CKA drift profile is ~flat (max drop 0.30, *falling* in late blocks), so drift-weighting has no misallocated budget to fix — and gracefully loses nothing.
 
 ### 7.7 Readout-staleness decomposition (`run_readout_repair.py`)
 
@@ -236,7 +236,28 @@ Artifact: `colab_results/readout_repair/` (results.csv, summary.json); runner wr
 
 Readout collapse signature (Arm A): top1_share 0.14 (sev 2, dominant *deer*) → 0.73 (sev 5, dominant *frog*); entropy_ratio 1.00 → 0.26. **Interpretation:** at low severity, readout repair is flat-to-negative (a probe-level echo of upstream's "grace regime"); from severity 3 the readout is genuinely stale and adaptation recovers a third to half of the gap — but the majority of the loss stays in the features (sev-5 ceiling 0.377 vs 0.913 clean), confirming the LoRA result's premise that *features*, not the linear head, are the bottleneck.
 
-### 7.5 ExDark real-dark suite (`run_exdark_baseline.py`)
+### 7.8 ViT-B drift-profile sweep (`run_drift_profile.py`; kernel `vitb-drift-profile` v1)
+
+Third-architecture replication of the drift profile (RESEARCH §5.1) plus the Track-1 proxy agreement re-check, run as one severity×corruption sweep over a single clean pass. Everything is produced by the Track-1 harness (`run_drift_proxy.py`); `run_drift_profile.py` loops it over severities and emits per-key CSVs.
+
+| Item | Value |
+|------|-------|
+| Model | DINOv2 ViT-B/14 via `torch.hub.load("facebookresearch/dinov2", "dinov2_vitb14")`, 86M params, frozen, eval mode |
+| Modules profiled | 37: `patch_embed` + per block k ∈ 0–11 the whole block (`blocks.k`) and its `attn` / `mlp` sublayers |
+| Activation readout | forward hooks; tokens pooled with `vit_token=cls` (CLS-token activation per module); 4D tensors → channel spatial mean |
+| Data | CIFAR-10 test split, n = 1,000, seed 42 (`load_cifar10_subset`) |
+| Corruptions × severities | low_light, jpeg × sev 1–5 (§3 parameter tables) |
+| Eval-noise convention | matched-noise rng `default_rng(1000 + severity)` per severity — the §7.3 convention, so v9 LoRA arms see identical corrupted arrays |
+| Metrics per module | energy/mean/cov/cos proxies + biased linear CKA (`utils.linear_cka`) + unbiased CKA (`stats_tools`); profile of record = `cka_unbiased_drop` |
+| Profiler protocol cost | two forward passes per condition (clean + degraded), no labels, no backprop |
+| Compute | Kaggle script kernel `arindamtripathi/vitb-drift-profile` v1, Tesla T4, torch 2.11.0+cu128, **259.5 s** wall; built via `scripts/build_kaggle_kernel.py --variant vitb_profile` |
+| Artifacts of record | `output/vitb_profile/`: `drift_profile_sev{1..5}_{low_light,jpeg}.csv`, `agreement_report.{txt,json}`, `proxy_profiles.csv`, 11 PNGs, kernel log |
+
+**Headline numbers (sev 5, unbiased CKA drop).** Block-level: low_light 0.179 (b0) → 0.803 / 0.866 / 0.859 (b9 / b10 / b11); jpeg 0.127 (b0) → 0.705 / 0.790 / 0.785. Sublayer level: **mlp drop > attn drop in all 12 blocks under both corruptions** (low_light gaps 0.015–0.159, max at b2: 0.727 vs 0.681; jpeg gaps 0.017–0.108, max at b1: 0.456 vs 0.358). Gate columns at sev 5: best ρ jpeg 0.876 (energy_drop) / 0.882 (cos_drop) vs low_light 0.692 / 0.681, top-5 containment 0.4–0.6 — third-architecture NO-GO.
+
+**v9 consumer note (re-indexing).** The drift CSVs key `layer` by *profiled-module* row (0–36, in the `agreement_report.json` module order: `patch_embed`, then per block `blocks.k`, `blocks.k.attn`, `blocks.k.mlp`). The Phase-3 LoRA consumer (`run_lora_simple_colab.py::load_drift_profile`) expects **dense 0..n_blocks−1 block indices** — v9 must select the 12 `blocks.k` rows (regex `^blocks\.\d+$`) and re-index them 0–11 before `--drift-csv` use.
+
+### 7.9 ExDark real-dark suite (`run_exdark_baseline.py`)
 
 | Item | Value |
 |------|-------|
@@ -267,6 +288,7 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 | ExDark suite | 42 | stratified 70/30 split, identical across all passes |
 | Corruption-family GPU arms (sessions E/F) | 42 | uniform + drift arms, blur/jpeg/contrast |
 | Readout-repair decomposition | 42 | test draw, probe split, permutation resampling (5,000) |
+| ViT-B drift-profile sweep (v8) | 42 | n = 1,000 test draw (`load_cifar10_subset`); eval corruption rng `1000 + severity` per §7.3; harness `run_drift_profile.py`, kernel `vitb-drift-profile` v1 |
 | Blur adapter re-evaluation | 42 | test draw + eval corruption (`1000 + severity`), identical to §7.3; adapters from sessionE (seed 42) |
 
 ---

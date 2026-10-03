@@ -103,14 +103,18 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   (a) gate NO-GO on a third architecture with the same signature — cos_drop ρ=0.88 on
   jpeg vs 0.68 on low_light (scale-invariance diagnosis now spans ResNet-50, ViT-S,
   ViT-B); (b) **MLP sublayers drift more than attention** under photometric corruption
-  (low_light sev5: blocks.11.mlp 0.80 vs blocks.11.attn 0.62) — sublayer resolution the
-  ViT-S whole-block CKA could not see; (c) block-level profiles late-heavy (b10–b11
-  0.65–0.68 low_light; 0.78–0.89 jpeg), consistent with ViT-S. v9 allocation inputs:
+  (all 12 blocks, both corruptions; sev-5 low_light: blocks.10.mlp 0.916 vs
+  blocks.10.attn 0.878, blocks.11.mlp 0.902 vs blocks.11.attn 0.847) — sublayer
+  resolution the ViT-S whole-block CKA could not see; (c) block-level profiles
+  late-heavy (b9–b11 0.80–0.87 low_light; 0.71–0.79 jpeg), consistent with ViT-S.
+  Folded into RESEARCH §5.1 / METHODS §7.8. v9 allocation inputs:
   `drift_profile_sev5_{low_light,jpeg}.csv` — NOTE: rows cover all 37 profiled modules
   (patch_embed, blocks.k, blocks.k.attn/mlp); the LoRA consumer needs the 12
   blocks.k rows re-indexed 0–11.
 - [ ] v9: LoRA arms on ViT-B: uniform r8 vs drift-weighted (ViT-B-allocated ranks) vs
-  late-only, seed 42, cifar10-python dataset mount reused.
+  late-only, seed 42, cifar10-python dataset mount reused. Sublayer-resolved allocation
+  (mlp+attn targets ranked by the v8 profiles) is the paper-grade extension the §5.1
+  finding motivates.
 - Claims it closes: (a) the current paper's ViT-B generality item; (b) first
   cross-architecture profile pair (ViT-S vs ViT-B).
 - Fold into RESEARCH §6 + the future framework paper as the ViT data point.

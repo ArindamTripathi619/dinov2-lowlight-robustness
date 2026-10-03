@@ -125,7 +125,7 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 **Readout-staleness decomposition (`colab_results/readout_repair/`).** How much of the collapse is a stale linear head vs broken features? A severity-adapted probe (retrained per severity on the same train fold) recovers **+8.7 pts at sev-3, +25.3 at sev-4, +30.0 at sev-5** (n = 1,000, paired-permutation p ≤ 0.0032) — yet still plateaus at 0.377 vs 0.913 clean, and its predictions collapse onto one class as darkness deepens (top1_share 0.14 → 0.73, dominant *frog*). Readout staleness is real; feature drift remains the binding constraint — which is why LoRA (features) works and why the fixed-readout LoRA result already sits at the adapted-readout ceiling. Upstream's ViT-B pilot (+22.5 pp, n = 120) confirmed at proper power: `docs/RESEARCH.md` §6.4.
 
-**Robustness checks.** The drift-allocation rule survives switching to the unbiased CKA estimator (blocks 9–11 keep max rank; 3 of 12 block ranks shift by one — `docs/METHODS.md` §4), and the CKA pipeline is deterministic across CPU and T4 to ~1e-6, so CPU- and GPU-produced artifacts are directly comparable.
+**Robustness checks.** The drift-allocation rule survives switching to the unbiased CKA estimator (blocks 9–11 keep max rank; 3 of 12 block ranks shift by one — `docs/METHODS.md` §4), and the CKA pipeline is deterministic across CPU and T4 to ~1e-6, so CPU- and GPU-produced artifacts are directly comparable. The drift *profile* itself replicates on a third architecture: DINOv2 ViT-B/14 (86M params) profiled across low_light + jpeg, severities 1–5, n = 1,000 (`output/vitb_profile/`, protocol `docs/METHODS.md` §7.8) is again late-heavy (block drops 0.80–0.87 at blocks 9–11, low-light sev 5) — and adds a sublayer finding the ViT-S whole-block CKA could not see: **MLP sublayers drift more than attention in all 12 blocks under both corruptions**. The Track-1 proxy-gate NO-GO (cheap amplitude proxies fail to rank CKA drift; jpeg ρ ≈ 0.88 but low_light ≤ 0.69) also reproduces on ViT-B — full CKA stays the profiler (`docs/RESEARCH.md` §5.1, `docs/DPA_DESIGN.md` §1).
 
 **Sim-to-real (ExDark, 7,363 real low-light photographs).** Frozen DINOv2 probes at **0.725** with a *flat* darkness-response curve (darkest quintile 0.713 vs brightest 0.704); CLAHE buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse. Synthetic-dark adapters (drift arm, trained only on CIFAR darkness) lift real-dark accuracy to **0.743 (+1.9 pts)**; the uniform arm transfers **0.741 (+1.6 pts)** — indistinguishable, matching the synthetic-grid parity. Genuine transfer, but only ~9% of the +21-point gain the same adapters buy on the synthetic severity axis. The study quantifies the sim-to-real gap rather than assuming it away.
 
@@ -185,6 +185,8 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `run_readout_repair.py` | Readout-staleness decomposition: fixed vs severity-adapted probe, paired permutation tests, collapse metrics |
 | `cka_unbiased_recompute.py` | Unbiased-CKA (Kornblith App. B) robustness recompute of the drift-allocation profile |
 | `stats_tools.py` | Torch-free statistics module: unbiased CKA, Wilson CI, paired/curve permutation tests, BH-FDR, participation ratio, readout-collapse metrics |
+| `run_drift_proxy.py` | Track-1 drift-proxy harness: per-module forward-only proxies vs CKA agreement, pre-registered go/no-go gate (`output/drift_proxy/`) |
+| `run_drift_profile.py` | Severity×corruption drift-profile sweep over one clean pass (Tracks 2+3); produced the ViT-B atlas `output/vitb_profile/` |
 | `scripts/build_kaggle_kernel.py` | Builds the self-contained Kaggle kernel (base64-embedded package files + CIFAR mount + GPU guard); regenerates the v6 kernel byte-identically |
 | `scripts/kaggle/grid_tail.sh` | Corruption-arm chain executed inside the Kaggle kernel |
 | `run_lora_finetune_colab.py` | Phase 3 alternative using the PEFT library |
@@ -195,6 +197,7 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
 | `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
 | `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |
+| `docs/DPA_DESIGN.md` | Design doc for Drift-Profiled Adaptation (DPA) + Selective Statistic Recalibration (SSR): gate outcome, allocation taxonomy, prior-art search log |
 
 ## Reproducibility Notes
 
