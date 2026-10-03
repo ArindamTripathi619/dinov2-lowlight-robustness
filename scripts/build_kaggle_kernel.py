@@ -60,6 +60,98 @@ METADATA_JSON = '''{
 }
 '''
 
+# --- Track 2 v8 variant: ViT-B/14 drift-profile kernel (separate slug so the
+# grid kernel's provenance stays intact). Sources = the profiling harness.
+PROFILE_SOURCES = {
+    "utils.py": "utils.py",
+    "stats_tools.py": "stats_tools.py",
+    "run_drift_proxy.py": "run_drift_proxy.py",
+    "run_drift_profile.py": "run_drift_profile.py",
+    "vitb_profile.sh": "scripts/kaggle/vitb_profile.sh",
+}
+
+PROFILE_METADATA_JSON = '''{
+  "id": "arindamtripathi/vitb-drift-profile",
+  "title": "vitb-drift-profile",
+  "code_file": "kaggle_vitb_profile.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["arindamtripathi/cifar10-python"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
+'''
+
+PROFILE_TEMPLATE = '''"""Self-contained ViT-B drift-profile kernel (all package files embedded)."""
+import base64, os, shutil, subprocess, zipfile
+
+PKG_FILES = {
+__CHUNKS__
+}
+
+CWD = os.getcwd()
+print("CWD:", CWD)
+for name, b64 in PKG_FILES.items():
+    with open(os.path.join(CWD, name), "wb") as fh:
+        fh.write(base64.b64decode(b64))
+    print("staged", name)
+
+# --- CIFAR: dataset mount (bonus) or torchvision fallback ---
+hits = []
+for root, dirs, files in os.walk("/kaggle/input"):
+    for f in files:
+        if f.lower().endswith(".zip") and "cifar" in f.lower():
+            hits.append(("zip", os.path.join(root, f)))
+    for d in dirs:
+        if "cifar" in d.lower():
+            hits.append(("dir", os.path.join(root, d)))
+print("mount hits:", hits)
+
+os.makedirs("data", exist_ok=True)
+if not os.path.isdir("data/cifar-10-batches-py") and hits:
+    kind, path = hits[0]
+    print("using", kind, path)
+    try:
+        if kind == "zip":
+            with zipfile.ZipFile(path) as z:
+                top = sorted({n.split("/")[0] for n in z.namelist()})
+                print("zip top-level:", top)
+                if len(top) == 1 and "cifar" in top[0].lower():
+                    z.extractall("data")
+                else:
+                    z.extractall("data/cifar-10-batches-py")
+        else:
+            shutil.copytree(path, "data/cifar-10-batches-py")
+    except Exception as e:
+        print("mount extraction failed:", e, "- falling back to torchvision download")
+if not os.path.isdir("data/cifar-10-batches-py") and os.path.isfile("data/data_batch_1"):
+    os.makedirs("data/cifar-10-batches-py", exist_ok=True)
+    for f in os.listdir("data"):
+        p = os.path.join("data", f)
+        if os.path.isfile(p) and not f.endswith(".zip"):
+            shutil.move(p, "data/cifar-10-batches-py/")
+if os.path.isdir("data/cifar-10-batches-py") and os.path.isfile("data/cifar-10-batches-py/data_batch_1"):
+    print("data ready:", sorted(os.listdir("data/cifar-10-batches-py"))[:3], "...")
+else:
+    print("data dir empty - torchvision download=True inside the runner will fetch it")
+
+# --- GPU sanity ---
+import torch
+print("cuda:", torch.cuda.is_available())
+if not torch.cuda.is_available():
+    raise RuntimeError("no GPU attached - aborting before wasting the run")
+print("gpu:", torch.cuda.get_device_name(0))
+
+# --- ViT-B/14 drift-profile sweep (cwd = /kaggle/working so outputs are captured) ---
+r = subprocess.run(["bash", "vitb_profile.sh"])
+csv_ok = os.path.isfile("output/vitb_profile/proxy_profiles.csv")
+print("profile exit:", r.returncode, "| csv_ok:", csv_ok)
+print("PROFILE_COMPLETE" if (r.returncode == 0 and csv_ok) else "PROFILE_FAILED")
+'''
+
 # Kernel driver template. Keep byte-compatible with the v5 build
 # (/tmp/kaggle_kernel/kaggle_corrgrid_tail.py from the successful v6 run).
 TEMPLATE = '''"""Self-contained corruption-grid kernel (all package files embedded)."""
@@ -136,8 +228,11 @@ print("GRID_COMPLETE" if r.returncode == 0 else "GRID_FAILED")
 
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    ap.add_argument("--variant", default="grid", choices=["grid", "vitb_profile"],
+                    help="grid = corruption-grid kernel (corrgrid-tail, byte-identical v6); "
+                         "vitb_profile = Track 2 v8 ViT-B drift-profile kernel")
     ap.add_argument("--pkg", default="/tmp/kaggle_kernel",
-                    help="staging dir receiving kaggle_corrgrid_tail.py (default: /tmp/kaggle_kernel)")
+                    help="staging dir receiving the kernel script (default: /tmp/kaggle_kernel)")
     ap.add_argument("--source", action="append", default=[], metavar="NAME=PATH",
                     help="override the packaged source for file NAME (repeatable)")
     return ap.parse_args()
@@ -147,7 +242,14 @@ def main():
     args = parse_args()
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    sources = dict(DEFAULT_SOURCES)
+    if args.variant == "vitb_profile":
+        base_sources, template = PROFILE_SOURCES, PROFILE_TEMPLATE
+        metadata, out_name = PROFILE_METADATA_JSON, "kaggle_vitb_profile.py"
+    else:
+        base_sources, template = DEFAULT_SOURCES, TEMPLATE
+        metadata, out_name = METADATA_JSON, "kaggle_corrgrid_tail.py"
+
+    sources = dict(base_sources)
     for pair in args.source:
         name, _, path = pair.partition("=")
         if name not in sources or not path:
@@ -156,7 +258,7 @@ def main():
         sources[name] = path
 
     blobs = []
-    for name in DEFAULT_SOURCES:
+    for name in base_sources:
         path = sources[name]
         abspath = path if os.path.isabs(path) else os.path.join(repo_root, path)
         if not os.path.isfile(abspath):
@@ -173,10 +275,10 @@ def main():
         lines = [b64[i:i + 96] for i in range(0, len(b64), 96)]
         chunks.append(f'    "{name}": (\n' + "\n".join(f'        "{l}"' for l in lines) + "\n    ),")
 
-    script = TEMPLATE.replace("__CHUNKS__", "\n".join(chunks))
+    script = template.replace("__CHUNKS__", "\n".join(chunks))
 
     os.makedirs(args.pkg, exist_ok=True)
-    out = os.path.join(args.pkg, "kaggle_corrgrid_tail.py")
+    out = os.path.join(args.pkg, out_name)
     with open(out, "w") as f:
         f.write(script)
     print(f"wrote {out}: {len(script)} bytes")
@@ -184,7 +286,7 @@ def main():
     meta_path = os.path.join(args.pkg, "kernel-metadata.json")
     if not os.path.isfile(meta_path):
         with open(meta_path, "w") as f:
-            f.write(METADATA_JSON)
+            f.write(metadata)
         print(f"wrote {meta_path} (was missing)")
     else:
         print(f"kept existing {meta_path}")

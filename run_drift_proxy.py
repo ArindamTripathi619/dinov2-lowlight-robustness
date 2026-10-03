@@ -359,12 +359,18 @@ def write_proxy_profiles_csv(rows_by_corruption, path):
     print(f"  Saved {path}")
 
 
-def write_drift_profile_csvs(rows_by_corruption, out_dir, severity):
-    """Per-corruption CKA profile in the cka_matrix.csv schema
+def write_drift_profile_csvs(rows_by_key, out_dir, severity=None):
+    """Per-key CKA profile in the cka_matrix.csv schema
     (layer,severity,cka,drop_from_clean) that run_lora_simple_colab.py
-    --drift-csv consumes for rank allocation."""
-    for corr, rows in rows_by_corruption.items():
-        path = os.path.join(out_dir, f"drift_profile_sev{severity}_{corr}.csv")
+    --drift-csv consumes for rank allocation.
+
+    Keys are corruption names (severity from the `severity` argument or the
+    rows themselves) or "corr@sevS" sweep keys (run_drift_profile.py).
+    """
+    for key, rows in rows_by_key.items():
+        corr = str(key).split("@sev")[0]
+        sev = int(rows[0]["severity"]) if rows else severity
+        path = os.path.join(out_dir, f"drift_profile_sev{sev}_{corr}.csv")
         with open(path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=["layer", "severity", "module",
                                                    "cka", "cka_unbiased",
@@ -372,7 +378,7 @@ def write_drift_profile_csvs(rows_by_corruption, out_dir, severity):
                                                    "cka_unbiased_drop"])
             writer.writeheader()
             for r in rows:
-                writer.writerow({"layer": r["layer"], "severity": severity,
+                writer.writerow({"layer": r["layer"], "severity": sev,
                                  "module": r["module"], "cka": r["cka"],
                                  "cka_unbiased": r["cka_unbiased"],
                                  "drop_from_clean": r["cka_drop"],
