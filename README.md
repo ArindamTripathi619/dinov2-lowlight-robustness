@@ -20,7 +20,20 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 
 ---
 
-## Results Summary: How the Three Phases Connect
+---
+
+## Deliverables & how to run them
+
+| Deliverable | Location | Run / Regenerate |
+|---|---|---|
+| Presentation app (live, interactive) | `apps/presentation.py` | `streamlit run apps/presentation.py` |
+| Internal smoke check (deterministic, no server) | `apps/presentation.py` | `PRESENTATION_SMOKE=1 python3 apps/presentation.py` |
+
+`apps/presentation.py` is the single presentation layer for the study. It is **read-only with respect
+to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
+(no new experiments). The smoke check erases any doubt about whether the app actually renders every
+section from committed data, and it can be wired into CI.
+
 
 Each phase answers one question and hands its finding to the next:
 

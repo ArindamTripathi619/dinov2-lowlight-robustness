@@ -77,5 +77,9 @@ colab_results/sessionA/
 !output/drift_proxy_dinov2_check/**
 
 # Track 2 v8 ViT-B drift-profile kernel results of record (same situation)
+# Presentation app source
+!apps/
+!apps/**
+
 !output/vitb_profile/
 !output/vitb_profile/**
