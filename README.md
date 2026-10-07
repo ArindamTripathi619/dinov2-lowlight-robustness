@@ -28,11 +28,15 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 |---|---|---|
 | Presentation app (live, interactive) | `apps/presentation.py` | `streamlit run apps/presentation.py` |
 | Internal smoke check (deterministic, no server) | `apps/presentation.py` | `PRESENTATION_SMOKE=1 python3 apps/presentation.py` |
+| Single-section static render (PNG) | `apps/presentation.py` | `PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name> python3 apps/presentation.py` |
 
 `apps/presentation.py` is the single presentation layer for the study. It is **read-only with respect
 to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
-(no new experiments). The smoke check erases any doubt about whether the app actually renders every
-section from committed data, and it can be wired into CI.
+(no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse,
+localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure
+gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
+fails \u2014 it erases any doubt about whether the app actually renders every section from committed
+data, and it can be wired into CI.
 
 
 Each phase answers one question and hands its finding to the next:
