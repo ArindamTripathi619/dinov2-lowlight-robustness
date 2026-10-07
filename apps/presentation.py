@@ -479,6 +479,7 @@ def _render_home():
     ])
 
     st.subheader("Walkthrough order")
+    st.caption("New here? Start with **How we did it** \u2014 it tells the whole experimental story in plain words, before any numbers.")
     walk = [
         ("methods", "Data, corruption parameter tables, CKA formula, probe and LoRA configs."),
         ("collapse", "Accuracy cliff 0.91 \u2192 0.09 with embedding drift riding alongside."),
@@ -500,6 +501,148 @@ def _render_home():
 
 def _render_methods():
     st.subheader(SECTION_TITLES["methods"])
+    st.markdown("""
+    The whole study is **one repeatable pipeline**, run end to end without ever training the big
+    model. Here is that pipeline in plain words — ten decisions, why each one exists, and what
+    would have gone wrong without it. The exact parameter tables sit underneath as reference cards.
+    """)
+    steps = [
+        ("Freeze a strong model — and only ever question it", """
+**What:** DINOv2 ViT-S/14 (22.3M parameters) from `torch.hub`, permanently in `eval()` +
+`no_grad()`. CIFAR-10's 32×32 images are upsampled to the model's native 224×224,
+ImageNet-normalized, and we read the pooled **CLS token** — a single 384-number summary of the
+whole image — as "the representation".
+
+**Why freeze it?** We are studying how an *existing* visual system degrades, not building a new
+one. Every frozen weight is a weight that cannot drift behind our back: when accuracy falls, the
+input is the cause — nothing we trained can be blamed.
+"""),
+        ("Build a dimmer switch instead of collecting dark photos", """
+**What:** four synthetic degradations, each with six fixed severity steps (0 = untouched … 5 =
+extreme): **low-light** (brightness ×1.00 → 0.15 plus a little Gaussian noise), **Gaussian blur**
+(radius 0 → 5.5 px), **JPEG** (quality pristine → 8), **contrast** (fade toward gray, ×1.00 →
+0.15) — plus two FFT frequency filters used only by the mechanism experiment.
+
+**Why a fixed table instead of real photos?** Because anyone must be able to turn the same knob
+and get the same image: the severity tables are literal code, so a rerun on any machine reproduces
+the *identical* corrupted inputs. Severity 0 returning the pristine image is load-bearing — it is
+the clean anchor every curve and every probe is measured against.
+"""),
+        ("Grade with the simplest classifier that exists (a linear probe)", """
+**What:** a frozen model doesn't predict labels — it emits embeddings. So we train the simplest
+classifier that exists, a **logistic regression** (384 → 10 classes), on **clean severity-0
+embeddings only**, then evaluate that one probe at every severity (70/30 stratified split,
+seed 42).
+
+**Why clean-only training?** We're asking whether the features the model *already has* still carry
+label information after degradation. Retraining on degraded data would measure *adaptation*
+instead of *breakage* — a different and much less alarming question.
+
+**Why the comparison is fair:** original and patched models receive the *identical* test indices,
+so every before/after pair is same-images by construction.
+"""),
+        ("Measure drift with CKA — 'did the picture inside move?'", """
+**What:** for the same image, clean vs degraded, **linear CKA** compares each block's activations
+and returns a number in [0, 1]: 1.0 means the internal picture is arranged exactly as before, 0
+means it has been reshuffled beyond recognition. Intuition: it compares the *structure* of the
+representations (which samples sit near which other samples), not their raw values.
+
+**Why CKA instead of a plain distance?** It is scale-invariant — a uniformly "louder"
+representation isn't a *different* one — so what it measures is reorganization, which is exactly
+the failure mode we care about. It needs **no labels**: two forward passes per condition, hooks on
+each module, nothing else.
+
+**Two honesty notes baked in:** (a) the original implementation forgot a square root — values were
+squared, which kept every *ranking* intact but made the raw numbers meaningless; it was caught,
+fixed, and everything reported here uses the corrected formula. (b) The biased estimator flatters
+similarities, so the whole matrix was recomputed with the unbiased variant — the late-block
+structure survives both.
+"""),
+        ("Put honest error bars on every accuracy (bootstrap)", """
+**What:** every accuracy in this study comes from 1,000 graded images — one sample that could
+wobble with luck. So per severity we **bootstrap**: resample the 1,000 per-image right/wrong answers
+1,000 times with replacement and take the 2.5/97.5 percentiles → a 95% confidence band.
+
+**Plain words:** re-roll the same exam 1,000 different ways and watch how much the class average
+moves. A narrow band means the number is stable.
+
+**The bug this caught:** the first version re-seeded every severity with the same seed, so all
+severity levels resampled *identically* and the bands looked suspiciously similar. Fixed with
+severity-indexed seeds — independence between the conditions we intend to compare.
+"""),
+        ("Localize the damage with per-block hooks", """
+**What:** a forward hook on the patch embed and on each of the 12 transformer blocks reads that
+module's CLS activations for the *same* images clean and degraded; CKA per module per severity
+fills a block × severity matrix (the heatmap in the "Where it broke" section).
+
+**Why per-block?** A global drift number tells you *that* the model moved; a per-block matrix
+tells you *where*. Ours climbs from ~0.18 at the patch embed to ~0.81 in the last blocks — the
+failure has an address.
+
+**Guided-search honesty:** we looked at all 12 blocks and reported the largest, so there is a
+selection effect — that is exactly why the unbiased-estimator recompute and the third-architecture
+replication exist.
+"""),
+        ("Prove the mechanism with frequency surgery", """
+**What:** a circular FFT mask splits each image in two: **low-pass** keeps only smooth structure
+(large shapes, brightness — where luminance lives); **high-pass** keeps only edges and fine
+texture. Same images, same severities, same probe — the only variable is which frequency band
+survives.
+
+**The prediction:** if the model runs on low-frequency luminance, low-pass should preserve
+accuracy and high-pass should destroy it even when pixel statistics barely change.
+
+**The result:** low-pass stays near clean (~0.92), high-pass collapses (~0.59) at every severity —
+which is also why the same LoRA fix later transferred to blur and JPEG: those destroy the same
+band.
+"""),
+        ("Try to make profiling cheaper — and accept the NO-GO", """
+**What:** four cheap statistics — energy drop, mean shift, covariance shift, cosine drop — logged
+next to CKA, then scored with **Spearman ρ**: a rank correlation in [-1, 1] that asks "when CKA
+says corruption A is worse than B, does the cheap statistic agree?"
+
+**The gate, committed to before looking:** ρ ≥ 0.80 on *every* corruption, strictly. Pass → we
+could profile with pennies. Fail → we keep CKA and say so out loud.
+
+**What happened:** amplitude statistics track JPEG (energy and structure move together there) but
+fail on low-light (darkness shrinks amplitudes *without* ranking the structural late-block drift).
+NO-GO on three architectures. The fallback is unapologetic: full CKA stays the profiler — and it
+was never expensive: two forward passes, no labels, no backprop.
+"""),
+        ("Fix it with a 0.99% patch (LoRA + matched-noise grading)", """
+**What:** keep the 22M-parameter backbone frozen and teach **24 tiny side-patches** to speak up
+instead: LoRA adds a pair of small trainable matrices (rank 8, α16) next to every block's attention
+projections — **221,184 trainable numbers = 0.99% of the model**. Analogy: don't repaint the
+house; tape a thin film on the windows.
+
+**The diet:** 5,000 training images, 70% darkened (severity 2–4, random per sample) + 30% clean,
+plus flips, 10 epochs of AdamW — about 10 minutes on a free T4. The clean 30% is deliberate: it is
+what stops the patch from trading away clean accuracy.
+
+**Matched-noise grading:** darkness includes *random* noise, so if you corrupt the test set
+separately for each model they sit different exams. The script of record pre-generates the
+corrupted arrays **once** per severity (seed `1000 + severity`) and both models are graded on the
+identical pixels — the before/after gap is real, not eval jitter.
+"""),
+        ("Stress the claim from every side", """
+**What:** the headline claim survived five independent ways of trying to kill it —
+
+1. **Seeds:** 3 arms × 3 seeds, because one lucky run proves nothing.
+2. **Families:** blur, JPEG, contrast — each with its own ladder, its own profile, its own adapters.
+3. **The skeptic's control:** retrain the classifier per severity to split feature loss from
+   readout staleness.
+4. **Real data:** ExDark's 7,363 real low-light photos, adapters transferred with zero retraining.
+5. **A third architecture:** ViT-B/14 profiled at sublayer granularity (attention vs MLP).
+
+**Why the trouble?** Each replication targets a *different* way the study could be wrong —
+overfitting to one seed, one corruption, one model, one dataset, or one measurement instrument.
+Better we break it here than a reviewer does.
+"""),
+    ]
+    for i, (title, body) in enumerate(steps, 1):
+        with st.expander(f"Step {i} — {title}"):
+            st.markdown(body)
+
     st.caption("Exact parameters from docs/METHODS.md \u2014 verified against source. Every experiment in this "
                "presentation reads committed artifacts produced with these settings.")
 
@@ -647,6 +790,14 @@ def _render_methods():
 
 def _render_collapse():
     st.subheader(SECTION_TITLES["collapse"])
+    st.markdown("""
+    *How we did it.* We took 1,000 CIFAR-10 test images (a fixed, seeded draw), pushed them through
+    the six-step "dimmer switch" (severity 0 = untouched → 5 = darkest), and asked the frozen model
+    two questions at every level: **(1)** can a simple linear classifier still read the labels off
+    its features? and **(2)** how far have those features themselves moved from their clean shape?
+    Both questions are answered on the *same* images, so the two curves can be read against each
+    other directly — accuracy loss versus representation drift, severity by severity.
+    """)
     df = load_notebook1()
 
     c1, c2 = st.columns(2)
@@ -672,6 +823,15 @@ def _render_collapse():
 
 def _render_localize():
     st.subheader(SECTION_TITLES["localize"])
+    st.markdown("""
+    *How we did it.* To find *where* the model breaks, we clipped a sensor (a forward hook) onto the
+    patch embed and onto each of the 12 transformer blocks, then pushed the **same** 500 images
+    through twice — once clean, once degraded — and compared each block's CLS activations with
+    **linear CKA**, a score from 0 to 1 that answers "how much did the internal picture rearrange?"
+    (1.0 = identical, 0 = completely reshuffled). No labels are involved: CKA only looks at the
+    geometry of the activations. Doing that for every block at every severity gives the matrix
+    below — and the pattern in it *is* the localization answer.
+    """)
     cka = load_cka_matrix()
 
     c1, c2 = st.columns(2)
@@ -707,6 +867,15 @@ def _render_localize():
 
 def _render_mechanism():
     st.subheader(SECTION_TITLES["mechanism"])
+    st.markdown("""
+    *How we did it.* "Darkness breaks the model" is an observation; *why* it breaks needs surgery.
+    So we split each corrupted image into two frequency halves with a circular FFT mask: a
+    **low-pass** image that keeps only the smooth structure (large shapes, brightness — where
+    luminance lives) and a **high-pass** image that keeps only edges and fine texture. Same images,
+    same severities, same probe — the only thing that changed is which frequency band survives. If
+    the model really runs on low-frequency luminance, the low-pass half should keep accuracy alive
+    and the high-pass half should kill it even when nothing else changed.
+    """)
     c1, c2 = st.columns(2)
     with c1:
         _img("output/notebook2/frequency_test.png",
@@ -744,6 +913,15 @@ def _render_mechanism():
 
 def _render_proxy():
     st.subheader(SECTION_TITLES["proxy"])
+    st.markdown("""
+    *How we did it (the honest negative-result track).* Full CKA profiling is already cheap — two
+    forward passes per condition, no labels, no backprop — but could it be cheaper? We logged four
+    statistics that need no CKA at all (**energy drop, mean shift, covariance shift, cosine drop**)
+    and scored them against CKA with **Spearman ρ**: a rank correlation that asks, in plain words,
+    "when CKA says corruption A is worse than B, does the cheap statistic agree?" The gate we
+    committed to *before looking*: ρ ≥ 0.80 on **every** corruption, strictly. Passing would mean
+    we could replace CKA everywhere; failing means we keep CKA and say so.
+    """)
     agreement = load_drift_proxy_agreement()
     gate = agreement["gate"]
 
@@ -790,6 +968,18 @@ def _render_proxy():
 
 def _render_fix():
     st.subheader(SECTION_TITLES["fix"])
+    st.markdown("""
+    *How we did it.* Rather than retraining 22 million weights — slow, risky, and likely to forget
+    clean images — we left the backbone **frozen** and taught 24 tiny side-patches to speak up
+    differently: LoRA (low-rank adaptation) adds a pair of small trainable matrices (rank 8, α16)
+    next to every block's attention projections: **221,184 trainable numbers = 0.99% of the
+    model**. Analogy: don't repaint the house — tape a thin film on the windows. The training diet
+    deliberately mixes dark and clean (70% augmented images at severity 2–4, 30% clean, plus
+    flips) so the patch learns darkness *without* trading away clean accuracy. And because darkness
+    includes random noise, both the original and the patched model are graded on the **identical**
+    pre-corrupted test arrays (seeded `1000 + severity`) — the before/after gap is real, not eval
+    jitter.
+    """)
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Mean (sev 0\u20135)", "0.594 \u2192 0.818", "+22.4 pts")
@@ -830,6 +1020,15 @@ def _render_fix():
 
 def _render_grid():
     st.subheader(SECTION_TITLES["grid"])
+    st.markdown("""
+    *How we did it.* One good run can be luck — a friendly seed, a lucky shuffle. So we ran the
+    three serious candidates — uniform rank-8 LoRA, drift-weighted LoRA (ranks scaled to each
+    block's measured drift), and full fine-tuning — with **three seeds each** (42/43/44), plus a
+    late-blocks-only arm as a control for "just patch where the drift is". Every arm eats the same
+    5,000-image diet and is graded with the same matched-noise protocol; the error bars below are
+    the spread across seeds. Each seed also draws its own test set, so rows differ in init *and*
+    data draw — but within any row, original-vs-adapted is still the same images.
+    """)
 
     df = load_seed_analysis()
     grid = df[df["status"] == "ok"].copy()
@@ -880,6 +1079,17 @@ def _render_grid():
 
 def _render_families():
     st.subheader(SECTION_TITLES["families"])
+    st.markdown("""
+    *How we did it.* If the story is "fix the localized drift", it should work for **any**
+    corruption that breaks the model the same way — not just darkness. So we repeated the whole
+    recipe for three more families: build each family's own severity ladder (Gaussian blur radii,
+    JPEG quality steps, contrast factors), measure its accuracy curve and CKA drift profile, then
+    train family-specific LoRA patches — both drift-weighted and uniform — through the exact same
+    diet and matched-noise grading. The blur arms were salvaged: their Colab eval logs truncated,
+    so we re-graded the saved checkpoints locally — and the re-graded original column reproduces
+    Phase 1's curve *exactly* (0.913 / 0.873 / 0.620 / 0.387 / 0.220 / 0.143), which is our
+    comparability certificate.
+    """)
 
     fragility = pd.DataFrame([
         {"Corruption": "low_light (ref)", "Sev-5 accuracy": 0.087, "Cos-sim to clean": 0.161, "Profile": "cliff between 2\u20134"},
@@ -960,6 +1170,16 @@ def _render_families():
 
 def _render_readout():
     st.subheader(SECTION_TITLES["readout"])
+    st.markdown("""
+    *How we did it (the "is it just the classifier?" control).* A skeptic could argue: the features
+    moved, fine — but maybe a *fresh* classifier would cope, and the real bug is our stale probe.
+    So we split the question in two arms on the same folds and the same 1,000 images: **Arm A**
+    keeps the severity-0 probe frozen across all severities (measures how stale the readout gets),
+    **Arm B** retrains a probe per severity on degraded versions of the *same training fold*
+    (measures how much label information survived in the features themselves). The two arms are
+    compared per image with a paired permutation test — 5,000 shuffles; in plain words: swap the
+    two arms' grades 5,000 times and see how often luck alone produces a gap this big.
+    """)
     df = load_readout()
     summary = load_readout_summary()
 
@@ -1006,6 +1226,17 @@ def _render_readout():
 
 def _render_exdark():
     st.subheader(SECTION_TITLES["exdark"])
+    st.markdown("""
+    *How we did it.* Synthetic extreme darkening is a deliberately harsh stress test — a fair
+    reviewer asks: "but do **real** dark photos behave like that?" So we ran the identical
+    frozen-model + linear-probe pipeline on **ExDark**: 7,363 real low-light photographs across 12
+    object classes, binned by their actual measured luminance instead of by our synthetic knob.
+    Then two zero-retraining transfers: **CLAHE** (pure brightening — tests whether pixel
+    statistics alone help) and our **synthetic-dark LoRA adapters** (trained only on synthetic dark
+    CIFAR, applied as-is). Whatever the adapters gain on real images is genuine transfer; the
+    distance between the synthetic +21-point gain and the real gain is the sim-to-real gap —
+    measured, not hand-waved.
+    """)
     base = load_exdark_summary("exdark_baseline")
     drift = load_exdark_summary("exdark_transfer_drift")
     uniform = load_exdark_summary("exdark_transfer_uniform")
@@ -1061,6 +1292,16 @@ def _render_exdark():
 
 def _render_vitb():
     st.subheader(SECTION_TITLES["vitb"])
+    st.markdown("""
+    *How we did it.* "One model, one seed" is a fragile claim — so we moved to a third, larger
+    architecture, **DINOv2 ViT-B/14 (86M params)**, and profiled it at *finer grain than before*:
+    not just each whole block, but every block's **attention** and **MLP** sublayers individually —
+    37 modules per condition — under two corruptions × five severities. Everything ran on a free
+    Kaggle T4 in 259.5 seconds using the same label-free protocol: two forward passes per
+    condition, hooks on each module, CLS-token pooling, matched-noise corruption (`1000 +
+    severity`). The finer grain matters: the attention-vs-MLP asymmetry is invisible at
+    whole-block resolution.
+    """)
     profiles = load_vitb_profiles()
     agreement = load_vitb_agreement()
     gate = agreement["gate"]
@@ -1139,6 +1380,14 @@ def _render_vitb():
 
 def _render_bugs():
     st.subheader(SECTION_TITLES["bugs"])
+    st.markdown("""
+    *Why we show the bugs.* Four bugs slipped into the work at different points — and every one was
+    caught by a **sanity check** (metric bounds, unexpected stability, static validation,
+    eval-matching) *before* any conclusion trusted the numbers. Publishing them is the point: a
+    result is only as good as the checks that could have killed it, and each fix left the pipeline
+    stronger — correct formula, actually-independent resamples, ordered definitions, isolated
+    worker RNGs.
+    """)
     bugs = pd.DataFrame([
         {"#": "1", "Bug": "CKA sqrt bug",
          "What": "Invalid metric (normalized by var1*var2 instead of sqrt(var1*var2)) \u2014 all values inflated (sev-5 up to 79.9).",
