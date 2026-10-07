@@ -51,16 +51,12 @@ Illumination Registers and the Canonicalizer are parked (Archive, §5).
 
 ## 2. Track details
 
-### Track 0 — Hygiene (this week, mostly waiting on others)
-- [x] Blur re-evals done (`run_blur_adapter_eval.py`, n=1000): drift **0.526 → 0.703 (+17.7)**,
-  uniform **0.526 → 0.698 (+17.2)**; original columns reproduce Phase-1 exactly
-  (protocol comparability certificate). Folded into METHODS §7.6 / RESEARCH §6.3 / README.
-- [x] Blur uniform re-eval done → both arms folded into METHODS §7.6 / RESEARCH §6.3 /
-  README; committed and pushed.
+### Track 0 — Hygiene (done: blur re-evals folded; the only open item is upstream integration)
 - [ ] PR #1: send arghya the link + DIVERGENCE_REPORT; offer the deterministic-noise
-  reconciliation as a follow-up PR on the merged base.
-- [ ] After merge: rebase cleanup (fast-forward `main` to the rebased lineage), adopt
-  upstream `configs/` manifest.
+  reconciliation as a follow-up PR on the merged base. (Reviewer gates the merge, not
+  the research.)
+- [ ] After merge: rebase cleanup (fast-forward `main` to the rebased lineage),
+  adopt upstream `configs/` manifest.
 
 ### Track 1 — Drift-proxy feasibility (the gate; ~1 GPU-session + CPU analysis)
 **Goal:** a drift proxy *much cheaper than CKA* that predicts where adaptation pays off,
