@@ -32,7 +32,7 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 
 `apps/presentation.py` is the single presentation layer for the study. It is **read-only with respect
 to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
-(no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
+(no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
 fails — it erases any doubt about whether the app actually renders every section from committed
 data, and it can be wired into CI.
 
