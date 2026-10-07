@@ -35,7 +35,7 @@ to results**: it reads committed artifacts (`output/`, `colab_results/`) and reb
 (no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse,
 localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure
 gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
-fails \u2014 it erases any doubt about whether the app actually renders every section from committed
+fails — it erases any doubt about whether the app actually renders every section from committed
 data, and it can be wired into CI.
 
 
