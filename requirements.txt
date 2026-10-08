@@ -15,6 +15,9 @@ pillow>=11.0
 # ExDark baseline: CLAHE enhancement control (run_exdark_baseline.py)
 opencv-python-headless>=4.8
 
+# Static-site export (tools/export_static_site.py renders presentation markdown)
+markdown>=3.4
+
 # ------------------------------------------------------------------
 # Local reference environment (exact pins that produced the committed
 # results — see docs/METHODS.md §10). Uncomment to reproduce byte-exact:

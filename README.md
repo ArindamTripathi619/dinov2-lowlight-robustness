@@ -29,12 +29,40 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 | Presentation app (live, interactive) | `apps/presentation.py` | `streamlit run apps/presentation.py` |
 | Internal smoke check (deterministic, no server) | `apps/presentation.py` | `PRESENTATION_SMOKE=1 python3 apps/presentation.py` |
 | Single-section static render (PNG) | `apps/presentation.py` | `PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name> python3 apps/presentation.py` |
+| Static website (no server, Vercel-ready) | `index.html` (+ `tools/export_static_site.py`) | `python3 tools/export_static_site.py` |
 
 `apps/presentation.py` is the single presentation layer for the study. It is **read-only with respect
 to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
 (no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
 fails — it erases any doubt about whether the app actually renders every section from committed
 data, and it can be wired into CI.
+
+### Static website — one click to Vercel (no server)
+
+The presentation is also exported as a **server-free static site**: `index.html` at the
+repo root holds all 14 sections — every figure, table, expander, tab and widget state
+(severity sliders, estimator toggle, corruption radio) — generated from the same
+`apps/presentation.py` by `tools/export_static_site.py`, so the two renderers can never
+quietly diverge. Assets are referenced in place (`output/`, `colab_results/`), so the
+deploy ships every figure the study has.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FArindamTripathi619%2Fdinov2-lowlight-robustness&project-name=dinov2-lowlight-study&repository-name=dinov2-lowlight-robustness)
+
+One click → sign in → **Deploy**. Vercel detects no framework and no build step
+(preset *Other*), serves the repository root, and redeploys automatically on every
+push to `main`. Manual alternatives:
+
+```bash
+npx vercel --prod            # CLI deploy from a clone
+python3 -m http.server 8099  # local preview → http://localhost:8099
+```
+
+`index.html` also opens straight from `file://` (double-click). After changing the
+presentation, regenerate the site (needs `pip install markdown`):
+
+```bash
+python3 tools/export_static_site.py   # rebuilds index.html + static/gen, self-checks
+```
 
 
 Each phase answers one question and hands its finding to the next:

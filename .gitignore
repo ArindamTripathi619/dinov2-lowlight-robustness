@@ -81,6 +81,12 @@ colab_results/sessionA/
 !apps/
 !apps/**
 
+# Static-site generated figures (tools/export_static_site.py — committed so the
+# zero-config Vercel deploy has every chart)
+!static/
+!static/gen/
+!static/gen/*.png
+
 !output/vitb_profile/
 !output/vitb_profile/**
 __pycache__/
