@@ -91,3 +91,4 @@ colab_results/sessionA/
 !output/vitb_profile/**
 __pycache__/
 *.pyc
+.vercel

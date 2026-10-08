@@ -1,0 +1,15 @@
+# Keep the CLI upload lean: Vercel uses THIS file instead of .gitignore.
+# The site needs output/ + colab_results/ (assets), index.html and static/.
+.venv/
+venv/
+env/
+.git/
+.vercel/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+data/
+logs/
+upstream_src/

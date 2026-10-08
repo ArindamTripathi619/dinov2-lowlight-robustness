@@ -52,6 +52,11 @@ One click → sign in → **Deploy**. Vercel detects no framework and no build s
 (preset *Other*), serves the repository root, and redeploys automatically on every
 push to `main`. Manual alternatives:
 
+> **Live now:** <https://dinov2-lowlight-robustness.vercel.app>
+> (CLI deploy: `vercel --prod --yes` — `vercel.json` pins the static overrides and
+> `.vercelignore` keeps the upload lean; connect the GitHub repo in the Vercel
+> dashboard to re-deploy on every push.)
+
 ```bash
 npx vercel --prod            # CLI deploy from a clone
 python3 -m http.server 8099  # local preview → http://localhost:8099
