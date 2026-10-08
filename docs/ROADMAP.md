@@ -237,4 +237,3 @@ Next up, in order:
 6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
    (`run_drift_proxy.py` / `run_drift_profile.py`).
 7. Optional: deterministic-noise follow-up PR (Track 0 residual; non-blocking).
-5. Send PR #1 to arghya (his review gates the merge, not the research).
