@@ -2,7 +2,7 @@
 
 *Draft v1.1 (2026-09-21). All citations verified via web search; §2.2 novelty boundary re-scoped after a dedicated prior-art search.*
 *Status: standalone paper section; to be merged into the manuscript skeleton.*
-*Numbers cited from our results match commit `7ede489` artifacts exactly.*
+*Numbers cited from our results match commit `6bddf87` artifacts exactly.*
 
 ---
 
@@ -89,7 +89,8 @@ domain shift → shallow; task/photometric degradation → late). A useful negat
 ablation supports this: rank-8 on late blocks only (0.25% of params) is clearly
 insufficient (mean 0.686, sev-5 0.160), showing the drift profile identifies *where*
 budget matters but some early/mid capacity remains necessary. Seed-replication with
-error bars is reported in §6 [pending: 4 replication arms].
+error bars is now in hand — all headline arms × 3 seeds (`docs/RESEARCH.md` §6.1) — and will be
+reported in the manuscript's results section.
 
 ### 2.5 Training-time robustness interventions
 

@@ -1,7 +1,8 @@
 # Divergence Report — `officialarghya29/dinov2-lowlight-robustness` vs `ArindamTripathi619/dinov2-lowlight-robustness`
 
 *Generated 2026-09-21 from git facts (merge-base `fc9ea04`). Purpose: shared basis for
-reconciling the two lines of development. Nothing has been merged; no branch created.*
+reconciling the two lines of development. **Superseded by events: PR #1 merged
+2026-10-01 — see §9.** Sections §1–§8 are kept as the record of the pre-merge state.*
 
 ---
 
@@ -164,3 +165,28 @@ r = 8 allocation at 3 of 12 blocks (one rank each; `docs/METHODS.md` §4) while 
 9–11 keep maximum rank under both estimators. **The drift-allocation claim survives
 estimator choice**; reviewers running their estimator will reproduce the late-heavy
 structure, not the exact rank vector.
+
+---
+
+## 9. Addendum (2026-10-01, verified 2026-10-08): PR #1 merged — integration complete
+
+The rebase plan of §8.1 was executed and shipped as
+[PR #1](https://github.com/officialarghya29/dinov2-lowlight-robustness/pull/1),
+merged 2026-10-01 (merge commit `9bc6b50`):
+
+- The fork's 14 commits were replayed onto upstream's rewritten root, so `upstream/main`
+  and this repo's `main` share one lineage again — §8.1's empty-merge-base problem is
+  resolved, and §6's "nothing has been merged" status above is historic.
+- Overlap files resolved per §5/§8.1 roles: this fork's runners + `docs/`, upstream's
+  `paper/`, `src/`, `tests/`, CI, `configs/`. **The `configs/` manifest §8.2 declined to
+  port is now in-tree** (it arrived with the merge and is used by `run_experiments.py`
+  and the other `configs/`-reading runners) — that open item is closed.
+- Verification on the merged tree (per the PR): upstream's `tests/run_tests.py`
+  22/22 pass; no deletions relative to either side — both content sets fully preserved.
+- **Still open from §8.2:** upstream's deterministic-noise corruption primitive was
+  deliberately not ported (it would break byte-comparability with this repo's committed
+  results); the seeded-noise protocol (`1000 + severity`) stands until a follow-up PR
+  reconciles the two. Tracked as the optional residual of ROADMAP Track 0.
+- §7's post-merge opportunities: (a) ViT-B × drift-weighted → v8 profile done
+  (`6a9de11`), LoRA-arm half (v9) still open; (b) single manuscript → ROADMAP Track 6;
+  (c) CI-tested parameterizations → `tests/` + `.github/workflows/` now in-tree.

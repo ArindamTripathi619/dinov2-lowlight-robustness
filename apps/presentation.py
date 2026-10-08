@@ -6,7 +6,9 @@ proxy gate -> fix -> 9-arm grid -> families -> readout -> ExDark -> ViT-B ->
 bugs -> figure gallery.
 
 Run:     streamlit run apps/presentation.py
-Smoke:   PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name>  (renders
+Smoke:   PRESENTATION_SMOKE=1  (renders all 14 sections headlessly, exits
+         non-zero on any failure)
+Static:  PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name>  (renders
          __static_<name>.png next to this script, exits 0)
 """
 from __future__ import annotations
@@ -190,7 +192,7 @@ def _plot_layerwise(df, sev=5):
     drops = sub["drop_from_clean"].values
     colors = ["#d62728" if b >= 9 else "#1f77b4" for b in blocks]
     ax.bar([f"b{b}" for b in blocks], drops, color=colors, width=0.7)
-    ax.set_xlabel("Block (0 = patch embed, 9\u201311 = late)")
+    ax.set_xlabel("Block (0 = earliest, 9\u201311 = late)")
     ax.set_ylabel("Drop from clean (1 \u2212 CKA)")
     ax.set_title(f"Drift by block \u2014 severity {sev} (drop {drops.min():.3f}\u2013{drops.max():.3f})")
     ax.axvspan(8.5, 11.5, color="#ff7f0e", alpha=0.08)
@@ -436,7 +438,7 @@ def _render_home():
         {"Question": "How bad is extreme darkness?",
          "Answer": "0.913 \u2192 0.093 accuracy (cliff between sev 2\u20134; chance = 0.10)"},
         {"Question": "Where does the representation break?",
-         "Answer": "Late blocks 9\u201311: CKA drop 0.81 vs 0.18 in the patch embed"},
+         "Answer": "Late blocks 9\u201311: CKA drop 0.81 vs 0.58 at block 0, the earliest"},
         {"Question": "Why?",
          "Answer": "Darkness removes low-frequency luminance; low-pass keeps accuracy, high-pass destroys it"},
         {"Question": "Can a cheap proxy replace CKA?",
@@ -461,7 +463,7 @@ def _render_home():
     st.subheader("Findings in plain language")
     st.markdown("""
     1. **The failure is a cliff, not a slope** \u2014 near-clean through severity 2, then a steep collapse.
-    2. **It has an address** \u2014 the late transformer blocks move the most; the patch embed barely moves.
+    2. **It has an address** \u2014 the late transformer blocks move the most (0.81 at block 10 vs 0.58 at block 0, the earliest).
     3. **It has a mechanism** \u2014 the model runs on low-frequency luminance, which is exactly what darkness deletes.
     4. **There is no free lunch in profiling** \u2014 cheap amplitude proxies fail the correlation gate; forward-only CKA is cheap enough.
     5. **A 0.99%-parameter patch recovers most of it** \u2014 and doesn't trade away clean accuracy.
@@ -571,12 +573,12 @@ severity levels resampled *identically* and the bands looked suspiciously simila
 severity-indexed seeds — independence between the conditions we intend to compare.
 """),
         ("Localize the damage with per-block hooks", """
-**What:** a forward hook on the patch embed and on each of the 12 transformer blocks reads that
+**What:** a forward hook on each of the 12 transformer blocks reads that
 module's CLS activations for the *same* images clean and degraded; CKA per module per severity
 fills a block × severity matrix (the heatmap in the "Where it broke" section).
 
 **Why per-block?** A global drift number tells you *that* the model moved; a per-block matrix
-tells you *where*. Ours climbs from ~0.18 at the patch embed to ~0.81 in the last blocks — the
+tells you *where*. Ours climbs from 0.58 at block 0 to 0.81 at block 10 (severity 5) — the
 failure has an address.
 
 **Guided-search honesty:** we looked at all 12 blocks and reported the largest, so there is a
@@ -824,8 +826,7 @@ def _render_collapse():
 def _render_localize():
     st.subheader(SECTION_TITLES["localize"])
     st.markdown("""
-    *How we did it.* To find *where* the model breaks, we clipped a sensor (a forward hook) onto the
-    patch embed and onto each of the 12 transformer blocks, then pushed the **same** 500 images
+    *How we did it.* To find *where* the model breaks, we clipped a sensor (a forward hook) onto each of the 12 transformer blocks, then pushed the **same** 500 images
     through twice — once clean, once degraded — and compared each block's CLS activations with
     **linear CKA**, a score from 0 to 1 that answers "how much did the internal picture rearrange?"
     (1.0 = identical, 0 = completely reshuffled). No labels are involved: CKA only looks at the
@@ -1365,8 +1366,8 @@ def _render_vitb():
 
     st.subheader("Findings")
     _bullets([
-        "**Late-heavy block profile replicates** on an 86M-parameter backbone: drift climbs from the patch embed "
-        "to the final blocks under both corruptions.",
+        "**Late-heavy block profile replicates** on an 86M-parameter backbone: drift climbs from block 0 "
+        "to the final blocks (sev-5: low_light 0.18 → 0.80–0.87, jpeg 0.13 → 0.71–0.79) under both corruptions.",
         "**Sublayer finding invisible to ViT-S whole-block CKA:** MLP sublayers drift more than attention sublayers "
         "in all 12 blocks under both corruptions (low_light gaps 0.015\u20130.159, max at b2; jpeg gaps 0.017\u20130.108, max at b1).",
         "**Gate NO-GO with the scale-invariance signature replicated:** best \u03c1 jpeg 0.876 (energy_drop) / 0.882 "

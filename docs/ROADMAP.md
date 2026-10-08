@@ -5,6 +5,10 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
+*Last updated 2026-10-08: Track 0 closed (PR #1 merged upstream `9bc6b50`, blur re-evals
+folded), Track 1 gate run (NO-GO, fallback adopted), Track 2 v8 done (ViT-B profile);
+v9 and Tracks 3–6 remain open.*
+
 
 ---
 
@@ -21,8 +25,11 @@ of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
   classification (ExDark flat, CLAHE +0.001) → the *problem* needs real benchmarks
   where darkness hurts (ACDC night, Dark Zurich, DarkFace/BDD-night, detection), and
   the *scale* needs more model families (not just one ViT-S on CIFAR-10).
-- In flight: **PR #1 to upstream** (arghya's review), **blur uniform re-eval** (CPU,
-  running), ViT-B campaign not started.
+- Landed since this roadmap was written: **PR #1 merged upstream** (2026-10-01,
+  `9bc6b50` — fork replayed onto the rewritten root; `paper/`, `src/`, `tests/`, CI,
+  `configs/` integrated), **blur re-evals folded** (`67a2dc4`), **Track 2 v8 ViT-B
+  profile done** (`6a9de11`, T4 259 s). Open: Track 2 **v9** (ViT-B LoRA arms),
+  Tracks 3–6.
 
 **Decision (advisor's two rankings converge on this):** the paper is **Drift-Profiled
 Adaptation (DPA) + Selective Statistic Recalibration (SSR)** — the "drift-profiled,
@@ -37,7 +44,7 @@ Illumination Registers and the Canonicalizer are parked (Archive, §5).
 
 | # | Track | Why this position |
 |---|-------|-------------------|
-| 0 | Close sessionE blur arms; PR #1 follow-through | hygiene: the grid must be complete and the integration recorded before new claims |
+| 0 | ~~Close sessionE blur arms; PR #1 follow-through~~ — **closed** | blur re-evals folded (`67a2dc4`); PR #1 merged upstream (`9bc6b50`) |
 | 1 | **Drift-proxy pipeline on ResNet-50** (advisor's "suggested next step") | **the whole paper stands or falls here**, for ~1 GPU-session; validates "cheap proxy ≈ CKA" outside ViT |
 | 2 | **ViT-B drift-weighted LoRA** (kernel v8/v9) | the one remaining novelty claim from the *current* paper; also the ViT-family data point for the cross-architecture claim |
 | 3 | **Cross-family drift profiles** (6 models) | the reviewer-ungettable result: *shape* of drift profiles across CNN/ViT/hybrid/state-space |
@@ -51,12 +58,17 @@ Illumination Registers and the Canonicalizer are parked (Archive, §5).
 
 ## 2. Track details
 
-### Track 0 — Hygiene (done: blur re-evals folded; the only open item is upstream integration)
-- [ ] PR #1: send arghya the link + DIVERGENCE_REPORT; offer the deterministic-noise
-  reconciliation as a follow-up PR on the merged base. (Reviewer gates the merge, not
-  the research.)
-- [ ] After merge: rebase cleanup (fast-forward `main` to the rebased lineage),
-  adopt upstream `configs/` manifest.
+### Track 0 — Hygiene (closed: blur re-evals folded; PR #1 merged upstream)
+- [x] Blur re-evals folded into METHODS §7.6 / RESEARCH §6.3 / README (`67a2dc4`).
+- [x] **PR #1 merged 2026-10-01** (`9bc6b50`): the fork's 14 commits replayed onto
+  upstream's rewritten root; `paper/`, `src/`, `tests/`, CI and `configs/` integrated
+  (DIVERGENCE_REPORT's "configs not ported" note is obsolete — the manifest arrived
+  with the merge); `docs/DIVERGENCE_REPORT.md` shipped inside the PR. `main` sits on
+  the merged lineage — no rebase cleanup left to do.
+- [ ] Optional, non-blocking: deterministic-noise follow-up (flagged in PR #1) —
+  reconcile upstream's deterministic-noise corruption primitive with this repo's
+  seeded-noise protocol (`1000 + severity`), or agree the current protocol stands and
+  close the item. A reviewer gates it, not the research.
 
 ### Track 1 — Drift-proxy feasibility (the gate; ~1 GPU-session + CPU analysis)
 **Goal:** a drift proxy *much cheaper than CKA* that predicts where adaptation pays off,
@@ -155,7 +167,7 @@ low_light/jpeg severity pairs, per-stage/per-block CKA + proxy profiles.
 ## 3. Execution order and dependencies
 
 ```
-Track 0 (blur done → uniform → docs+push)   ──┐
+Track 0 (done: blur re-evals folded, PR #1 merged) ──┐
 Track 1 (drift proxy, ResNet-50)  ── gate ────┤
 Track 2 (ViT-B v8/v9, Kaggle)                 ├──→ Track 3 (atlas) ──→ Track 4 (SSR)
                                               │                            │
@@ -204,14 +216,25 @@ Colab for iteration; multi-seed jobs as separate short sessions emitting JSONs.
 
 ---
 
-## 6. Immediate next actions (this week)
+## 6. Immediate next actions
 
-1. Finish blur uniform re-eval → docs + commit + push (Track 0).
-2. `run_drift_proxy.py` on ResNet-50 (Track 1) — the go/no-go gate; CPU-able for a
-   first pass with CIFAR-10-C-style degradations, ImageNet-subset for the real pass.
-3. Build v8 kernel (ViT-B CKA profile) and queue it on Kaggle (Track 2) — independent
-   of #2, uses the established kernel-builder pipeline.
+Done since this list was written (kept for the record):
+
+1. [x] Finish blur uniform re-eval → docs + commit + push (Track 0) — done `67a2dc4`.
+2. [x] `run_drift_proxy.py` on ResNet-50 (Track 1) — run 2026-10-03, **NO-GO**; the
+   pre-registered fallback (full CKA stays the profiler) adopted (`5e7afe4`).
+3. [x] Build v8 kernel (ViT-B CKA profile) and queue it on Kaggle (Track 2) — done
+   2026-10-03: kernel `vitb-drift-profile` v1, T4, 259 s (`c08e9d4`, `6a9de11`).
 4. [x] Prior-art searches (advisor offered): drift-proxy allocation (RepSAM/AdaLoRA
    adjacency), selective test-time recalibration (TENT adjacency). Done 2026-10-03 —
    novelty verdicts in `docs/DPA_DESIGN.md` §1.3/§4/§6 before writing DPA_DESIGN claims.
+
+Next up, in order:
+
+5. **Track 2 v9** — ViT-B LoRA arms (uniform vs ViT-B-drift-weighted vs late-only,
+   seed 42) from `output/vitb_profile/drift_profile_sev5_*.csv` (re-index per the
+   METHODS §7.8 consumer note).
+6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
+   (`run_drift_proxy.py` / `run_drift_profile.py`).
+7. Optional: deterministic-noise follow-up PR (Track 0 residual; non-blocking).
 5. Send PR #1 to arghya (his review gates the merge, not the research).

@@ -223,7 +223,7 @@ The sessionE blur arms trained to convergence on Colab T4 but their eval logs we
 
 Decomposes the Phase-1 collapse into *feature drift* vs *readout staleness* (the severity-adapted-probe control from upstream's H4, ported and hardened): Arm A = the §6 probe trained on clean embeddings, fixed across severities; Arm B = a probe retrained per severity on degraded versions of the **same train fold** (strict same-fold control — no test-fold reuse). Paired permutation test (5,000 permutations, seed 42) on per-image correctness; Wilson 95% CIs; `readout_collapse_metrics` (top1_share / entropy_ratio / dominant class) on Arm A predictions. n = 1,000 test images (seed 42), low_light, DINOv2 ViT-S/14, local CPU.
 
-Artifact: `colab_results/readout_repair/` (results.csv, summary.json); runner writes to `output/readout_repair/` by default.
+Artifact: `output/readout_repair/` (results.csv, summary.json — the runner's default output directory).
 
 | Severity | Arm A fixed | Arm B adapted | Δ | p (paired perm.) |
 |----------|-------------|---------------|-----|------|

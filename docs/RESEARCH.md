@@ -85,7 +85,7 @@ CKA drop (clean → severity 5) by layer — full matrix in `output/notebook2/ck
 
 | Layer | CKA drop |
 |-------|----------|
-| block 0 (patch embed) | 0.58 |
+| block 0 (earliest) | 0.58 |
 | block 5 | 0.53 |
 | **block 10** | **0.81** ← max |
 | block 11 | 0.78 |
@@ -141,19 +141,19 @@ Reading the two together: the late-layer signature tracks *high-frequency destru
 
 ### 6.1 Phase 3 v2 — the full grid: targeting, seeds, and the full-FT baseline
 
-Phase 3 v2 turns the original single-run result into a defensible comparison grid. The enabler was the Phase 0 refactor of `run_lora_simple_colab.py` (argparse flags for rank/layers/seed/model/corruption, torch seeding before any model creation, adapter checkpointing). Six arms, all on the same diet/protocol as the run of record, artifacts in `colab_results/sessionD/`:
+Phase 3 v2 turns the original single-run result into a defensible comparison grid. The enabler was the Phase 0 refactor of `run_lora_simple_colab.py` (argparse flags for rank/layers/seed/model/corruption, torch seeding before any model creation, adapter checkpointing). Ten arms — uniform / drift-weighted / full-FT × seeds 42/43/44, plus the late-only ablation — all on the same diet/protocol as the run of record, artifacts in `colab_results/sessionD/`:
 
-| Arm | Trainable params | Sev 0 | Sev 2 | Sev 3 | Sev 4 | Sev 5 | Mean |
-|------|-----------------|-------|-------|-------|-------|-------|------|
-| Original (frozen) | 0 | 0.913 | 0.860 | 0.600 | 0.223 | 0.083 | 0.598 |
-| Uniform LoRA r8, seed 42 | 221,184 (0.99%) | 0.960 | 0.950 | 0.890 | 0.750 | 0.387 | 0.815 |
-| Uniform LoRA r8, seed 43 | 221,184 (0.99%) | 0.980 | 0.967 | 0.917 | 0.757 | 0.370 | 0.828 |
-| Uniform LoRA r8, seed 44 | 221,184 (0.99%) | 0.977 | 0.967 | 0.930 | 0.777 | 0.413 | 0.839 |
-| Late-only LoRA (blocks 9–11, r8) | 55,296 (0.25%) | 0.937 | 0.903 | 0.723 | 0.460 | 0.160 | 0.686 |
-| **Drift-weighted LoRA**, seed 42 (ranks ∝ CKA drop) | 172,800 (0.78%) | 0.963 | 0.937 | 0.890 | 0.750 | 0.380 | 0.811 |
+| Arm | Trainable params | Sev 0 | Sev 1 | Sev 2 | Sev 3 | Sev 4 | Sev 5 | Mean |
+|------|-----------------|-------|-------|-------|-------|-------|-------|------|
+| Original (frozen) | 0 | 0.913 | 0.907 | 0.860 | 0.600 | 0.223 | 0.083 | 0.598 |
+| Uniform LoRA r8, seed 42 | 221,184 (0.99%) | 0.960 | 0.953 | 0.950 | 0.890 | 0.750 | 0.387 | 0.815 |
+| Uniform LoRA r8, seed 43 | 221,184 (0.99%) | 0.980 | 0.977 | 0.967 | 0.917 | 0.757 | 0.370 | 0.828 |
+| Uniform LoRA r8, seed 44 | 221,184 (0.99%) | 0.977 | 0.973 | 0.967 | 0.930 | 0.777 | 0.413 | 0.839 |
+| Late-only LoRA (blocks 9–11, r8) | 55,296 (0.25%) | 0.937 | 0.933 | 0.903 | 0.723 | 0.460 | 0.160 | 0.686 |
+| **Drift-weighted LoRA**, seed 42 (ranks ∝ CKA drop) | 172,800 (0.78%) | 0.963 | 0.947 | 0.937 | 0.890 | 0.750 | 0.380 | 0.811 |
 | Drift-weighted LoRA, seed 43 | 172,800 (0.78%) | 0.980 | 0.977 | 0.967 | 0.930 | 0.757 | 0.317 | 0.821 |
 | Drift-weighted LoRA, seed 44 | 172,800 (0.78%) | 0.977 | 0.973 | 0.973 | 0.930 | 0.780 | 0.417 | 0.842 |
-| Full fine-tuning, seed 42 (backbone lr 1e-5, head lr 1e-3) | 22,056,576 (100%) | 0.947 | 0.923 | 0.890 | 0.750 | 0.393 | 0.810 |
+| Full fine-tuning, seed 42 (backbone lr 1e-5, head lr 1e-3) | 22,056,576 (100%) | 0.947 | 0.957 | 0.923 | 0.890 | 0.750 | 0.393 | 0.810 |
 | Full fine-tuning, seed 43 | 22,056,576 (100%) | 0.963 | 0.960 | 0.960 | 0.937 | 0.803 | 0.453 | 0.846 |
 | Full fine-tuning, seed 44 | 22,056,576 (100%) | 0.970 | 0.970 | 0.943 | 0.900 | 0.783 | 0.460 | 0.838 |
 
@@ -168,7 +168,7 @@ Phase 3 v2 turns the original single-run result into a defensible comparison gri
 
 ### 6.2 Sim-to-real: does synthetic-dark adaptation transfer to real darkness?
 
-The ExDark suite (7,363 real low-light photographs, 12 classes; empirical luminance axis; see §6.2 of the baseline protocol in `docs/METHODS.md` §7.5) closes the loop. First the baseline: frozen DINOv2 probes at **0.725** on real dark images; accuracy is **flat across the darkness axis** (darkest luminance quintile 0.713 vs brightest 0.704) and CLAHE enhancement buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse (which is an extreme, lower-luminance regime), and errors are class-confusion (People 0.53, Table 0.47), not luminance-driven (Boat 0.97).
+The ExDark suite (7,363 real low-light photographs, 12 classes; empirical luminance axis; protocol in `docs/METHODS.md` §7.9) closes the loop. First the baseline: frozen DINOv2 probes at **0.725** on real dark images; accuracy is **flat across the darkness axis** (darkest luminance quintile 0.713 vs brightest 0.704) and CLAHE enhancement buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse (which is an extreme, lower-luminance regime), and errors are class-confusion (People 0.53, Table 0.47), not luminance-driven (Boat 0.97).
 
 Then the transfer test — adapters trained *only* on synthetic CIFAR darkness, probed on real ExDark (same split, zero real-dark training):
 
@@ -213,7 +213,7 @@ Artifacts: `colab_results/kaggle_sessionF/` (per-arm plots + full logs), `colab_
 
 ### 6.4 What would a re-trained readout buy? (readout-staleness decomposition)
 
-The Phase-1/3 protocol holds the readout fixed (trained on clean embeddings only). A natural confound: how much of the collapse is *stale readout* rather than *broken features*? Upstream's H4 answers this with a severity-adapted probe; we ported and hardened it (`run_readout_repair.py`): Arm A = §6's fixed clean-trained probe; Arm B = a probe retrained per severity on degraded versions of the **same train fold** (strict control — no test-fold reuse); paired permutation tests (5,000 perms) + Wilson CIs + readout-collapse metrics (top1_share / entropy_ratio / dominant class — upstream's F6 analysis). n = 1,000, low_light, seed 42 (`colab_results/readout_repair/`, protocol `docs/METHODS.md` §7.7):
+The Phase-1/3 protocol holds the readout fixed (trained on clean embeddings only). A natural confound: how much of the collapse is *stale readout* rather than *broken features*? Upstream's H4 answers this with a severity-adapted probe; we ported and hardened it (`run_readout_repair.py`): Arm A = §6's fixed clean-trained probe; Arm B = a probe retrained per severity on degraded versions of the **same train fold** (strict control — no test-fold reuse); paired permutation tests (5,000 perms) + Wilson CIs + readout-collapse metrics (top1_share / entropy_ratio / dominant class — upstream's F6 analysis). n = 1,000, low_light, seed 42 (`output/readout_repair/`, protocol `docs/METHODS.md` §7.7):
 
 | Severity | Fixed probe | Adapted probe | Δ | p |
 |----------|------------:|--------------:|-----:|------|
@@ -233,7 +233,7 @@ Two further observations. First, the adapted probe is *worse* at sev 1–2 (−1
 ## 7. The Findings in Plain Language
 
 1. **DINOv2 fails hard in the dark** (0.91 → 0.09; near-chance at severity 5). Its clean-benchmark reputation does not survive darkness.
-2. **The failure has an address.** Late attention blocks drift most (CKA drop 0.82 at block 10); early layers are comparatively stable. The failure is *localized*, not diffuse.
+2. **The failure has an address.** Late attention blocks drift most (CKA drop 0.81 at block 10); early layers are comparatively stable. The failure is *localized*, not diffuse.
 3. **The failure has a mechanism.** The model's accuracy survives low-pass filtering nearly intact but collapses under high-pass filtering — it reads low-frequency luminance structure, and darkness erases precisely that.
 4. **The failure is cheap to reverse.** Because it is localized, LoRA on the affected layers — 1% of the network, 10 GPU-minutes — recovers most of the lost robustness *without hurting clean accuracy*. CKA-guided rank allocation matches uniform LoRA and full fine-tuning at 0.78% of parameters; full FT recovers the same robustness at 100× the cost plus a clean-accuracy penalty.
 5. **Accuracy loss ≈ embedding drift.** One phenomenon, measured (Phase 1), explained (Phase 2), reversed (Phase 3).
@@ -279,7 +279,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 
 - **Synthetic-first design; real data used for validation only.** Our corruptions simulate darkness and frequency loss, not ISP pipelines, color casts, or exposure metadata. The ExDark suite (§6.2) quantifies the sim-to-real gap — adaptation transfers, but only ~9% of the synthetic-axis gain — rather than closing it.
 - **Real-dark validation is bounded by ExDark's luminance range.** ExDark is dark but not extreme; the flat accuracy curve shows the synthetic collapse (an extreme, lower-luminance regime) simply does not manifest there. Findings about *extreme* darkness remain synthetic-only.
-- **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; ViT-B generality is planned but unverified here.
+- **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; the ViT-B *profile* replication is done (§5.1), but the ViT-B LoRA arms (v9) and the cross-family atlas are still pending, so generality of the *fix* is not yet verified.
 - **Corruption-family LoRA arms are single-seed (seed 42).** The §6.1 error bars (±1.2–1.9 pts across seeds) come from the low-light family; family deltas (+19.3 JPEG, +17.7 blur, +6.9 contrast) exceed that noise comfortably, but family-level parity claims (drift vs uniform within blur or contrast) are single-seed and should not be over-read.
 - **Biased CKA estimator in the published allocation.** The drift-weighted ranks derive from the biased estimator's profile; the unbiased recompute shifts 3 of 12 block ranks by one (§5.1) without changing the late-heavy structure. A LoRA re-run on the unbiased profile is planned but unverified.
 - **Linear probe ceiling.** A stronger head might partially compensate for feature drift; we measured the *linear* story deliberately.
