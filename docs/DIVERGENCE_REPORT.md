@@ -1,7 +1,8 @@
 # Divergence Report — `officialarghya29/dinov2-lowlight-robustness` vs `ArindamTripathi619/dinov2-lowlight-robustness`
 
 *Generated 2026-09-21 from git facts (merge-base `fc9ea04`). Purpose: shared basis for
-reconciling the two lines of development. Nothing has been merged; no branch created.*
+reconciling the two lines of development. **Superseded by events: PR #1 merged
+2026-10-01 — see §9.** Sections §1–§8 are kept as the record of the pre-merge state.*
 
 ---
 
@@ -164,3 +165,49 @@ r = 8 allocation at 3 of 12 blocks (one rank each; `docs/METHODS.md` §4) while 
 9–11 keep maximum rank under both estimators. **The drift-allocation claim survives
 estimator choice**; reviewers running their estimator will reproduce the late-heavy
 structure, not the exact rank vector.
+
+---
+
+### 8.5 Deterministic-noise reconciliation (closed 2026-10-09)
+
+The one item §8.2 left open ("reconcile upstream's deterministic-noise primitive with
+this repo's seeded-noise protocol, or agree the current protocol stands") resolves by
+agreement: **the two primitives coexist by pipeline and must not be merged.**
+
+| | upstream `_deterministic_noise` (`src/corruptions.py`) | fork seeded protocol (`utils.low_light` + `default_rng(1000 + severity)`) |
+|---|---|---|
+| Noise draw | blake2b(image bytes ‖ severity) → `RandomState` — same (image, severity) → same noise under **any** call order | per-severity `default_rng(1000 + severity)` stream, consumed once per pass in fixed image order (seed-42 subset) |
+| dtype | float32, unquantized (`low_light_stage1`) | uint8 (quantized) |
+| Consumers | merged `src/` runners that read `configs/` (`run_experiments.py`, …) | notebooks, LoRA arms (`run_lora_*`), drift profile/proxy, presentation — i.e. **every committed artifact** in `results_pilot/`, `colab_results/`, `output/` |
+| Guarantee proven | order-independence without touching global RNG state | matched-noise eval (both arms graded on identical corrupted arrays) + CPU↔T4 reproducibility to 1e-6 |
+
+Why not merge: swapping primitives re-noises every corrupted image (different generator
+*and* dtype), shifting every reported metric — blocked by the byte-comparability rule
+(AGENTS.md hard rule 3) absent an explicit re-baseline. Why not a conflict: no
+experiment mixes the two — each pipeline is internally consistent, and the §8.2 hazard
+(process-global RNG making results depend on call order) does not arise in the fork
+path, which always passes an explicit per-severity generator. A reviewer who wants one
+primitive across the merged repo needs a re-baseline request, not a code change.
+**Protocol stands; Track 0 residual closed.**
+
+## 9. Addendum (2026-10-01, verified 2026-10-08): PR #1 merged — integration complete
+
+The rebase plan of §8.1 was executed and shipped as
+[PR #1](https://github.com/officialarghya29/dinov2-lowlight-robustness/pull/1),
+merged 2026-10-01 (merge commit `9bc6b50`):
+
+- The fork's 14 commits were replayed onto upstream's rewritten root, so `upstream/main`
+  and this repo's `main` share one lineage again — §8.1's empty-merge-base problem is
+  resolved, and §6's "nothing has been merged" status above is historic.
+- Overlap files resolved per §5/§8.1 roles: this fork's runners + `docs/`, upstream's
+  `paper/`, `src/`, `tests/`, CI, `configs/`. **The `configs/` manifest §8.2 declined to
+  port is now in-tree** (it arrived with the merge and is used by `run_experiments.py`
+  and the other `configs/`-reading runners) — that open item is closed.
+- Verification on the merged tree (per the PR): upstream's `tests/run_tests.py`
+  22/22 pass; no deletions relative to either side — both content sets fully preserved.
+- **Closed (2026-10-09) from §8.2:** the deterministic-noise follow-up — reconciliation
+  verdict in §8.5: upstream's primitive and the seeded `1000 + severity` protocol
+  coexist by pipeline; protocol stands, no re-baseline.
+- §7's post-merge opportunities: (a) ViT-B × drift-weighted → v8 profile done
+  (`6a9de11`), LoRA-arm half (v9) still open; (b) single manuscript → ROADMAP Track 6;
+  (c) CI-tested parameterizations → `tests/` + `.github/workflows/` now in-tree.

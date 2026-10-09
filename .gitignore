@@ -65,3 +65,30 @@ colab_results/sessionA/
 # Readout-repair results of record (dir sits under the output/** ignore)
 !output/readout_repair/
 !output/readout_repair/**
+
+# Blur adapter re-evaluation results of record (same situation)
+!output/blur_reeval/
+!output/blur_reeval/**
+
+# Track 1 drift-proxy results of record (same situation)
+!output/drift_proxy/
+!output/drift_proxy/**
+!output/drift_proxy_dinov2_check/
+!output/drift_proxy_dinov2_check/**
+
+# Track 2 v8 ViT-B drift-profile kernel results of record (same situation)
+# Presentation app source
+!apps/
+!apps/**
+
+# Static-site generated figures (tools/export_static_site.py — committed so the
+# zero-config Vercel deploy has every chart)
+!static/
+!static/gen/
+!static/gen/*.png
+
+!output/vitb_profile/
+!output/vitb_profile/**
+__pycache__/
+*.pyc
+.vercel

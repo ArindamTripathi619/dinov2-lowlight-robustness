@@ -1,0 +1,117 @@
+[{"stream_name":"stdout","time":0.975085294,"data":"CWD: /kaggle/working\n"}
+,{"stream_name":"stdout","time":0.975317948,"data":"staged utils.py\n"}
+,{"stream_name":"stdout","time":0.975508896,"data":"staged stats_tools.py\n"}
+,{"stream_name":"stdout","time":0.975781409,"data":"staged run_drift_proxy.py\n"}
+,{"stream_name":"stdout","time":0.975871065,"data":"staged run_drift_profile.py\n"}
+,{"stream_name":"stdout","time":0.975978994,"data":"staged vitb_profile.sh\n"}
+,{"stream_name":"stdout","time":0.986372223,"data":"mount hits: [('dir', '/kaggle/input/datasets/arindamtripathi/cifar10-python')]\n"}
+,{"stream_name":"stdout","time":0.986391071,"data":"using dir /kaggle/input/datasets/arindamtripathi/cifar10-python\n"}
+,{"stream_name":"stdout","time":3.7917627449999998,"data":"data ready: ['batches.meta', 'data_batch_1', 'data_batch_2'] ...\n"}
+,{"stream_name":"stdout","time":13.689155868,"data":"cuda: True\n"}
+,{"stream_name":"stdout","time":13.73388638,"data":"gpu: Tesla T4\n"}
+,{"stream_name":"stdout","time":27.400023382,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":27.400047679,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":27.40473711,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":27.404762574,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":27.405797754,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":27.405810459,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":28.724705161,"data":"========================================================================\n"}
+,{"stream_name":"stdout","time":28.72480014,"data":"Drift-profile sweep — model=dinov2_vitb14, n=1000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']\n"}
+,{"stream_name":"stdout","time":28.724810145,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":28.724812678,"data":"========================================================================\n"}
+,{"stream_name":"stdout","time":28.724815112,"data":"Loaded 1000 images from CIFAR-10 (test), classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n"}
+,{"stream_name":"stdout","time":28.724817423,"data":"Downloading: \"https://github.com/facebookresearch/dinov2/zipball/main\" to /root/.cache/torch/hub/main.zip\n"}
+,{"stream_name":"stdout","time":28.724819966,"data":"Downloading: \"https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth\" to /root/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth\n"}
+,{"stream_name":"stdout","time":29.942000412,"data":"\r  0%|          | 0.00/330M [00:00\u003c?, ?B/s]\r  5%|▍         | 15.9M/330M [00:00\u003c00:01, 166MB/s]\r 12%|█▏        | 40.0M/330M [00:00\u003c00:01, 217MB/s]\r 18%|█▊        | 60.8M/330M [00:00\u003c00:01, 211MB/s]\r 29%|██▊       | 94.6M/330M [00:00\u003c00:00, 265MB/s]\r 36%|███▋      | 120M/330M [00:00\u003c00:00, 245MB/s] \r 43%|████▎     | 144M/330M [00:00\u003c00:00, 234MB/s]\r 50%|█████     | 166M/330M [00:00\u003c00:00, 233MB/s]\r 62%|██████▏   | 203M/330M [00:00\u003c00:00, 280MB/s]\r 72%|███████▏  | 238M/330M [00:00\u003c00:00, 305MB/s]\r 83%|████████▎ | 274M/330M [00:01\u003c00:00, 324MB/s]\r 94%|█████████▍| 311M/330M [00:01\u003c00:00, 344MB/s]\r100%|██████████| 330M/330M [00:01\u003c00:00, 285MB/s]\n"}
+,{"stream_name":"stdout","time":254.577800372,"data":"Profiling 38 modules: ['patch_embed', 'blocks', 'blocks.0', 'blocks.0.attn', 'blocks.0.mlp', 'blocks.1', 'blocks.1.attn', 'blocks.1.mlp', 'blocks.2', 'blocks.2.attn', 'blocks.2.mlp', 'blocks.3', 'blocks.3.attn', 'blocks.3.mlp', 'blocks.4', 'blocks.4.attn', 'blocks.4.mlp', 'blocks.5', 'blocks.5.attn', 'blocks.5.mlp', 'blocks.6', 'blocks.6.attn', 'blocks.6.mlp', 'blocks.7', 'blocks.7.attn', 'blocks.7.mlp', 'blocks.8', 'blocks.8.attn', 'blocks.8.mlp', 'blocks.9', 'blocks.9.attn', 'blocks.9.mlp', 'blocks.10', 'blocks.10.attn', 'blocks.10.mlp', 'blocks.11', 'blocks.11.attn', 'blocks.11.mlp']\n"}
+,{"stream_name":"stdout","time":254.577885059,"data":"\n"}
+,{"stream_name":"stdout","time":254.57789064,"data":"\u003e\u003e\u003e clean pass (severity 0)\n"}
+,{"stream_name":"stdout","time":254.577895646,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.577916713,"data":"  forward pass: 1000 images in 14.5s\n"}
+,{"stream_name":"stdout","time":254.577926939,"data":"\n"}
+,{"stream_name":"stdout","time":254.577930095,"data":"\u003e\u003e\u003e low_light@sev1\n"}
+,{"stream_name":"stdout","time":254.577946004,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.577969361,"data":"  forward pass: 1000 images in 13.8s\n"}
+,{"stream_name":"stdout","time":254.577975101,"data":"\n"}
+,{"stream_name":"stdout","time":254.577981209,"data":"\u003e\u003e\u003e low_light@sev2\n"}
+,{"stream_name":"stdout","time":254.577986926,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.577991675,"data":"  forward pass: 1000 images in 14.4s\n"}
+,{"stream_name":"stdout","time":254.577996434,"data":"\n"}
+,{"stream_name":"stdout","time":254.578001135,"data":"\u003e\u003e\u003e low_light@sev3\n"}
+,{"stream_name":"stdout","time":254.578005961,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578010859,"data":"  forward pass: 1000 images in 14.8s\n"}
+,{"stream_name":"stdout","time":254.578015624,"data":"\n"}
+,{"stream_name":"stdout","time":254.578020238,"data":"\u003e\u003e\u003e low_light@sev4\n"}
+,{"stream_name":"stdout","time":254.578025041,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578029961,"data":"  forward pass: 1000 images in 15.4s\n"}
+,{"stream_name":"stdout","time":254.578040894,"data":"\n"}
+,{"stream_name":"stdout","time":254.578044415,"data":"\u003e\u003e\u003e low_light@sev5\n"}
+,{"stream_name":"stdout","time":254.578047709,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578082596,"data":"  forward pass: 1000 images in 16.2s\n"}
+,{"stream_name":"stdout","time":254.578091718,"data":"\n"}
+,{"stream_name":"stdout","time":254.578097173,"data":"\u003e\u003e\u003e jpeg@sev1\n"}
+,{"stream_name":"stdout","time":254.57810202,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578106992,"data":"  forward pass: 1000 images in 16.9s\n"}
+,{"stream_name":"stdout","time":254.578111818,"data":"\n"}
+,{"stream_name":"stdout","time":254.578116494,"data":"\u003e\u003e\u003e jpeg@sev2\n"}
+,{"stream_name":"stdout","time":254.578121341,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578126243,"data":"  forward pass: 1000 images in 16.4s\n"}
+,{"stream_name":"stdout","time":254.57813095,"data":"\n"}
+,{"stream_name":"stdout","time":254.578145389,"data":"\u003e\u003e\u003e jpeg@sev3\n"}
+,{"stream_name":"stdout","time":254.578149417,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578161007,"data":"  forward pass: 1000 images in 16.1s\n"}
+,{"stream_name":"stdout","time":254.578177338,"data":"\n"}
+,{"stream_name":"stdout","time":254.578181922,"data":"\u003e\u003e\u003e jpeg@sev4\n"}
+,{"stream_name":"stdout","time":254.578186403,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578191032,"data":"  forward pass: 1000 images in 16.2s\n"}
+,{"stream_name":"stdout","time":254.578195558,"data":"\n"}
+,{"stream_name":"stdout","time":254.578199394,"data":"\u003e\u003e\u003e jpeg@sev5\n"}
+,{"stream_name":"stdout","time":254.578203186,"data":"  WARNING: module 'blocks' never fired; excluded from profile\n"}
+,{"stream_name":"stdout","time":254.578207142,"data":"  forward pass: 1000 images in 16.6s\n"}
+,{"stream_name":"stdout","time":254.578210955,"data":"\n"}
+,{"stream_name":"stdout","time":254.578214607,"data":"sweep passes done in 199s\n"}
+,{"stream_name":"stdout","time":254.57821841,"data":"\n"}
+,{"stream_name":"stdout","time":254.578222049,"data":"\u003e\u003e\u003e outputs\n"}
+,{"stream_name":"stdout","time":254.578225821,"data":"  Saved output/vitb_profile/proxy_profiles.csv\n"}
+,{"stream_name":"stdout","time":254.578229644,"data":"  Saved output/vitb_profile/drift_profile_sev1_low_light.csv\n"}
+,{"stream_name":"stdout","time":254.578239122,"data":"  Saved output/vitb_profile/drift_profile_sev2_low_light.csv\n"}
+,{"stream_name":"stdout","time":254.578243265,"data":"  Saved output/vitb_profile/drift_profile_sev3_low_light.csv\n"}
+,{"stream_name":"stdout","time":254.578247452,"data":"  Saved output/vitb_profile/drift_profile_sev4_low_light.csv\n"}
+,{"stream_name":"stdout","time":254.578253628,"data":"  Saved output/vitb_profile/drift_profile_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":254.578261759,"data":"  Saved output/vitb_profile/drift_profile_sev1_jpeg.csv\n"}
+,{"stream_name":"stdout","time":254.578277585,"data":"  Saved output/vitb_profile/drift_profile_sev2_jpeg.csv\n"}
+,{"stream_name":"stdout","time":254.578282434,"data":"  Saved output/vitb_profile/drift_profile_sev3_jpeg.csv\n"}
+,{"stream_name":"stdout","time":254.578286956,"data":"  Saved output/vitb_profile/drift_profile_sev4_jpeg.csv\n"}
+,{"stream_name":"stdout","time":254.578291696,"data":"  Saved output/vitb_profile/drift_profile_sev5_jpeg.csv\n"}
+,{"stream_name":"stdout","time":254.578296306,"data":"  Saved output/vitb_profile/agreement_report.txt\n"}
+,{"stream_name":"stdout","time":254.57830025,"data":"  Saved output/vitb_profile/agreement_report.json\n"}
+,{"stream_name":"stdout","time":254.578304323,"data":"\n"}
+,{"stream_name":"stdout","time":254.578307942,"data":"\u003e\u003e\u003e plots\n"}
+,{"stream_name":"stdout","time":254.578311773,"data":"  Saved output/vitb_profile/profiles_low_light@sev1.png\n"}
+,{"stream_name":"stdout","time":254.57831561,"data":"  Saved output/vitb_profile/profiles_low_light@sev2.png\n"}
+,{"stream_name":"stdout","time":254.578319554,"data":"  Saved output/vitb_profile/profiles_low_light@sev3.png\n"}
+,{"stream_name":"stdout","time":254.578323384,"data":"  Saved output/vitb_profile/profiles_low_light@sev4.png\n"}
+,{"stream_name":"stdout","time":254.578327224,"data":"  Saved output/vitb_profile/profiles_low_light@sev5.png\n"}
+,{"stream_name":"stdout","time":254.578331155,"data":"  Saved output/vitb_profile/profiles_jpeg@sev1.png\n"}
+,{"stream_name":"stdout","time":254.578335029,"data":"  Saved output/vitb_profile/profiles_jpeg@sev2.png\n"}
+,{"stream_name":"stdout","time":254.578343677,"data":"  Saved output/vitb_profile/profiles_jpeg@sev3.png\n"}
+,{"stream_name":"stdout","time":254.578347574,"data":"  Saved output/vitb_profile/profiles_jpeg@sev4.png\n"}
+,{"stream_name":"stdout","time":254.578353392,"data":"  Saved output/vitb_profile/profiles_jpeg@sev5.png\n"}
+,{"stream_name":"stdout","time":254.578361227,"data":"  Saved output/vitb_profile/profile_heatmap.png\n"}
+,{"stream_name":"stdout","time":254.578376696,"data":"\n"}
+,{"stream_name":"stdout","time":254.578381499,"data":"========================================================================\n"}
+,{"stream_name":"stdout","time":254.578385964,"data":"GATE at severity 5: NO-GO (best proxy: energy_drop)\n"}
+,{"stream_name":"stdout","time":254.578390789,"data":"  energy_drop  rho: low_light@sev5=0.692, jpeg@sev5=0.876\n"}
+,{"stream_name":"stdout","time":254.578404104,"data":"  mean_shift   rho: low_light@sev5=0.569, jpeg@sev5=0.863\n"}
+,{"stream_name":"stdout","time":254.578408084,"data":"  cov_shift    rho: low_light@sev5=0.407, jpeg@sev5=0.487\n"}
+,{"stream_name":"stdout","time":254.578412053,"data":"  cos_drop     rho: low_light@sev5=0.681, jpeg@sev5=0.881\n"}
+,{"stream_name":"stdout","time":254.578415973,"data":"========================================================================\n"}
+,{"stream_name":"stdout","time":259.516767809,"data":"profile exit: 0 | csv_ok: True\n"}
+,{"stream_name":"stdout","time":259.51680834,"data":"PROFILE_COMPLETE\n"}
+,{"stream_name":"stderr","time":262.216260895,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":262.216298505,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":262.507990653,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":262.50801867,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":263.327218141,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":264.433584403,"data":"[NbConvertApp] Writing 401073 bytes to __results__.html\n"}
+]

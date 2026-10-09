@@ -1,0 +1,200 @@
+{
+  "meta": {
+    "model": "dinov2_vits14",
+    "model_desc": "torch.hub dinov2_vits14",
+    "torch_version": "2.13.0+cu130",
+    "device": "cpu",
+    "n_images": 300,
+    "seed": 42,
+    "severity": 5,
+    "corruptions": [
+      "blur",
+      "low_light"
+    ],
+    "n_modules": 37,
+    "modules": [
+      "patch_embed",
+      "blocks.0",
+      "blocks.0.attn",
+      "blocks.0.mlp",
+      "blocks.1",
+      "blocks.1.attn",
+      "blocks.1.mlp",
+      "blocks.2",
+      "blocks.2.attn",
+      "blocks.2.mlp",
+      "blocks.3",
+      "blocks.3.attn",
+      "blocks.3.mlp",
+      "blocks.4",
+      "blocks.4.attn",
+      "blocks.4.mlp",
+      "blocks.5",
+      "blocks.5.attn",
+      "blocks.5.mlp",
+      "blocks.6",
+      "blocks.6.attn",
+      "blocks.6.mlp",
+      "blocks.7",
+      "blocks.7.attn",
+      "blocks.7.mlp",
+      "blocks.8",
+      "blocks.8.attn",
+      "blocks.8.mlp",
+      "blocks.9",
+      "blocks.9.attn",
+      "blocks.9.mlp",
+      "blocks.10",
+      "blocks.10.attn",
+      "blocks.10.mlp",
+      "blocks.11",
+      "blocks.11.attn",
+      "blocks.11.mlp"
+    ],
+    "vit_token": "cls",
+    "max_depth": 2
+  },
+  "gate": {
+    "verdict": "NO-GO",
+    "best_proxy": "energy_drop",
+    "per_proxy": {
+      "energy_drop": {
+        "rho": {
+          "blur": 0.698909435751541,
+          "low_light": 0.7012802275960169
+        },
+        "containment_at_k": {
+          "blur": 0.2,
+          "low_light": 0.6
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "mean_shift": {
+        "rho": {
+          "blur": 0.5649596965386439,
+          "low_light": 0.5765765765765766
+        },
+        "containment_at_k": {
+          "blur": 0.2,
+          "low_light": 0.4
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "cov_shift": {
+        "rho": {
+          "blur": 0.6183025130393551,
+          "low_light": 0.17140825035561877
+        },
+        "containment_at_k": {
+          "blur": 0.0,
+          "low_light": 0.8
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      },
+      "cos_drop": {
+        "rho": {
+          "blur": 0.6680891417733522,
+          "low_light": 0.6628733997155049
+        },
+        "containment_at_k": {
+          "blur": 0.4,
+          "low_light": 0.6
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [],
+        "strict_pass": false
+      }
+    },
+    "rho_threshold": 0.8,
+    "topk": 5,
+    "gate_criterion": "Spearman rho >= 0.8 on >= 2 corruptions AND full containment at k=5"
+  },
+  "agreement_by_corruption": {
+    "blur": {
+      "energy_drop": {
+        "spearman_rho": 0.698909435751541,
+        "spearman_p": 1.4996846111783656e-06,
+        "topk_containment": {
+          "3": 0.3333333333333333,
+          "5": 0.2,
+          "8": 0.5
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.5649596965386439,
+        "spearman_p": 0.00026950206717498977,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2,
+          "8": 0.375
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.6183025130393551,
+        "spearman_p": 4.5385365688782654e-05,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0,
+          "8": 0.25
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.6680891417733522,
+        "spearman_p": 6.239167541202779e-06,
+        "topk_containment": {
+          "3": 0.3333333333333333,
+          "5": 0.4,
+          "8": 0.5
+        }
+      }
+    },
+    "low_light": {
+      "energy_drop": {
+        "spearman_rho": 0.7012802275960169,
+        "spearman_p": 1.3341085706511742e-06,
+        "topk_containment": {
+          "3": 0.3333333333333333,
+          "5": 0.6,
+          "8": 0.625
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.5765765765765766,
+        "spearman_p": 0.0001876749833650629,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.4,
+          "8": 0.375
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.17140825035561877,
+        "spearman_p": 0.3104004233786949,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.8,
+          "8": 0.5
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.6628733997155049,
+        "spearman_p": 7.813950366923117e-06,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.6,
+          "8": 0.5
+        }
+      }
+    }
+  }
+}

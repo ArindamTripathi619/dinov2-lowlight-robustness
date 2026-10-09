@@ -20,14 +20,62 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 
 ---
 
-## Results Summary: How the Three Phases Connect
+---
+
+## Deliverables & how to run them
+
+| Deliverable | Location | Run / Regenerate |
+|---|---|---|
+| Static website (live, Vercel-ready) | `index.html` (+ `static/gen/`) | `python3 tools/export_static_site.py` |
+| Site build source (14 sections) | `apps/presentation.py` | imported by `tools/export_static_site.py` |
+| Internal smoke check (deterministic, no server) | `apps/presentation.py` | `PRESENTATION_SMOKE=1 python3 apps/presentation.py` |
+| Single-section static render (PNG) | `apps/presentation.py` | `PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name> python3 apps/presentation.py` |
+
+`apps/presentation.py` is the build source of the website — the presentation itself now lives only as the deployed static site. It is **read-only with respect
+to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
+(no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
+fails — it erases any doubt about whether the site's source actually renders every section from committed
+data, and it can be wired into CI.
+
+### Static website — one click to Vercel (no server)
+
+`index.html` at the repo root **is** the presentation: a server-free static site with all
+14 sections — every figure, table, expander, tab and widget state
+(severity sliders, estimator toggle, corruption radio) — generated from
+`apps/presentation.py` by `tools/export_static_site.py`, so source and site can never
+quietly diverge. Assets are referenced in place (`output/`, `colab_results/`), so the
+deploy ships every figure the study has.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FArindamTripathi619%2Fdinov2-lowlight-robustness&project-name=dinov2-lowlight-study&repository-name=dinov2-lowlight-robustness)
+
+One click → sign in → **Deploy**. Vercel detects no framework and no build step
+(preset *Other*), serves the repository root, and redeploys automatically on every
+push to `main`. Manual alternatives:
+
+> **Live now:** <https://dinov2-lowlight-robustness.vercel.app>
+> (CLI deploy: `vercel --prod --yes` — `vercel.json` pins the static overrides and
+> `.vercelignore` keeps the upload lean; connect the GitHub repo in the Vercel
+> dashboard to re-deploy on every push.)
+
+```bash
+npx vercel --prod            # CLI deploy from a clone
+python3 -m http.server 8099  # local preview → http://localhost:8099
+```
+
+`index.html` also opens straight from `file://` (double-click). After changing the
+presentation, regenerate the site (needs `pip install markdown`):
+
+```bash
+python3 tools/export_static_site.py   # rebuilds index.html + static/gen, self-checks
+```
+
 
 Each phase answers one question and hands its finding to the next:
 
 | Phase | Question | Answer | Hands to next phase |
 |-------|----------|--------|---------------------|
 | **1 — Measure** | *How bad is it?* | Accuracy collapses **0.91 → 0.09**; embeddings drift to near-orthogonality (cos 1.00 → 0.16) | The failure is real, severe, and representational — *but where?* |
-| **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.81 at block 10 vs 0.58 at patch embed); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
+| **2 — Localize & explain** | *Where and why?* | CKA pins the drift on **late attention blocks** (max drop 0.81 at block 10 vs 0.58 at block 0, the earliest); frequency ablation shows the model runs on **low-frequency luminance** — exactly what darkness removes | The failure has an address (late attention) and a mechanism (lost low-freq structure) — *so fix that, precisely* |
 | **3 — Remediate** | *Can it be fixed cheaply?* | LoRA on those attention layers (0.99% of params, 70/30 dark/clean diet) restores **mean 0.59 → 0.82**, **worst-case 5.1×**, clean accuracy unchanged-or-better | Confirms the causal story: fix the localized shift, recover the robustness |
 
 All phases on one axis — accuracy per severity (Phase 3 fixed-augmentation run; the original column matches Phase 1 within eval-noise jitter):
@@ -66,15 +114,12 @@ Accuracy falls **0.82 points** and embeddings drift to near-orthogonality (cos ~
 
 ### Phase 2 — The failure is localized, systematic, and low-frequency
 
-**Layer-wise CKA** (hooks on all 12 transformer blocks, drift measured clean → severity 5):
+**Layer-wise CKA** — hooks on all 12 transformer blocks; CKA drop (clean → severity 5) by
+layer, full matrix in `output/notebook2/cka_matrix.csv`:
 
 | Layer | CKA drop |
 |-------|----------|
-CKA drop (clean → severity 5) by layer — full matrix in `output/notebook2/cka_matrix.csv`:
-
-| Layer | CKA drop |
-|-------|----------|
-| block 0 (patch embed) | 0.58 |
+| block 0 (earliest) | 0.58 |
 | block 5 | 0.53 |
 | **block 10** | **0.81** ← max drift |
 | block 11 (final) | 0.78 |
@@ -121,11 +166,11 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 **Read:** CKA-guided ranks match uniform LoRA and full fine-tuning at **0.78%** of the trainable parameters — now with 3-seed error bars on every headline arm, all ranges fully overlapping; full FT buys no extra mean robustness and posts the *worst* clean accuracy (forgetting cost, replicating across seeds); late-only shows the drift profile needs a total-budget floor. Per-arm SDs (±1.2–1.9 points) set the resolution of any comparison — parity is claimed, superiority is not. Per-severity cells for all nine arms: `docs/RESEARCH.md` §6.1; 3-seed table: `output/seed_replication/seed_analysis.csv`.
 
-**Corruption-family expansion (blur / JPEG / contrast).** The failure and the fix are not low-light-specific. Phase-1 fragility: severity-5 accuracy 0.143 (blur), 0.273 (JPEG), 0.840 (contrast) vs 0.087 (low-light). CKA drift profiles are late-concentrated for every *frequency-destroying* corruption (low_light, blur, JPEG — peaks at blocks 8–10) and ~flat for contrast (frequency-preserving, max drop 0.30). LoRA arms on free-tier GPU (Kaggle T4, `colab_results/kaggle_sessionF/`): **JPEG + drift-weighted ranks 0.586 → 0.779 (+19.3 pts, the study's biggest win)**; contrast uniform +7.5 vs drift +6.9 — the allocation rule gracefully matches uniform exactly where its diagnostic says there is nothing to reallocate. Blur arms trained (session-E adapters retained); eval logs truncated on salvage, numbers pending re-run. Full story: `docs/RESEARCH.md` §5.1, §6.3; protocol: `docs/METHODS.md` §7.6, §11.
+**Corruption-family expansion (blur / JPEG / contrast).** The failure and the fix are not low-light-specific. Phase-1 fragility: severity-5 accuracy 0.143 (blur), 0.273 (JPEG), 0.840 (contrast) vs 0.087 (low-light). CKA drift profiles are late-concentrated for every *frequency-destroying* corruption (low_light, blur, JPEG — peaks at blocks 8–10) and ~flat for contrast (frequency-preserving, max drop 0.30). LoRA arms on free-tier GPU (Kaggle T4, `colab_results/kaggle_sessionF/`) and recovered from retained adapters (`run_blur_adapter_eval.py`): **JPEG + drift-weighted ranks 0.586 → 0.779 (+19.3 pts, the study's biggest win)**; **blur drift 0.526 → 0.703 (+17.7) vs uniform +17.2** (drift edges worst-case, sev-5 0.303 vs 0.270 — the low-light signature repeating); contrast uniform +7.5 vs drift +6.9 — the allocation rule gracefully matches uniform exactly where its diagnostic says there is nothing to reallocate. Gains track fragility across the grid: low_light +22.4 > JPEG +19.3 ≈ blur +17.7 > contrast +7. Full story: `docs/RESEARCH.md` §5.1, §6.3; protocol: `docs/METHODS.md` §7.6, §11.
 
-**Readout-staleness decomposition (`colab_results/readout_repair/`).** How much of the collapse is a stale linear head vs broken features? A severity-adapted probe (retrained per severity on the same train fold) recovers **+8.7 pts at sev-3, +25.3 at sev-4, +30.0 at sev-5** (n = 1,000, paired-permutation p ≤ 0.0032) — yet still plateaus at 0.377 vs 0.913 clean, and its predictions collapse onto one class as darkness deepens (top1_share 0.14 → 0.73, dominant *frog*). Readout staleness is real; feature drift remains the binding constraint — which is why LoRA (features) works and why the fixed-readout LoRA result already sits at the adapted-readout ceiling. Upstream's ViT-B pilot (+22.5 pp, n = 120) confirmed at proper power: `docs/RESEARCH.md` §6.4.
+**Readout-staleness decomposition (`output/readout_repair/`).** How much of the collapse is a stale linear head vs broken features? A severity-adapted probe (retrained per severity on the same train fold) recovers **+8.7 pts at sev-3, +25.3 at sev-4, +30.0 at sev-5** (n = 1,000, paired-permutation p ≤ 0.0032) — yet still plateaus at 0.377 vs 0.913 clean, and its predictions collapse onto one class as darkness deepens (top1_share 0.14 → 0.73, dominant *frog*). Readout staleness is real; feature drift remains the binding constraint — which is why LoRA (features) works and why the fixed-readout LoRA result already sits at the adapted-readout ceiling. Upstream's ViT-B pilot (+22.5 pp, n = 120) confirmed at proper power: `docs/RESEARCH.md` §6.4.
 
-**Robustness checks.** The drift-allocation rule survives switching to the unbiased CKA estimator (blocks 9–11 keep max rank; 3 of 12 block ranks shift by one — `docs/METHODS.md` §4), and the CKA pipeline is deterministic across CPU and T4 to ~1e-6, so CPU- and GPU-produced artifacts are directly comparable.
+**Robustness checks.** The drift-allocation rule survives switching to the unbiased CKA estimator (blocks 9–11 keep max rank; 3 of 12 block ranks shift by one — `docs/METHODS.md` §4), and the CKA pipeline is deterministic across CPU and T4 to ~1e-6, so CPU- and GPU-produced artifacts are directly comparable. The drift *profile* itself replicates on a third architecture: DINOv2 ViT-B/14 (86M params) profiled across low_light + jpeg, severities 1–5, n = 1,000 (`output/vitb_profile/`, protocol `docs/METHODS.md` §7.8) is again late-heavy (block drops 0.80–0.87 at blocks 9–11, low-light sev 5) — and adds a sublayer finding the ViT-S whole-block CKA could not see: **MLP sublayers drift more than attention in all 12 blocks under both corruptions**. The Track-1 proxy-gate NO-GO (cheap amplitude proxies fail to rank CKA drift; jpeg ρ ≈ 0.88 but low_light ≤ 0.69) also reproduces on ViT-B — full CKA stays the profiler (`docs/RESEARCH.md` §5.1, `docs/DPA_DESIGN.md` §1).
 
 **Sim-to-real (ExDark, 7,363 real low-light photographs).** Frozen DINOv2 probes at **0.725** with a *flat* darkness-response curve (darkest quintile 0.713 vs brightest 0.704); CLAHE buys **+0.001** — real darkness within ExDark's range does not reproduce the synthetic collapse. Synthetic-dark adapters (drift arm, trained only on CIFAR darkness) lift real-dark accuracy to **0.743 (+1.9 pts)**; the uniform arm transfers **0.741 (+1.6 pts)** — indistinguishable, matching the synthetic-grid parity. Genuine transfer, but only ~9% of the +21-point gain the same adapters buy on the synthetic severity axis. The study quantifies the sim-to-real gap rather than assuming it away.
 
@@ -133,7 +178,7 @@ LoRA adapters (rank 8, α 16) on QKV/output projections, **221K trainable params
 
 ## The Story in One Paragraph
 
-DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at the patch embedding), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.22 mean accuracy and 5.1× worst-case robustness at a training cost of ~10 GPU-minutes — and letting the CKA diagnostic allocate the adaptation budget (drift-weighted ranks) matches both uniform LoRA and full fine-tuning at 0.78% of the parameters. On real darkness the story sharpens: ExDark accuracy is flat across luminance and enhancement buys nothing, yet synthetic-dark adapters still transfer +1.9 points — synthetic extreme darkening and real low light are different regimes, and the gap is now measured, not assumed.
+DINOv2's low-light failure is **not** diffuse noise sensitivity. It is a systematic representational shift concentrated in the **late attention layers** (CKA drop 0.81 at block 10 vs 0.58 at block 0, the earliest block), driven by the loss of **low-frequency luminance structure** — the exact signal the model depends on most. Because the failure is localized, a **targeted 0.99%-parameter intervention** (LoRA on attention, trained on a dark/clean mix) recovers +0.22 mean accuracy and 5.1× worst-case robustness at a training cost of ~10 GPU-minutes — and letting the CKA diagnostic allocate the adaptation budget (drift-weighted ranks) matches both uniform LoRA and full fine-tuning at 0.78% of the parameters. On real darkness the story sharpens: ExDark accuracy is flat across luminance and enhancement buys nothing, yet synthetic-dark adapters still transfer +1.9 points — synthetic extreme darkening and real low light are different regimes, and the gap is now measured, not assumed.
 
 ---
 
@@ -185,6 +230,8 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `run_readout_repair.py` | Readout-staleness decomposition: fixed vs severity-adapted probe, paired permutation tests, collapse metrics |
 | `cka_unbiased_recompute.py` | Unbiased-CKA (Kornblith App. B) robustness recompute of the drift-allocation profile |
 | `stats_tools.py` | Torch-free statistics module: unbiased CKA, Wilson CI, paired/curve permutation tests, BH-FDR, participation ratio, readout-collapse metrics |
+| `run_drift_proxy.py` | Track-1 drift-proxy harness: per-module forward-only proxies vs CKA agreement, pre-registered go/no-go gate (`output/drift_proxy/`) |
+| `run_drift_profile.py` | Severity×corruption drift-profile sweep over one clean pass (Tracks 2+3); produced the ViT-B atlas `output/vitb_profile/` |
 | `scripts/build_kaggle_kernel.py` | Builds the self-contained Kaggle kernel (base64-embedded package files + CIFAR mount + GPU guard); regenerates the v6 kernel byte-identically |
 | `scripts/kaggle/grid_tail.sh` | Corruption-arm chain executed inside the Kaggle kernel |
 | `run_lora_finetune_colab.py` | Phase 3 alternative using the PEFT library |
@@ -195,11 +242,12 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
 | `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
 | `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |
+| `docs/DPA_DESIGN.md` | Design doc for Drift-Profiled Adaptation (DPA) + Selective Statistic Recalibration (SSR): gate outcome, allocation taxonomy, prior-art search log |
 
 ## Reproducibility Notes
 
 - Backbone: `torch.hub` DINOv2 ViT-S/14, frozen; input 224×224, patch 14
-- Phase 1/2 linear probes: 80/20 train/test split on clean embeddings, evaluated per severity
+- Phase 1/2 linear probes: stratified 70/30 train/test split (seed 42) on clean embeddings, evaluated per severity
 - CKA: linear CKA with `sqrt` normalization (`CKA = HSIC(X,Y) / sqrt(HSIC(X,X)·HSIC(Y,Y))`), unbiased by clean-vs-degraded sample pairing
 - Bootstrap: 1000 resamples, per-severity independent RNG seeds
 - LoRA: AdamW with deduplicated parameter groups (head params excluded from the adapter group), lr as in script, batch 64, 10 epochs

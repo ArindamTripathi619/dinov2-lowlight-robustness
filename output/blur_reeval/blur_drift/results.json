@@ -1,0 +1,56 @@
+{
+  "label": "blur_drift",
+  "ckpt": "colab_results/sessionE/blur_drift/lora_adapters.pt",
+  "corruption": "blur",
+  "model": "dinov2_vits14",
+  "ckpt_config": {
+    "model": "dinov2_vits14",
+    "corruption": "blur",
+    "layers": "drift",
+    "rank": 8,
+    "alpha": 16,
+    "mix": 0.7,
+    "seed": 42,
+    "epochs": 10,
+    "block_ranks": {
+      "0": 4,
+      "1": 4,
+      "2": 3,
+      "3": 3,
+      "4": 3,
+      "5": 4,
+      "6": 5,
+      "7": 6,
+      "8": 8,
+      "9": 8,
+      "10": 8,
+      "11": 7
+    },
+    "trainable_params": 145152,
+    "total_params": 22201728
+  },
+  "protocol": {
+    "n_images": 1000,
+    "seed": 42,
+    "eval_rng": "1000+severity",
+    "split": "70/30 stratified, random_state=42"
+  },
+  "adapted_accs": [
+    0.95,
+    0.9366666666666666,
+    0.8833333333333333,
+    0.69,
+    0.45666666666666667,
+    0.30333333333333334
+  ],
+  "orig_accs": [
+    0.9133333333333333,
+    0.8733333333333333,
+    0.62,
+    0.38666666666666666,
+    0.22,
+    0.14333333333333334
+  ],
+  "orig_mean": 0.5261111111111112,
+  "adapted_mean": 0.7033333333333333
+}

@@ -1,0 +1,56 @@
+{
+  "label": "blur_uniform",
+  "ckpt": "colab_results/sessionE/blur_uniform/lora_adapters.pt",
+  "corruption": "blur",
+  "model": "dinov2_vits14",
+  "ckpt_config": {
+    "model": "dinov2_vits14",
+    "corruption": "blur",
+    "layers": "all",
+    "rank": 8,
+    "alpha": 16,
+    "mix": 0.7,
+    "seed": 42,
+    "epochs": 10,
+    "block_ranks": {
+      "0": 8,
+      "1": 8,
+      "2": 8,
+      "3": 8,
+      "4": 8,
+      "5": 8,
+      "6": 8,
+      "7": 8,
+      "8": 8,
+      "9": 8,
+      "10": 8,
+      "11": 8
+    },
+    "trainable_params": 221184,
+    "total_params": 22277760
+  },
+  "protocol": {
+    "n_images": 1000,
+    "seed": 42,
+    "eval_rng": "1000+severity",
+    "split": "70/30 stratified, random_state=42"
+  },
+  "adapted_accs": [
+    0.9566666666666667,
+    0.94,
+    0.8933333333333333,
+    0.6766666666666666,
+    0.45,
+    0.27
+  ],
+  "orig_accs": [
+    0.9133333333333333,
+    0.8733333333333333,
+    0.62,
+    0.38666666666666666,
+    0.22,
+    0.14333333333333334
+  ],
+  "orig_mean": 0.5261111111111112,
+  "adapted_mean": 0.6977777777777779
+}

@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DINOv2 Low-Light Study — Static Walkthrough</title>
+<meta name="description" content="Static export of the DINOv2 low-light robustness
+ presentation: how badly the model breaks in the dark, where, why, and the 0.99%-parameter fix.">
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --ink:#1a2230; --muted:#5d6a7d; --line:#e3e8ef;
+  --accent:#2563eb; --accent-2:#0ea5e9; --dark:#0e1726; --dark-2:#16223a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+img{max-width:100%;height:auto}
+/* ---------- sidebar ---------- */
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:264px;background:var(--dark);
+  color:#cfd8e6;overflow-y:auto;padding:22px 14px 30px;z-index:20}
+.sidebar .brand{font-weight:700;font-size:17px;color:#fff;letter-spacing:.2px;
+  display:flex;align-items:center;gap:8px}
+.sidebar .brand-sub{font-size:12px;color:#8b98ad;margin:6px 2px 16px;line-height:1.5}
+.sidebar nav a{display:block;padding:7px 10px;margin:1px 0;border-radius:8px;
+  color:#b9c4d6;font-size:13.5px;line-height:1.35}
+.sidebar nav a:hover{background:var(--dark-2);color:#fff;text-decoration:none}
+.sidebar nav a.active{background:var(--accent);color:#fff}
+.sidebar .side-note{font-size:11.5px;color:#69768c;margin-top:18px;padding:0 10px;line-height:1.5}
+/* ---------- main ---------- */
+main{margin-left:264px;padding:34px clamp(16px,4vw,54px) 90px;max-width:1240px}
+.hero{margin-bottom:8px}
+.hero h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+.hero p{color:var(--muted);margin:0 0 6px;max-width:70ch}
+.hero .badges{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:#e8eefc;color:#1d4ed8;font-size:12.5px;padding:3px 10px;
+  border-radius:999px;border:1px solid #d4e0fb}
+section.sec{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:30px clamp(18px,3vw,40px) 34px;margin:26px 0;scroll-margin-top:18px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)}
+h2.sh{font-size:22px;line-height:1.3;margin:6px 0 14px;letter-spacing:-.2px}
+section.sec > h2.sh:first-child{font-size:26px;margin-top:0}
+.md{margin:12px 0}
+.md p{margin:10px 0}
+.md ul,.md ol{margin:10px 0;padding-left:24px}
+.md li{margin:5px 0}
+.md strong{color:#0f172a}
+.md h1,.md h2,.md h3,.md h4{margin:18px 0 8px;line-height:1.3}
+code{font-family:var(--mono);font-size:.88em;background:#eef1f6;padding:1.5px 5px;
+  border-radius:5px;color:#be123c}
+pre.code,pre.json{background:#0e1726;color:#dbe4f0;border-radius:12px;padding:16px 18px;
+  overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.55}
+pre.code code{background:none;color:inherit;padding:0}
+.cap{color:var(--muted);font-size:13.5px;margin:8px 0 14px}
+hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+/* ---------- figures & tables ---------- */
+figure.fig{margin:14px 0;background:#fbfcfe;border:1px solid var(--line);
+  border-radius:12px;padding:10px;text-align:center}
+figure.fig img{border-radius:6px}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.tw{overflow-x:auto;margin:14px 0}
+table.df{border-collapse:collapse;font-size:13.5px;width:100%;background:#fff}
+table.df th{background:#eef2f8;text-align:left;font-weight:600;color:#33415c}
+table.df th,table.df td{border:1px solid var(--line);padding:7px 11px;white-space:nowrap}
+table.df tr:nth-child(even) td{background:#f8fafc}
+/* ---------- metrics ---------- */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0}
+.cols-4 .col, .cols-3 .col, .cols-2 .col{min-width:0}
+.metric{background:linear-gradient(180deg,#f8fafd,#fff);border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.m-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.m-value{font-size:22px;font-weight:700;color:#0f172a}
+.delta{font-size:12.5px}
+.delta.up{color:#15803d}.delta.down{color:#b91c1c}.delta.flat{color:var(--muted)}
+/* ---------- columns ---------- */
+.cols{display:grid;gap:16px;margin:14px 0}
+.cols-2{grid-template-columns:repeat(2,1fr)}
+.cols-3{grid-template-columns:repeat(3,1fr)}
+.cols-4{grid-template-columns:repeat(4,1fr)}
+.cols-1{grid-template-columns:1fr}
+/* ---------- expander ---------- */
+details.exp{border:1px solid var(--line);border-radius:12px;margin:12px 0;background:#fcfdff}
+details.exp summary{cursor:pointer;padding:13px 18px;font-weight:600;font-size:15px;
+  color:#1e293b;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.exp summary::after{content:"+";font-size:18px;color:var(--accent);font-weight:400}
+details.exp[open] summary::after{content:"\2212"}
+details.exp summary::-webkit-details-marker{display:none}
+details.exp[open] summary{border-bottom:1px solid var(--line)}
+.exp-body{padding:6px 18px 16px}
+/* ---------- tabs ---------- */
+.tabs{margin:16px 0;position:relative}
+.tabs > input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.tabs > label{display:inline-block;padding:7px 15px;margin:0 6px 0 0;border-radius:999px;
+  border:1px solid var(--line);background:#f4f6fa;font-size:13.5px;cursor:pointer;
+  color:#475569;user-select:none}
+.tabs > label:hover{border-color:#c8d4e8}
+.tabs > input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs .panels{margin-top:14px}
+.tabs .panel{display:none}
+/* ---------- widgets ---------- */
+.w{background:#f8fafd;border:1px solid var(--line);border-radius:12px;
+  padding:12px 16px;margin:12px 0}
+.w-slider label{font-size:13.5px;color:#33415c;font-weight:600;display:block;margin-bottom:6px}
+.w-row{display:flex;align-items:center;gap:14px}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+.w-val{font-family:var(--mono);font-size:14px;background:#fff;border:1px solid var(--line);
+  border-radius:7px;padding:2px 10px;min-width:34px;text-align:center}
+.w-check{display:flex;gap:10px;align-items:center;cursor:pointer;font-size:14px}
+.w-check input{accent-color:var(--accent);width:16px;height:16px}
+.w-title{font-size:13.5px;color:#33415c;font-weight:600;display:block;margin-bottom:6px}
+.w-opts{display:flex;gap:8px;flex-wrap:wrap}
+.w-opt{display:inline-flex;align-items:center;gap:7px;background:#fff;
+  border:1px solid var(--line);border-radius:999px;padding:5px 14px;cursor:pointer;font-size:13.5px}
+.w-opt input{accent-color:var(--accent)}
+.w-opt:has(input:checked){border-color:var(--accent);background:#e8f0fe;color:#1d4ed8}
+/* ---------- misc ---------- */
+.warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
+  padding:12px 16px;margin:12px 0;font-size:14.5px}
+.badge-note{font-size:13px;color:var(--muted)}
+footer{margin-top:40px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--line);
+  padding-top:18px}
+footer code{font-size:12px}
+.vv > .vg{display:contents}
+/* ---------- responsive ---------- */
+@media (max-width:1000px){
+  .sidebar{position:static;width:auto;bottom:auto;padding:16px}
+  .sidebar nav{display:flex;flex-wrap:wrap;gap:4px}
+  .sidebar nav a{background:var(--dark-2)}
+  .sidebar .side-note{display:none}
+  main{margin-left:0;padding:20px 14px 70px}
+  .cols-2,.cols-3,.cols-4{grid-template-columns:1fr}
+}
+#tb0_0:checked ~ .panels #p_tb0_0{display:block}#tb0_1:checked ~ .panels #p_tb0_1{display:block}#tb0_2:checked ~ .panels #p_tb0_2{display:block}#tb0_3:checked ~ .panels #p_tb0_3{display:block}#tb1_0:checked ~ .panels #p_tb1_0{display:block}#tb1_1:checked ~ .panels #p_tb1_1{display:block}#tb1_2:checked ~ .panels #p_tb1_2{display:block}#tb2_0:checked ~ .panels #p_tb2_0{display:block}#tb2_1:checked ~ .panels #p_tb2_1{display:block}#tb2_2:checked ~ .panels #p_tb2_2{display:block}#tb2_3:checked ~ .panels #p_tb2_3{display:block}#tb3_0:checked ~ .panels #p_tb3_0{display:block}#tb3_1:checked ~ .panels #p_tb3_1{display:block}#tb3_2:checked ~ .panels #p_tb3_2{display:block}#tb4_0:checked ~ .panels #p_tb4_0{display:block}#tb4_1:checked ~ .panels #p_tb4_1{display:block}#tb4_2:checked ~ .panels #p_tb4_2{display:block}#tb5_0:checked ~ .panels #p_tb5_0{display:block}#tb5_1:checked ~ .panels #p_tb5_1{display:block}#tb5_2:checked ~ .panels #p_tb5_2{display:block}#tb5_3:checked ~ .panels #p_tb5_3{display:block}#tb5_4:checked ~ .panels #p_tb5_4{display:block}#tb5_5:checked ~ .panels #p_tb5_5{display:block}#tb5_6:checked ~ .panels #p_tb5_6{display:block}#tb5_7:checked ~ .panels #p_tb5_7{display:block}#tb5_8:checked ~ .panels #p_tb5_8{display:block}</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">🔬 DINOv2 low-light study</div>
+  <div class="brand-sub">11 phases + methods, bugs, gallery — reads committed
+   artifacts only. Static build of <code style="background:#1d2a44;color:#93c5fd;
+   padding:1px 4px;border-radius:4px">apps/presentation.py</code>.</div>
+  <nav><a href="#home" class="active">🏠 The story in 60 seconds</a><a href="#methods">🔬 How we did it (methods)</a><a href="#collapse">💥 1 · The collapse</a><a href="#localize">📍 2 · Where it broke</a><a href="#mechanism">🎛 3 · Why it broke</a><a href="#proxy">🚧 4 · The proxy gate — NO-GO</a><a href="#fix">🩹 5 · The fix — LoRA</a><a href="#grid">🧮 6 · The 9-arm grid</a><a href="#families">🌀 7 · Corruption families</a><a href="#readout">📡 8 · Readout staleness</a><a href="#exdark">🌑 9 · Real darkness (ExDark)</a><a href="#vitb">🔬 10 · ViT-B/14 cross-architecture</a><a href="#bugs">🐛 Bugs &amp; lessons</a><a href="#gallery">🖼 Figure gallery</a></nav>
+  <div class="side-note">Generated by <code>tools/export_static_site.py</code>.
+   Regenerate after changing the presentation, then commit the refreshed
+   <code>index.html</code>.</div>
+</aside>
+<main>
+ <div class="hero">
+  <h1>How badly does DINOv2 break in the dark — and can 1% of the parameters fix it?</h1>
+  <p>A frozen self-supervised vision model scores 91% on clean photos and collapses to
+   ~9% under extreme darkness. This is the full study: where it breaks, why it breaks,
+   the cheap-profiling dead end, and the tiny LoRA patch that recovers most of it —
+   every number read from committed artifacts, no experiments re-run.</p>
+  <div class="badges"><span class="badge">14 sections</span>
+   <span class="badge">84 committed figures</span>
+   <span class="badge">0.99% parameters patched</span>
+   <span class="badge">3 seeds × 9 arms</span>
+   <span class="badge">ExDark + ViT-B/14 replications</span></div>
+ </div>
+ <section class="sec" id="home"><h2 class="sh">The story in 60 seconds</h2><div class="md"><p><strong>One paragraph, if you read nothing else</strong></p>
+<p>A frozen self-supervised vision model is brilliant on clean photos (91%) but
+collapses to ~9% under extreme darkness. It's not diffuse noise; it's a
+<strong>localized representational shift in the late blocks</strong>, driven by the loss
+of <strong>low-frequency luminance</strong> — exactly what darkness removes. Because the
+failure has an address, a <strong>tiny 0.99%-parameter LoRA patch</strong> (trained in
+~10 GPU-minutes on a dark/clean mix) recovers most of it: mean accuracy
+<strong>0.59 → 0.82</strong>, worst-case <strong>5.1×</strong>, and clean accuracy even <strong>rises</strong>.
+The same trick generalizes to JPEG, blur, and contrast. On real darkness
+(ExDark), the honest story is: synthetic extreme darkening is harsher than
+real low light, but the synthetic-dark adapters still transfer <strong>+1.9 pts</strong>
+— a gap now <em>measured</em>, not assumed.</p></div><h2 class="sh">The hero figures</h2><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1/dinov2_lowlight_results.png" alt="Phase 1 of record: accuracy + embedding drift vs darkness severity"><figcaption>Phase 1 of record: accuracy + embedding drift vs darkness severity</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1/severity_visual_check.png" alt="What severity 0–5 looks like on real CIFAR-10 images"><figcaption>What severity 0–5 looks like on real CIFAR-10 images</figcaption></figure></div></div><h2 class="sh">The numbers at a glance</h2><div class="cols cols-4"><div class="col"><div class="metric"><span class="m-label">Clean accuracy</span><span class="m-value">0.913</span><span class="delta flat">4/10 on CIFAR-10</span></div></div><div class="col"><div class="metric"><span class="m-label">Darkness (sev 5)</span><span class="m-value">0.093</span><span class="delta flat">9.3 pts below clean</span></div></div><div class="col"><div class="metric"><span class="m-label">LoRA mean</span><span class="m-value">0.818</span><span class="delta up">+0.224 mean across severities</span></div></div><div class="col"><div class="metric"><span class="m-label">LoRA sev 5</span><span class="m-value">0.377</span><span class="delta flat">5.1× worst-case improvement</span></div></div></div><h2 class="sh">Headline results, question by question</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Question</th>
+      <th>Answer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>How bad is extreme darkness?</td>
+      <td>0.913 → 0.093 accuracy (cliff between sev 2–4; chance = 0.10)</td>
+    </tr>
+    <tr>
+      <td>Where does the representation break?</td>
+      <td>Late blocks 9–11: CKA drop 0.81 vs 0.58 at block 0, the earliest</td>
+    </tr>
+    <tr>
+      <td>Why?</td>
+      <td>Darkness removes low-frequency luminance; low-pass keeps accuracy, high-pass destroys it</td>
+    </tr>
+    <tr>
+      <td>Can a cheap proxy replace CKA?</td>
+      <td>NO-GO on 3 architectures (ViT-S, ViT-S-recheck, ViT-B) — full CKA stays the profiler</td>
+    </tr>
+    <tr>
+      <td>Cheapest fix?</td>
+      <td>LoRA r8 on 24 modules = 0.99% of params, ~10 min on a free T4</td>
+    </tr>
+    <tr>
+      <td>How much does it recover?</td>
+      <td>Mean 0.594 → 0.818 (+22.4); worst-case 0.073 → 0.377 (5.1×); clean accuracy rises</td>
+    </tr>
+    <tr>
+      <td>Does drift-weighting beat uniform LoRA?</td>
+      <td>Parity: 0.825 / 0.827 / 0.831 (drift / uniform / full FT), 3-seed ranges overlap</td>
+    </tr>
+    <tr>
+      <td>Does the fix generalize?</td>
+      <td>JPEG +19.3, blur +17.7, contrast +7.5 — gain tracks fragility</td>
+    </tr>
+    <tr>
+      <td>Is it just the linear head going stale?</td>
+      <td>No — re-trained probe caps at 0.377 at sev 5; the majority of loss is in the features</td>
+    </tr>
+    <tr>
+      <td>Real darkness (ExDark, 7,363 images)?</td>
+      <td>Frozen model 0.725, flat across luminance; synthetic-dark LoRA transfers +1.9 pts</td>
+    </tr>
+    <tr>
+      <td>Cross-architecture?</td>
+      <td>ViT-B/14 confirms late-heavy drift; MLP drifts more than attention in all 12 blocks</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Findings in plain language</h2><div class="md"><ol>
+<li><strong>The failure is a cliff, not a slope</strong> — near-clean through severity 2, then a steep collapse.</li>
+<li><strong>It has an address</strong> — the late transformer blocks move the most (0.81 at block 10 vs 0.58 at block 0, the earliest).</li>
+<li><strong>It has a mechanism</strong> — the model runs on low-frequency luminance, which is exactly what darkness deletes.</li>
+<li><strong>There is no free lunch in profiling</strong> — cheap amplitude proxies fail the correlation gate; forward-only CKA is cheap enough.</li>
+<li><strong>A 0.99%-parameter patch recovers most of it</strong> — and doesn't trade away clean accuracy.</li>
+<li><strong>The fancy allocation doesn't matter (parity)</strong> — drift-weighted ranks match uniform ranks and full fine-tuning.</li>
+<li><strong>The fix transfers</strong> — to JPEG, blur, and contrast, with gains proportional to how fragile the family is.</li>
+<li><strong>The honest boundaries</strong> — readout retraining caps out at 0.377; real-world transfer is +1.9, not +21.</li>
+</ol></div><h2 class="sh">What we don't claim</h2><div class="md"><ul>
+<li>We don't claim drift-weighting beats uniform (parity, 3-seed error bars show overlap).</li>
+<li>We don't claim the synthetic results carry to real darkness (we measure the gap instead).</li>
+<li>We don't claim the findings generalize to ImageNet-scale statistics (CIFAR-10 at 32×32 upsampled).</li>
+<li>We don't claim a cheap proxy exists (the gate was NO-GO — full CKA is cheap enough, forward-only).</li>
+</ul></div><h2 class="sh">Walkthrough order</h2><p class="cap">New here? Start with <strong>How we did it</strong> — it tells the whole experimental story in plain words, before any numbers.</p><div class="md"><p><strong>How we did it (methods)</strong> — Data, corruption parameter tables, CKA formula, probe and LoRA configs.</p></div><div class="md"><p><strong>1 · The collapse</strong> — Accuracy cliff 0.91 → 0.09 with embedding drift riding alongside.</p></div><div class="md"><p><strong>2 · Where it broke</strong> — Layer × severity CKA matrix: late blocks 9–11 carry the drift.</p></div><div class="md"><p><strong>3 · Why it broke</strong> — Frequency controls: low-pass preserves, high-pass destroys.</p></div><div class="md"><p><strong>4 · The proxy gate — NO-GO</strong> — Track 1 gate: cheap proxies vs CKA — verdict NO-GO.</p></div><div class="md"><p><strong>5 · The fix — LoRA</strong> — LoRA run of record: 0.99% params, +0.22 mean, 5.1× worst-case.</p></div><div class="md"><p><strong>6 · The 9-arm grid</strong> — 9 arms × 3 seeds: drift = uniform = full FT, with per-arm training curves.</p></div><div class="md"><p><strong>7 · Corruption families</strong> — Blur / JPEG / contrast: profile, fix, and per-family figures.</p></div><div class="md"><p><strong>8 · Readout staleness</strong> — Probe-retrain control: how much was the head vs the features.</p></div><div class="md"><p><strong>9 · Real darkness (ExDark)</strong> — 7,363 real low-light images: the sim-to-real gap, measured.</p></div><div class="md"><p><strong>10 · ViT-B/14 cross-architecture</strong> — 86M-parameter replication: late-heavy + MLP &gt; attention in 12/12 blocks.</p></div><div class="md"><p><strong>Bugs &amp; lessons</strong> — Four bugs, each caught pre-trust, each with a reproducibility lesson.</p></div><div class="md"><p><strong>Figure gallery</strong> — Every committed figure, grouped by phase.</p></div></section><section class="sec" id="methods"><h2 class="sh">How we did it — data, corruptions, metrics, training</h2><div class="md"><p>The whole study is <strong>one repeatable pipeline</strong>, run end to end without ever training the big
+model. Here is that pipeline in plain words — ten decisions, why each one exists, and what
+would have gone wrong without it. The exact parameter tables sit underneath as reference cards.</p></div><details class="exp"><summary>Step 1 — Freeze a strong model — and only ever question it</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> DINOv2 ViT-S/14 (22.3M parameters) from <code>torch.hub</code>, permanently in <code>eval()</code> +
+<code>no_grad()</code>. CIFAR-10's 32×32 images are upsampled to the model's native 224×224,
+ImageNet-normalized, and we read the pooled <strong>CLS token</strong> — a single 384-number summary of the
+whole image — as "the representation".</p>
+<p><strong>Why freeze it?</strong> We are studying how an <em>existing</em> visual system degrades, not building a new
+one. Every frozen weight is a weight that cannot drift behind our back: when accuracy falls, the
+input is the cause — nothing we trained can be blamed.</p></div></div></details><details class="exp"><summary>Step 2 — Build a dimmer switch instead of collecting dark photos</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> four synthetic degradations, each with six fixed severity steps (0 = untouched … 5 =
+extreme): <strong>low-light</strong> (brightness ×1.00 → 0.15 plus a little Gaussian noise), <strong>Gaussian blur</strong>
+(radius 0 → 5.5 px), <strong>JPEG</strong> (quality pristine → 8), <strong>contrast</strong> (fade toward gray, ×1.00 →
+0.15) — plus two FFT frequency filters used only by the mechanism experiment.</p>
+<p><strong>Why a fixed table instead of real photos?</strong> Because anyone must be able to turn the same knob
+and get the same image: the severity tables are literal code, so a rerun on any machine reproduces
+the <em>identical</em> corrupted inputs. Severity 0 returning the pristine image is load-bearing — it is
+the clean anchor every curve and every probe is measured against.</p></div></div></details><details class="exp"><summary>Step 3 — Grade with the simplest classifier that exists (a linear probe)</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> a frozen model doesn't predict labels — it emits embeddings. So we train the simplest
+classifier that exists, a <strong>logistic regression</strong> (384 → 10 classes), on <strong>clean severity-0
+embeddings only</strong>, then evaluate that one probe at every severity (70/30 stratified split,
+seed 42).</p>
+<p><strong>Why clean-only training?</strong> We're asking whether the features the model <em>already has</em> still carry
+label information after degradation. Retraining on degraded data would measure <em>adaptation</em>
+instead of <em>breakage</em> — a different and much less alarming question.</p>
+<p><strong>Why the comparison is fair:</strong> original and patched models receive the <em>identical</em> test indices,
+so every before/after pair is same-images by construction.</p></div></div></details><details class="exp"><summary>Step 4 — Measure drift with CKA — 'did the picture inside move?'</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> for the same image, clean vs degraded, <strong>linear CKA</strong> compares each block's activations
+and returns a number in [0, 1]: 1.0 means the internal picture is arranged exactly as before, 0
+means it has been reshuffled beyond recognition. Intuition: it compares the <em>structure</em> of the
+representations (which samples sit near which other samples), not their raw values.</p>
+<p><strong>Why CKA instead of a plain distance?</strong> It is scale-invariant — a uniformly "louder"
+representation isn't a <em>different</em> one — so what it measures is reorganization, which is exactly
+the failure mode we care about. It needs <strong>no labels</strong>: two forward passes per condition, hooks on
+each module, nothing else.</p>
+<p><strong>Two honesty notes baked in:</strong> (a) the original implementation forgot a square root — values were
+squared, which kept every <em>ranking</em> intact but made the raw numbers meaningless; it was caught,
+fixed, and everything reported here uses the corrected formula. (b) The biased estimator flatters
+similarities, so the whole matrix was recomputed with the unbiased variant — the late-block
+structure survives both.</p></div></div></details><details class="exp"><summary>Step 5 — Put honest error bars on every accuracy (bootstrap)</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> every accuracy in this study comes from 1,000 graded images — one sample that could
+wobble with luck. So per severity we <strong>bootstrap</strong>: resample the 1,000 per-image right/wrong answers
+1,000 times with replacement and take the 2.5/97.5 percentiles → a 95% confidence band.</p>
+<p><strong>Plain words:</strong> re-roll the same exam 1,000 different ways and watch how much the class average
+moves. A narrow band means the number is stable.</p>
+<p><strong>The bug this caught:</strong> the first version re-seeded every severity with the same seed, so all
+severity levels resampled <em>identically</em> and the bands looked suspiciously similar. Fixed with
+severity-indexed seeds — independence between the conditions we intend to compare.</p></div></div></details><details class="exp"><summary>Step 6 — Localize the damage with per-block hooks</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> a forward hook on each of the 12 transformer blocks reads that
+module's CLS activations for the <em>same</em> images clean and degraded; CKA per module per severity
+fills a block × severity matrix (the heatmap in the "Where it broke" section).</p>
+<p><strong>Why per-block?</strong> A global drift number tells you <em>that</em> the model moved; a per-block matrix
+tells you <em>where</em>. Ours climbs from 0.58 at block 0 to 0.81 at block 10 (severity 5) — the
+failure has an address.</p>
+<p><strong>Guided-search honesty:</strong> we looked at all 12 blocks and reported the largest, so there is a
+selection effect — that is exactly why the unbiased-estimator recompute and the third-architecture
+replication exist.</p></div></div></details><details class="exp"><summary>Step 7 — Prove the mechanism with frequency surgery</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> a circular FFT mask splits each image in two: <strong>low-pass</strong> keeps only smooth structure
+(large shapes, brightness — where luminance lives); <strong>high-pass</strong> keeps only edges and fine
+texture. Same images, same severities, same probe — the only variable is which frequency band
+survives.</p>
+<p><strong>The prediction:</strong> if the model runs on low-frequency luminance, low-pass should preserve
+accuracy and high-pass should destroy it even when pixel statistics barely change.</p>
+<p><strong>The result:</strong> low-pass stays near clean (~0.92), high-pass collapses (~0.59) at every severity —
+which is also why the same LoRA fix later transferred to blur and JPEG: those destroy the same
+band.</p></div></div></details><details class="exp"><summary>Step 8 — Try to make profiling cheaper — and accept the NO-GO</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> four cheap statistics — energy drop, mean shift, covariance shift, cosine drop — logged
+next to CKA, then scored with <strong>Spearman ρ</strong>: a rank correlation in [-1, 1] that asks "when CKA
+says corruption A is worse than B, does the cheap statistic agree?"</p>
+<p><strong>The gate, committed to before looking:</strong> ρ ≥ 0.80 on <em>every</em> corruption, strictly. Pass → we
+could profile with pennies. Fail → we keep CKA and say so out loud.</p>
+<p><strong>What happened:</strong> amplitude statistics track JPEG (energy and structure move together there) but
+fail on low-light (darkness shrinks amplitudes <em>without</em> ranking the structural late-block drift).
+NO-GO on three architectures. The fallback is unapologetic: full CKA stays the profiler — and it
+was never expensive: two forward passes, no labels, no backprop.</p></div></div></details><details class="exp"><summary>Step 9 — Fix it with a 0.99% patch (LoRA + matched-noise grading)</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> keep the 22M-parameter backbone frozen and teach <strong>24 tiny side-patches</strong> to speak up
+instead: LoRA adds a pair of small trainable matrices (rank 8, α16) next to every block's attention
+projections — <strong>221,184 trainable numbers = 0.99% of the model</strong>. Analogy: don't repaint the
+house; tape a thin film on the windows.</p>
+<p><strong>The diet:</strong> 5,000 training images, 70% darkened (severity 2–4, random per sample) + 30% clean,
+plus flips, 10 epochs of AdamW — about 10 minutes on a free T4. The clean 30% is deliberate: it is
+what stops the patch from trading away clean accuracy.</p>
+<p><strong>Matched-noise grading:</strong> darkness includes <em>random</em> noise, so if you corrupt the test set
+separately for each model they sit different exams. The script of record pre-generates the
+corrupted arrays <strong>once</strong> per severity (seed <code>1000 + severity</code>) and both models are graded on the
+identical pixels — the before/after gap is real, not eval jitter.</p></div></div></details><details class="exp"><summary>Step 10 — Stress the claim from every side</summary><div class="exp-body"><div class="md"><p><strong>What:</strong> the headline claim survived five independent ways of trying to kill it —</p>
+<ol>
+<li><strong>Seeds:</strong> 3 arms × 3 seeds, because one lucky run proves nothing.</li>
+<li><strong>Families:</strong> blur, JPEG, contrast — each with its own ladder, its own profile, its own adapters.</li>
+<li><strong>The skeptic's control:</strong> retrain the classifier per severity to split feature loss from
+   readout staleness.</li>
+<li><strong>Real data:</strong> ExDark's 7,363 real low-light photos, adapters transferred with zero retraining.</li>
+<li><strong>A third architecture:</strong> ViT-B/14 profiled at sublayer granularity (attention vs MLP).</li>
+</ol>
+<p><strong>Why the trouble?</strong> Each replication targets a <em>different</em> way the study could be wrong —
+overfitting to one seed, one corruption, one model, one dataset, or one measurement instrument.
+Better we break it here than a reviewer does.</p></div></div></details><p class="cap">Exact parameters from docs/METHODS.md — verified against source. Every experiment in this presentation reads committed artifacts produced with these settings.</p><div class="tabs"><input type="radio" name="tb0" id="tb0_0" checked><label for="tb0_0">Backbone & data</label><input type="radio" name="tb0" id="tb0_1"><label for="tb0_1">Corruptions</label><input type="radio" name="tb0" id="tb0_2"><label for="tb0_2">Metrics & statistics</label><input type="radio" name="tb0" id="tb0_3"><label for="tb0_3">The LoRA fix</label><div class="panels"><div class="panel" id="p_tb0_0"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Item</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Model</td>
+      <td>DINOv2 ViT-S/14 via torch.hub (dinov2_vits14)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Parameters</td>
+      <td>22,277,760 — frozen, except Phase-3 LoRA + head</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Input size</td>
+      <td>224 × 224 (CIFAR-10 32×32 upsampled), patch 14 → 256 tokens + CLS</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Embedding used</td>
+      <td>pooled CLS token, dim 384</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Normalization</td>
+      <td>ImageNet mean (0.485, 0.456, 0.406), std (0.229, 0.224, 0.225)</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>Transform order</td>
+      <td>ToTensor → Resize((224,224), antialias) → Normalize</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>Mode</td>
+      <td>model.eval() + torch.no_grad() throughout</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Data protocol</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Experiment</th>
+      <th>Source</th>
+      <th>n</th>
+      <th>Sampling</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Phase 1 (collapse)</td>
+      <td>CIFAR-10 test</td>
+      <td>1000</td>
+      <td>default_rng(42).choice(10000, 1000), no replacement</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Phase 2 (localize)</td>
+      <td>CIFAR-10 test</td>
+      <td>500</td>
+      <td>fresh rng(42) draw — independent, ~5% overlap by chance</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Phase 3 training pool</td>
+      <td>CIFAR-10 train</td>
+      <td>5000</td>
+      <td>rng(42) on the 50,000 train images (same RNG, consumed sequentially)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Phase 3 test set</td>
+      <td>CIFAR-10 test</td>
+      <td>1000</td>
+      <td>identical indices to Phase 1 → baselines match exactly (0.9133)</td>
+    </tr>
+  </tbody>
+</table></div><p class="cap">All probe splits stratified 70/30 (random_state=42): original and LoRA probes receive the identical test indices, so every before/after comparison is same-images. Phase 3 trains on the train split — no test image is ever seen during adapter training.</p></div><div class="panel" id="p_tb0_1"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Severity</th>
+      <th>low_light brightness</th>
+      <th>low_light noise σ</th>
+      <th>blur radius (px)</th>
+      <th>jpeg quality</th>
+      <th>contrast factor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>1.00</td>
+      <td>0</td>
+      <td>0.0</td>
+      <td>pristine</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>0.75</td>
+      <td>2</td>
+      <td>0.5</td>
+      <td>60</td>
+      <td>0.80</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>0.55</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>40</td>
+      <td>0.60</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>0.38</td>
+      <td>6</td>
+      <td>2.0</td>
+      <td>25</td>
+      <td>0.40</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>0.25</td>
+      <td>9</td>
+      <td>3.5</td>
+      <td>15</td>
+      <td>0.25</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>5</td>
+      <td>0.15</td>
+      <td>13</td>
+      <td>5.5</td>
+      <td>8</td>
+      <td>0.15</td>
+    </tr>
+  </tbody>
+</table></div><p class="cap">low_light: img * brightness + N(0, σ) clipped to [0,255], noise i.i.d. per pixel/channel. contrast: factor × img + (1 − factor) × scalar grayscale mean (documented deviation from the Hendrycks &amp; Dietterich per-channel formula). jpeg sev 0 returns the pristine image untouched.</p><h2 class="sh">Frequency controls (circular FFT mask per channel)</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Severity</th>
+      <th>low_pass cutoff (keep ≤ r)</th>
+      <th>high_pass cutoff (keep &gt; r)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>0.90</td>
+      <td>0.05</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>0.70</td>
+      <td>0.10</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>0.50</td>
+      <td>0.15</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>0.35</td>
+      <td>0.20</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>0.20</td>
+      <td>0.30</td>
+    </tr>
+  </tbody>
+</table></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1/severity_visual_check.png" alt="Severity ladder on real images (of record)"><figcaption>Severity ladder on real images (of record)</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/corruption_types.png" alt="The corruption zoo used across the study"><figcaption>The corruption zoo used across the study</figcaption></figure></div></div></div><div class="panel" id="p_tb0_2"><h2 class="sh">Linear CKA (corrected formula)</h2><pre class="code" data-lang="python"><code>X = X - X.mean(0, keepdims=True)   # row-centered activations
+Y = Y - Y.mean(0, keepdims=True)
+hsic = np.linalg.norm(X.T @ Y, &#x27;fro&#x27;) ** 2
+var1 = np.linalg.norm(X.T @ X, &#x27;fro&#x27;) ** 2
+var2 = np.linalg.norm(Y.T @ Y, &#x27;fro&#x27;) ** 2
+CKA  = hsic / (np.sqrt(var1 * var2) + 1e-8)</code></pre><div class="md"><ul>
+<li>Range [0, 1]; CKA(X, X) = 1. Applied per transformer block on CLS activations of the same images, clean vs degraded.</li>
+<li><strong>History:</strong> the original implementation omitted the sqrt (squaring all values, sev-5 up to ~79.9). Ordering was preserved (squaring is monotonic), so the late-layer conclusion held; every number in this repo uses the corrected formula.</li>
+<li><strong>Unbiased estimator check:</strong> recomputed layer × severity matrix with the unbiased CKA (Kornblith et al. 2019, App. B). Allocations differ at 3 of 12 blocks by ±1 rank; blocks 9–11 hold max rank 8 under both estimators (block 10 sev-5 drop 0.815 → 0.859) — the late-heavy structure is estimator-robust.</li>
+<li><strong>Cross-device certificate:</strong> the Phase-2 matrix computed locally (CPU) and inside the Kaggle T4 kernel agrees to ~1e-6 — CPU and GPU artifacts are directly comparable.</li>
+</ul></div><h2 class="sh">Bootstrap confidence intervals</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Resamples</td>
+      <td>1,000 per severity</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Interval</td>
+      <td>95th percentile (np.percentile at 2.5 / 97.5)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Unit</td>
+      <td>per-image correctness vector, resampled with replacement</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>RNG</td>
+      <td>np.random.default_rng(severity) — severity-indexed seed (bug fix; see Bugs)</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Linear probe</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Classifier</td>
+      <td>sklearn LogisticRegression</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>max_iter / C</td>
+      <td>2,000 / 1.0 (inverse regularization)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Train data</td>
+      <td>clean severity-0 embeddings only</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Split</td>
+      <td>70/30, stratified, seed 42 — identical test indices for both models</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="panel" id="p_tb0_3"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Item</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Targets</td>
+      <td>attn.qkv + attn.proj in every block (24 modules)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Rank / alpha</td>
+      <td>r = 8, α = 16 (scaling = α/r = 2.0)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Trainable params</td>
+      <td>221,184 / 22,277,760 = 0.99%</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Backbone</td>
+      <td>frozen; classifier head (384 → 10) also trains</td>
+    </tr>
+  </tbody>
+</table></div><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Item</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Steps</td>
+      <td>10 epochs × 780 steps = ~7,800 total</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Optimizer</td>
+      <td>AdamW; adapters lr 5e-5, head lr 1e-3, weight_decay 0.01</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Batch / loss</td>
+      <td>64, shuffled, num_workers 2; CrossEntropy</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Augmentation</td>
+      <td>p=0.7 low_light sev ~ Uniform{2,3,4}; p=0.5 horizontal flip (train only)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Runtime</td>
+      <td>~10 min on a free-tier Colab/Kaggle T4</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Evaluation — matched-noise protocol</h2><div class="md"><ul>
+<li>Corrupted test arrays precomputed <strong>once</strong> per severity (seeded <code>default_rng(1000 + severity)</code>) and fed
+  <strong>identically</strong> to the original and adapted models — every before/after pair is image- and noise-matched.</li>
+<li>Probe protocol identical to Phase 1 (clean embeddings, 70/30, seed 42).</li>
+<li>Artifact of record: <code>colab_results/lora_run_fixed/</code> (post augmentation-fix, matched-noise).</li>
+</ul></div><h2 class="sh">The 9 arms</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Arm</th>
+      <th>Params</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>seed42/43/44_all</td>
+      <td>221,184 (0.99%)</td>
+      <td>uniform rank-8, 3 seeds</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>late</td>
+      <td>55,296 (0.25%)</td>
+      <td>rank-8 on blocks 9–11 only</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>drift × 3 seeds</td>
+      <td>172,800 (0.78%)</td>
+      <td>per-block ranks ∝ CKA drop: {0:6, 1:6, 2:4, 3:5, 4:5, 5:5, 6:6, 7:7, 8:7, 9:8, 10:8, 11:8}</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fullft × 3 seeds</td>
+      <td>22,056,576 (100%)</td>
+      <td>backbone lr 1e-5, head lr 1e-3</td>
+    </tr>
+  </tbody>
+</table></div><p class="cap">Cross-seed caveat: each run draws its own 1,000-image test set seeded by --seed, so rows with different seeds differ in both init and test draw. Within any row, original vs adapted is image- and noise-matched.</p></div></div></div></section><section class="sec" id="collapse"><h2 class="sh">Phase 1 — How bad is it?</h2><div class="md"><p><em>How we did it.</em> We took 1,000 CIFAR-10 test images (a fixed, seeded draw), pushed them through
+the six-step "dimmer switch" (severity 0 = untouched → 5 = darkest), and asked the frozen model
+two questions at every level: <strong>(1)</strong> can a simple linear classifier still read the labels off
+its features? and <strong>(2)</strong> how far have those features themselves moved from their clean shape?
+Both questions are answered on the <em>same</em> images, so the two curves can be read against each
+other directly — accuracy loss versus representation drift, severity by severity.</p></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/c34d142765efeaf5.png" alt="generated figure"></figure></div><div class="col"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>severity</th>
+      <th>accuracy</th>
+      <th>mean_cosine_sim_to_clean</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>0.913333</td>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>0.900000</td>
+      <td>0.946440</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>0.860000</td>
+      <td>0.809950</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>0.603333</td>
+      <td>0.589338</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>0.220000</td>
+      <td>0.309176</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>5</td>
+      <td>0.093333</td>
+      <td>0.161497</td>
+    </tr>
+  </tbody>
+</table></div><div class="cols cols-2"><div class="col"><div class="metric"><span class="m-label">Clean (sev 0)</span><span class="m-value">0.913</span></div></div><div class="col"><div class="metric"><span class="m-label">Sev 5</span><span class="m-value">0.093</span><span class="delta flat">chance = 0.10</span></div></div></div></div></div><figure class="fig"><img loading="lazy" src="output/notebook1/dinov2_lowlight_results.png" alt="Figure of record: full accuracy + drift curve with bootstrapped 95% CIs (1,000 resamples per severity)"><figcaption>Figure of record: full accuracy + drift curve with bootstrapped 95% CIs (1,000 resamples per severity)</figcaption></figure><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>H1 supported:</strong> the drop is a <strong>cliff</strong>, not a slope — near-flat through sev 2, collapsing steeply 2→4.</li>
+<li>Accuracy loss tracks embedding drift <strong>almost linearly</strong> — the feature space moves; the model isn't 'confused'.</li>
+<li>At sev 5 the probe is barely above chance (chance = 0.10).</li>
+<li>Cosine drift tracks accuracy loss in every family tested later — this signature isn't low-light specific.</li>
+</ul></div></section><section class="sec" id="localize"><h2 class="sh">Phase 2 — Where does it break?</h2><div class="md"><p><em>How we did it.</em> To find <em>where</em> the model breaks, we clipped a sensor (a forward hook) onto each of the 12 transformer blocks, then pushed the <strong>same</strong> 500 images
+through twice — once clean, once degraded — and compared each block's CLS activations with
+<strong>linear CKA</strong>, a score from 0 to 1 that answers "how much did the internal picture rearrange?"
+(1.0 = identical, 0 = completely reshuffled). No labels are involved: CKA only looks at the
+geometry of the activations. Doing that for every block at every severity gives the matrix
+below — and the pattern in it <em>is</em> the localization answer.</p></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/layerwise_cka.png" alt="Notebook-2 figure of record: layer × severity CKA matrix"><figcaption>Notebook-2 figure of record: layer × severity CKA matrix</figcaption></figure></div><div class="col"><div class="w w-slider"><label for="w_localize_severity_for_the_bar_chart">Severity for the bar chart</label><div class="w-row"><input type="range" id="w_localize_severity_for_the_bar_chart" data-w="severity_for_the_bar_chart" min="1" max="5" step="1" value="5"><span class="w-val" id="w_localize_severity_for_the_bar_chart_v">5</span></div></div><div class="vv" data-variants="[[{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}]]"><div class="vg"><figure class="fig"><img loading="lazy" src="static/gen/219e00fc40293227.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/80434b7bb58e42e5.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/c3cafdb0e47309fd.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/faf96cf140a50d7d.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/ceebb9d6be04686f.png" alt="generated figure"></figure></div></div><div class="vv" data-variants="[[{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}],[{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}]]"><div class="vg"><p class="cap">Max drift at severity 5: block 10 (drop = 0.815)</p></div><div class="vg" style="display:none"><p class="cap">Max drift at severity 1: block 0 (drop = 0.136)</p></div><div class="vg" style="display:none"><p class="cap">Max drift at severity 2: block 0 (drop = 0.331)</p></div><div class="vg" style="display:none"><p class="cap">Max drift at severity 3: block 0 (drop = 0.456)</p></div><div class="vg" style="display:none"><p class="cap">Max drift at severity 4: block 10 (drop = 0.667)</p></div></div></div></div><h2 class="sh">The full layer × severity matrix</h2><label class="w w-check"><input type="checkbox" id="w_localize_use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one" data-w="use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one"><span>Use the unbiased CKA estimator (Kornblith App. B) instead of the biased one</span></label><div class="vv" data-variants="[[{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false},{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:false}],[{&quot;severity_for_the_bar_chart&quot;:1,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true},{&quot;severity_for_the_bar_chart&quot;:2,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true},{&quot;severity_for_the_bar_chart&quot;:3,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true},{&quot;severity_for_the_bar_chart&quot;:4,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true},{&quot;severity_for_the_bar_chart&quot;:5,&quot;use_the_unbiased_cka_estimator_kornblith_app_b_instead_of_the_biased_one&quot;:true}]]"><div class="vg"><figure class="fig"><img loading="lazy" src="static/gen/163178711845e76e.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/321955147890074f.png" alt="generated figure"></figure></div></div><p class="cap">Late-heavy structure is estimator-robust: blocks 9–11 hold maximum drift under both estimators. The published drift-arm allocation changes by ±1 rank at 3 of 12 blocks between estimators (−1,536 params).</p><h2 class="sh">Findings</h2><div class="md"><ul>
+<li>Late blocks (9–11) hold full drift; early blocks comparatively stable — the failure has an address.</li>
+<li>The localization finding is a property of frequency-destroying degradations, not of darkness specifically.</li>
+<li>Guided-bias caveat: the published allocation used the biased estimator; the unbiased recompute shifts 3 of 12 block ranks by one without changing the late-heavy structure (see the toggle above).</li>
+<li>Cross-device determinism: CPU- and T4-computed matrices agree to ~1e-6, certifying artifact comparability.</li>
+</ul></div></section><section class="sec" id="mechanism"><h2 class="sh">Mechanism — low-frequency luminance</h2><div class="md"><p><em>How we did it.</em> "Darkness breaks the model" is an observation; <em>why</em> it breaks needs surgery.
+So we split each corrupted image into two frequency halves with a circular FFT mask: a
+<strong>low-pass</strong> image that keeps only the smooth structure (large shapes, brightness — where
+luminance lives) and a <strong>high-pass</strong> image that keeps only edges and fine texture. Same images,
+same severities, same probe — the only thing that changed is which frequency band survives. If
+the model really runs on low-frequency luminance, the low-pass half should keep accuracy alive
+and the high-pass half should kill it even when nothing else changed.</p></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/frequency_test.png" alt="Frequency control: low-pass preserves accuracy; high-pass destroys it"><figcaption>Frequency control: low-pass preserves accuracy; high-pass destroys it</figcaption></figure></div><div class="col"><div class="md"><ul>
+<li><strong>Low-pass</strong> images: near-clean accuracy (~0.92 at sev 1).</li>
+<li><strong>High-pass</strong>: collapses (~0.59) at every severity.</li>
+<li>DINOv2 runs on low-frequency luminance; darkness removes exactly that.</li>
+<li>The localization finding is a property of frequency-destroying degradations, not of darkness specifically.</li>
+</ul></div><figure class="fig"><img loading="lazy" src="static/gen/5cf732ff1db2d6fa.png" alt="generated figure"></figure></div></div><h2 class="sh">The same control on the other corruption families</h2><div class="tabs"><input type="radio" name="tb1" id="tb1_0" checked><label for="tb1_0">blur</label><input type="radio" name="tb1" id="tb1_1"><label for="tb1_1">jpeg</label><input type="radio" name="tb1" id="tb1_2"><label for="tb1_2">contrast</label><div class="panels"><div class="panel" id="p_tb1_0"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/frequency_test.png" alt="blur: low-pass vs high-pass control"><figcaption>blur: low-pass vs high-pass control</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/accuracy_curve.png" alt="blur: accuracy across severities (with 95% CIs)"><figcaption>blur: accuracy across severities (with 95% CIs)</figcaption></figure></div></div></div><div class="panel" id="p_tb1_1"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/frequency_test.png" alt="jpeg: low-pass vs high-pass control"><figcaption>jpeg: low-pass vs high-pass control</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/accuracy_curve.png" alt="jpeg: accuracy across severities (with 95% CIs)"><figcaption>jpeg: accuracy across severities (with 95% CIs)</figcaption></figure></div></div></div><div class="panel" id="p_tb1_2"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/frequency_test.png" alt="contrast: low-pass vs high-pass control"><figcaption>contrast: low-pass vs high-pass control</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/accuracy_curve.png" alt="contrast: accuracy across severities (with 95% CIs)"><figcaption>contrast: accuracy across severities (with 95% CIs)</figcaption></figure></div></div></div></div></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li>Low-frequency luminance is the load-bearing signal — keep it (low-pass) and accuracy survives; remove it (high-pass) and the model collapses even when pixel statistics stay put.</li>
+<li>This is the mechanism that ties the whole study together: every destructive corruption in the family set deletes or scrambles exactly this band, which is why cosine drift tracks accuracy loss everywhere.</li>
+<li>Because the mechanism is frequency, not 'darkness', the same LoRA fix generalizes to blur and JPEG (section 7).</li>
+</ul></div></section><section class="sec" id="proxy"><h2 class="sh">Track 1 — cheap proxy gate (NO-GO)</h2><div class="md"><p><em>How we did it (the honest negative-result track).</em> Full CKA profiling is already cheap — two
+forward passes per condition, no labels, no backprop — but could it be cheaper? We logged four
+statistics that need no CKA at all (<strong>energy drop, mean shift, covariance shift, cosine drop</strong>)
+and scored them against CKA with <strong>Spearman ρ</strong>: a rank correlation that asks, in plain words,
+"when CKA says corruption A is worse than B, does the cheap statistic agree?" The gate we
+committed to <em>before looking</em>: ρ ≥ 0.80 on <strong>every</strong> corruption, strictly. Passing would mean
+we could replace CKA everywhere; failing means we keep CKA and say so.</p></div><div class="cols cols-2"><div class="col"><div class="metric"><span class="m-label">Gate verdict</span><span class="m-value">NO-GO</span></div><div class="metric"><span class="m-label">Best proxy</span><span class="m-value">cos_drop</span></div><div class="metric"><span class="m-label">Corruptions passing ρ</span><span class="m-value">none</span></div><div class="metric"><span class="m-label">Strict pass</span><span class="m-value">No</span></div></div><div class="col"></div></div><h2 class="sh">Proxy ρ across corruptions</h2><figure class="fig"><img loading="lazy" src="static/gen/5ce5639a54658c30.png" alt="generated figure"></figure><h2 class="sh">What the profiles look like (the artifact the gate reads)</h2><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profile_heatmap.png" alt="Module × condition drift heatmap (proxy harness of record)"><figcaption>Module × condition drift heatmap (proxy harness of record)</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profiles_low_light.png" alt="Per-module drift profile — low_light"><figcaption>Per-module drift profile — low_light</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profiles_blur.png" alt="Per-module drift profile — blur"><figcaption>Per-module drift profile — blur</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_dinov2_check/profile_heatmap.png" alt="DINOv2 re-check run (ViT-S re-confirmed)"><figcaption>DINOv2 re-check run (ViT-S re-confirmed)</figcaption></figure></div></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>Diagnosis:</strong> CKA is scale-invariant; every proxy except cos_drop is scale-sensitive.</li>
+<li>Amplitude proxies (energy/mean/cov) rank jpeg drift fine (structural change correlates with energy amplitude).</li>
+<li>On low_light, <strong>amplitude shrink ≠ structural late-stage drift</strong> — the drift CKA sees is geometric/structural, which amplitude statistics can't rank.</li>
+<li><code>mean_shift</code> ≈ 0 at every 1×1-conv downsample (Gaussian blur preserves DC) — hook sanity check passed.</li>
+<li>ViT-S re-check (n=300): NO-GO, energy ρ ≈ 0.70. ViT-B (n=1000): best energy_drop ρ = 0.876 jpeg / 0.692 low_light; cos_drop 0.882 / 0.681 — <strong>third-architecture NO-GO</strong> (see section 10).</li>
+<li><strong>Fallback adopted:</strong> full CKA stays the profiler. It's already forward-only (two passes, no labels, no backprop). The paper claim weakens to 'single cheap profiling pass' rather than 'cheap proxy'.</li>
+</ul></div></section><section class="sec" id="fix"><h2 class="sh">Phase 3 — can we fix it cheaply?</h2><div class="md"><p><em>How we did it.</em> Rather than retraining 22 million weights — slow, risky, and likely to forget
+clean images — we left the backbone <strong>frozen</strong> and taught 24 tiny side-patches to speak up
+differently: LoRA (low-rank adaptation) adds a pair of small trainable matrices (rank 8, α16)
+next to every block's attention projections: <strong>221,184 trainable numbers = 0.99% of the
+model</strong>. Analogy: don't repaint the house — tape a thin film on the windows. The training diet
+deliberately mixes dark and clean (70% augmented images at severity 2–4, 30% clean, plus
+flips) so the patch learns darkness <em>without</em> trading away clean accuracy. And because darkness
+includes random noise, both the original and the patched model are graded on the <strong>identical</strong>
+pre-corrupted test arrays (seeded <code>1000 + severity</code>) — the before/after gap is real, not eval
+jitter.</p></div><div class="cols cols-4"><div class="col"><div class="metric"><span class="m-label">Mean (sev 0–5)</span><span class="m-value">0.594 → 0.818</span><span class="delta up">+22.4 pts</span></div></div><div class="col"><div class="metric"><span class="m-label">Worst case (sev 5)</span><span class="m-value">0.073 → 0.377</span><span class="delta flat">5.1×</span></div></div><div class="col"><div class="metric"><span class="m-label">Trainable params</span><span class="m-value">0.99%</span><span class="delta flat">221,184 of 22.3M</span></div></div><div class="col"><div class="metric"><span class="m-label">Training cost</span><span class="m-value">~10 min</span><span class="delta flat">free-tier T4, 10 epochs</span></div></div></div><h2 class="sh">Run of record (post augmentation-fix, matched-noise eval)</h2><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run_fixed/lora_training_curves.png" alt="Adapter training curves — train/val loss and accuracy, 10 epochs"><figcaption>Adapter training curves — train/val loss and accuracy, 10 epochs</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run_fixed/lora_vs_orig_accuracy.png" alt="Adapted vs original model at every severity (the headline figure)"><figcaption>Adapted vs original model at every severity (the headline figure)</figcaption></figure></div></div><h2 class="sh">What was trained</h2><div class="md"><ul>
+<li><strong>Single-run headline (run of record):</strong> LoRA rank 8, α 16, on <code>attn.qkv</code> + <code>attn.proj</code> in all 12 blocks (24 modules); 221,184 / 22,277,760 = 0.99%.</li>
+<li>Backbone frozen; classifier head (384 → 10) also trains.</li>
+<li>5,000 CIFAR-10 train images, 70% low-light-augmented (sev 2–4 random, horizontal flips, per-sample <code>default_rng(seed=idx)</code>).</li>
+<li>10 epochs, AdamW, batch 64, adapter lr 5e-5 / head lr 1e-3, weight_decay 0.01.</li>
+<li>Matched-noise eval: corrupted test arrays precomputed <strong>once</strong> per severity (seeded <code>default_rng(1000 + severity)</code>) and fed identically to both models — image- and noise-matched comparison.</li>
+<li><strong>Mean</strong> 0.594 → 0.818 (+0.224); <strong>worst-case 5.1×</strong> (0.073 → 0.377); clean accuracy <strong>even rises</strong>.</li>
+</ul></div><p class="cap">Older pre-fix artifacts are retained in colab_results/lora_run/ for comparison only — everything quoted in this presentation comes from lora_run_fixed/ (see methods, tab 'The LoRA fix').</p><h2 class="sh">Findings</h2><div class="md"><ul>
+<li>A 0.99%-parameter adapter recovers most of the collapse without touching the frozen backbone.</li>
+<li>Clean accuracy doesn't trade off — it rises slightly (the clean 30% of the mix acts as a stabilizer).</li>
+<li>The single run is the headline; section 6 is where the statistically defensible claim lives (3 seeds × 3 arms).</li>
+</ul></div></section><section class="sec" id="grid"><h2 class="sh">Phase 3 v2 — the 9-arm, 3-seed grid</h2><div class="md"><p><em>How we did it.</em> One good run can be luck — a friendly seed, a lucky shuffle. So we ran the
+three serious candidates — uniform rank-8 LoRA, drift-weighted LoRA (ranks scaled to each
+block's measured drift), and full fine-tuning — with <strong>three seeds each</strong> (42/43/44), plus a
+late-blocks-only arm as a control for "just patch where the drift is". Every arm eats the same
+5,000-image diet and is graded with the same matched-noise protocol; the error bars below are
+the spread across seeds. Each seed also draws its own test set, so rows differ in init <em>and</em>
+data draw — but within any row, original-vs-adapted is still the same images.</p></div><div class="cols cols-2"><div class="col"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>seed</th>
+      <th>mean_acc</th>
+      <th>sev5_acc</th>
+      <th>clean_acc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Drift-weighted ranks</td>
+      <td>42</td>
+      <td>0.8111</td>
+      <td>0.3800</td>
+      <td>0.963</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>43</td>
+      <td>0.8211</td>
+      <td>0.3167</td>
+      <td>0.980</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>44</td>
+      <td>0.8417</td>
+      <td>0.4167</td>
+      <td>0.977</td>
+    </tr>
+    <tr>
+      <td>Full fine-tuning</td>
+      <td>42</td>
+      <td>0.8100</td>
+      <td>0.3933</td>
+      <td>0.947</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>43</td>
+      <td>0.8461</td>
+      <td>0.4533</td>
+      <td>0.963</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>44</td>
+      <td>0.8378</td>
+      <td>0.4600</td>
+      <td>0.970</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>42</td>
+      <td>0.8150</td>
+      <td>0.3867</td>
+      <td>0.960</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>43</td>
+      <td>0.8278</td>
+      <td>0.3700</td>
+      <td>0.980</td>
+    </tr>
+    <tr>
+      <td>NaN</td>
+      <td>44</td>
+      <td>0.8394</td>
+      <td>0.4133</td>
+      <td>0.977</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/eb4dab4f81b3a614.png" alt="generated figure"></figure></div></div><p class="cap">Parity: drift 0.825 ± 0.016, uniform 0.827 ± 0.012, full FT 0.831 ± 0.019 — ranges fully overlap. Drift trains 0.78% of params; full FT buys nothing on mean and costs clean accuracy.</p><h2 class="sh">Per-arm training curves and before/after accuracy (seed of record per tab)</h2><div class="tabs"><input type="radio" name="tb2" id="tb2_0" checked><label for="tb2_0">Uniform LoRA (3 seeds)</label><input type="radio" name="tb2" id="tb2_1"><label for="tb2_1">Drift-weighted (3 seeds)</label><input type="radio" name="tb2" id="tb2_2"><label for="tb2_2">Full fine-tuning (3 seeds)</label><input type="radio" name="tb2" id="tb2_3"><label for="tb2_3">Late-only (negative result)</label><div class="panels"><div class="panel" id="p_tb2_0"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed42_all/lora_training_curves.png" alt="seed42_all: training curves"><figcaption>seed42_all: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed42_all/lora_vs_orig_accuracy.png" alt="seed42_all: adapted vs original"><figcaption>seed42_all: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed43_all/lora_training_curves.png" alt="seed43_all: training curves"><figcaption>seed43_all: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed43_all/lora_vs_orig_accuracy.png" alt="seed43_all: adapted vs original"><figcaption>seed43_all: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed44_all/lora_training_curves.png" alt="seed44_all: training curves"><figcaption>seed44_all: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed44_all/lora_vs_orig_accuracy.png" alt="seed44_all: adapted vs original"><figcaption>seed44_all: adapted vs original</figcaption></figure></div></div></div><div class="panel" id="p_tb2_1"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift/lora_training_curves.png" alt="drift: training curves"><figcaption>drift: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift/lora_vs_orig_accuracy.png" alt="drift: adapted vs original"><figcaption>drift: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed43/lora_training_curves.png" alt="drift_seed43: training curves"><figcaption>drift_seed43: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed43/lora_vs_orig_accuracy.png" alt="drift_seed43: adapted vs original"><figcaption>drift_seed43: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed44/lora_training_curves.png" alt="drift_seed44: training curves"><figcaption>drift_seed44: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed44/lora_vs_orig_accuracy.png" alt="drift_seed44: adapted vs original"><figcaption>drift_seed44: adapted vs original</figcaption></figure></div></div></div><div class="panel" id="p_tb2_2"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft/lora_training_curves.png" alt="fullft: training curves"><figcaption>fullft: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft/lora_vs_orig_accuracy.png" alt="fullft: adapted vs original"><figcaption>fullft: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed43/lora_training_curves.png" alt="fullft_seed43: training curves"><figcaption>fullft_seed43: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed43/lora_vs_orig_accuracy.png" alt="fullft_seed43: adapted vs original"><figcaption>fullft_seed43: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed44/lora_training_curves.png" alt="fullft_seed44: training curves"><figcaption>fullft_seed44: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed44/lora_vs_orig_accuracy.png" alt="fullft_seed44: adapted vs original"><figcaption>fullft_seed44: adapted vs original</figcaption></figure></div></div></div><div class="panel" id="p_tb2_3"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/late/lora_training_curves.png" alt="late: training curves"><figcaption>late: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/late/lora_vs_orig_accuracy.png" alt="late: adapted vs original"><figcaption>late: adapted vs original</figcaption></figure></div></div></div></div></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>Parity at a fraction of the cost</strong> — drift 0.825 ± 0.016, uniform 0.827 ± 0.012, full FT 0.831 ± 0.019; all ranges fully overlap.</li>
+<li><strong>Full FT buys nothing on mean and costs clean accuracy</strong> — its mean is statistically indistinguishable from both LoRA arms; clean accuracy worst of all adapted arms (seed mean 0.960 vs 0.972–0.973).</li>
+<li><strong>Late-only is a useful negative result</strong> — drift-concentrated blocks only, 0.25% of params, reaches just 0.686.</li>
+<li><strong>Seed spread real and quantified</strong> — SDs ±1.2 / ±1.6 / ±1.9 points (ranges 0.815–0.839 / 0.811–0.842 / 0.810–0.846).</li>
+</ul></div></section><section class="sec" id="families"><h2 class="sh">Corruption families — does the fix generalize?</h2><div class="md"><p><em>How we did it.</em> If the story is "fix the localized drift", it should work for <strong>any</strong>
+corruption that breaks the model the same way — not just darkness. So we repeated the whole
+recipe for three more families: build each family's own severity ladder (Gaussian blur radii,
+JPEG quality steps, contrast factors), measure its accuracy curve and CKA drift profile, then
+train family-specific LoRA patches — both drift-weighted and uniform — through the exact same
+diet and matched-noise grading. The blur arms were salvaged: their Colab eval logs truncated,
+so we re-graded the saved checkpoints locally — and the re-graded original column reproduces
+Phase 1's curve <em>exactly</em> (0.913 / 0.873 / 0.620 / 0.387 / 0.220 / 0.143), which is our
+comparability certificate.</p></div><h2 class="sh">How fragile is each family (original model)?</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Corruption</th>
+      <th>Sev-5 accuracy</th>
+      <th>Cos-sim to clean</th>
+      <th>Profile</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>low_light (ref)</td>
+      <td>0.087</td>
+      <td>0.161</td>
+      <td>cliff between 2–4</td>
+    </tr>
+    <tr>
+      <td>blur</td>
+      <td>0.143</td>
+      <td>0.201</td>
+      <td>cliff between 1–3 (earliest)</td>
+    </tr>
+    <tr>
+      <td>JPEG</td>
+      <td>0.273</td>
+      <td>0.321</td>
+      <td>steep+early (0.73 already at sev 1)</td>
+    </tr>
+    <tr>
+      <td>contrast</td>
+      <td>0.840</td>
+      <td>0.840</td>
+      <td>mild, near-linear decline</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Does the fix generalize?</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Arm</th>
+      <th>Before → After</th>
+      <th>Δ</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>JPEG, drift-weighted</td>
+      <td>0.586 → 0.779</td>
+      <td>+19.3</td>
+      <td>sev-5 +25.7; kaggle_sessionF/jpeg_drift</td>
+    </tr>
+    <tr>
+      <td>JPEG, uniform</td>
+      <td>trained, eval complete</td>
+      <td>—</td>
+      <td>sessionE/jpeg_uniform; folded into analysis</td>
+    </tr>
+    <tr>
+      <td>blur, drift-weighted</td>
+      <td>0.526 → 0.703</td>
+      <td>+17.7</td>
+      <td>sev-5 0.143→0.303; re-eval from retained adapters</td>
+    </tr>
+    <tr>
+      <td>blur, uniform r8</td>
+      <td>0.526 → 0.698</td>
+      <td>+17.2</td>
+      <td>sev-5 0.143→0.270; drift edges worst-case</td>
+    </tr>
+    <tr>
+      <td>contrast, uniform r8</td>
+      <td>0.885 → 0.960</td>
+      <td>+7.5</td>
+      <td>mild corruption, mild recovery</td>
+    </tr>
+    <tr>
+      <td>contrast, drift-weighted</td>
+      <td>0.885 → 0.954</td>
+      <td>+6.9</td>
+      <td>graceful where drift-weight has no signal</td>
+    </tr>
+  </tbody>
+</table></div><div class="tabs"><input type="radio" name="tb3" id="tb3_0" checked><label for="tb3_0">blur</label><input type="radio" name="tb3" id="tb3_1"><label for="tb3_1">jpeg</label><input type="radio" name="tb3" id="tb3_2"><label for="tb3_2">contrast</label><div class="panels"><div class="panel" id="p_tb3_0"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/af5757ae2f10558f.png" alt="generated figure"></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/abd41ca267b552ad.png" alt="generated figure"></figure></div></div><p class="cap">Comparability certificate: the re-evaluated original column reproduces Phase 1 exactly (0.913 / 0.873 / 0.620 / 0.387 / 0.220 / 0.143).</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_drift/lora_training_curves.png" alt="blur drift: training curves (Colab T4)"><figcaption>blur drift: training curves (Colab T4)</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_drift/lora_vs_orig_accuracy.png" alt="blur drift: adapted vs original"><figcaption>blur drift: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_uniform/lora_training_curves.png" alt="blur uniform: training curves"><figcaption>blur uniform: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_uniform/lora_vs_orig_accuracy.png" alt="blur uniform: adapted vs original"><figcaption>blur uniform: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/accuracy_curve.png" alt="blur: Phase-2 accuracy curve with 95% CIs"><figcaption>blur: Phase-2 accuracy curve with 95% CIs</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/frequency_test.png" alt="blur: frequency control"><figcaption>blur: frequency control</figcaption></figure></div></div></div><div class="panel" id="p_tb3_1"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/jpeg_drift/lora_training_curves.png" alt="jpeg drift: training curves (Kaggle T4)"><figcaption>jpeg drift: training curves (Kaggle T4)</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/jpeg_drift/lora_vs_orig_accuracy.png" alt="jpeg drift: adapted vs original (+19.3 mean)"><figcaption>jpeg drift: adapted vs original (+19.3 mean)</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/jpeg_uniform/lora_training_curves.png" alt="jpeg uniform: training curves"><figcaption>jpeg uniform: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/jpeg_uniform/lora_vs_orig_accuracy.png" alt="jpeg uniform: adapted vs original"><figcaption>jpeg uniform: adapted vs original</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/accuracy_curve.png" alt="jpeg: Phase-2 accuracy curve with 95% CIs"><figcaption>jpeg: Phase-2 accuracy curve with 95% CIs</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/frequency_test.png" alt="jpeg: frequency control"><figcaption>jpeg: frequency control</figcaption></figure></div></div></div><div class="panel" id="p_tb3_2"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_drift/lora_training_curves.png" alt="contrast drift: training curves"><figcaption>contrast drift: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_drift/lora_vs_orig_accuracy.png" alt="contrast drift: adapted vs original (+6.9)"><figcaption>contrast drift: adapted vs original (+6.9)</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_uniform/lora_training_curves.png" alt="contrast uniform: training curves"><figcaption>contrast uniform: training curves</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_uniform/lora_vs_orig_accuracy.png" alt="contrast uniform: adapted vs original (+7.5)"><figcaption>contrast uniform: adapted vs original (+7.5)</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/accuracy_curve.png" alt="contrast: Phase-2 accuracy curve with 95% CIs"><figcaption>contrast: Phase-2 accuracy curve with 95% CIs</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/frequency_test.png" alt="contrast: frequency control"><figcaption>contrast: frequency control</figcaption></figure></div></div></div></div></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>Remediation generalizes</strong> — drift-weighted LoRA delivers large gains on corruptions never designed for (JPEG +19.3, blur +17.7) using each family's own CKA profile.</li>
+<li><strong>Allocation rule honest and repeats the low-light signature</strong> — contrast: profile flat, drift-weighting matches uniform (+6.9 vs +7.5).</li>
+<li><strong>Gain size tracks fragility</strong> — low_light +22.4 &gt; JPEG +19.3 ≈ blur +17.7 &gt; contrast +7.</li>
+<li>Caveats: family arms are single-seed (seed 42); deltas exceed seed noise comfortably, but within-family parity claims are single-seed.</li>
+<li>Blur arms trained on Colab T4 with truncated eval logs were salvaged by re-evaluating the retained <code>lora_adapters.pt</code> checkpoints locally — comparability certified against the Phase-1 curve above.</li>
+</ul></div></section><section class="sec" id="readout"><h2 class="sh">Readout staleness — features, not the head</h2><div class="md"><p><em>How we did it (the "is it just the classifier?" control).</em> A skeptic could argue: the features
+moved, fine — but maybe a <em>fresh</em> classifier would cope, and the real bug is our stale probe.
+So we split the question in two arms on the same folds and the same 1,000 images: <strong>Arm A</strong>
+keeps the severity-0 probe frozen across all severities (measures how stale the readout gets),
+<strong>Arm B</strong> retrains a probe per severity on degraded versions of the <em>same training fold</em>
+(measures how much label information survived in the features themselves). The two arms are
+compared per image with a paired permutation test — 5,000 shuffles; in plain words: swap the
+two arms' grades 5,000 times and see how often luck alone produces a gap this big.</p></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/fecbf6a13d2dc050.png" alt="generated figure"></figure></div><div class="col"><div class="cols cols-2"><div class="col"><div class="metric"><span class="m-label">Sev-4 recovery</span><span class="m-value">+25.3 pp</span><span class="delta flat">p = 0.0002</span></div></div><div class="col"><div class="metric"><span class="m-label">Sev-5 ceiling</span><span class="m-value">0.377</span><span class="delta flat">vs 0.913 clean</span></div></div></div><div class="md"><ul>
+<li><strong>Arm A</strong> = probe fixed across severities; <strong>Arm B</strong> = probe retrained per severity on the same train
+  fold (strict same-fold control).</li>
+<li>Paired permutation test (5,000 permutations, seed 42), Wilson 95% CIs, readout-collapse metrics.</li>
+</ul></div></div></div><h2 class="sh">Per-severity decomposition (from summary.json)</h2><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Severity</th>
+      <th>Arm A fixed</th>
+      <th>Arm B adapted</th>
+      <th>Δ recovery (pp)</th>
+      <th>p (paired perm.)</th>
+      <th>top1_share (A)</th>
+      <th>entropy_ratio (A)</th>
+      <th>dominant class (A)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.913</td>
+      <td>0.913</td>
+      <td>0.0</td>
+      <td>1.0000</td>
+      <td>0.12</td>
+      <td>1.00</td>
+      <td>deer</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>0.900</td>
+      <td>0.890</td>
+      <td>-1.0</td>
+      <td>0.1802</td>
+      <td>0.12</td>
+      <td>1.00</td>
+      <td>deer</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>0.860</td>
+      <td>0.840</td>
+      <td>-2.0</td>
+      <td>0.1508</td>
+      <td>0.14</td>
+      <td>1.00</td>
+      <td>deer</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>0.633</td>
+      <td>0.720</td>
+      <td>8.7</td>
+      <td>0.0032</td>
+      <td>0.21</td>
+      <td>0.95</td>
+      <td>frog</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>0.243</td>
+      <td>0.497</td>
+      <td>25.3</td>
+      <td>0.0002</td>
+      <td>0.62</td>
+      <td>0.58</td>
+      <td>frog</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>0.077</td>
+      <td>0.377</td>
+      <td>30.0</td>
+      <td>0.0002</td>
+      <td>0.73</td>
+      <td>0.26</td>
+      <td>frog</td>
+    </tr>
+  </tbody>
+</table></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>Readout collapse signature (Arm A):</strong> top1_share 0.14 (sev 2, dominant <em>deer</em>) → 0.73 (sev 5, dominant <em>frog</em>); entropy_ratio 1.00 → 0.26 — predictions concentrate on a single wrong class.</li>
+<li>Confirms upstream's ViT-B pilot (+22.5 pp at sev-4, n=120) at proper power on ViT-S (n=1000).</li>
+<li><strong>Readout staleness real and large in the mid-to-deep regime</strong> — but the majority of loss stays in the features: even a perfect re-trained readout reaches only 0.377 at sev 5 vs 0.913 clean.</li>
+<li>Adapted probe worse at sev 1–2 (−1 to −2 pts, n.s.) — retraining the readout on mildly degraded data costs clean-fold generalization before drift is real.</li>
+<li>Interpretation: this is <em>why</em> the LoRA fix targets features — the head is at most a third of the story.</li>
+</ul></div></section><section class="sec" id="exdark"><h2 class="sh">ExDark — real darkness</h2><div class="md"><p><em>How we did it.</em> Synthetic extreme darkening is a deliberately harsh stress test — a fair
+reviewer asks: "but do <strong>real</strong> dark photos behave like that?" So we ran the identical
+frozen-model + linear-probe pipeline on <strong>ExDark</strong>: 7,363 real low-light photographs across 12
+object classes, binned by their actual measured luminance instead of by our synthetic knob.
+Then two zero-retraining transfers: <strong>CLAHE</strong> (pure brightening — tests whether pixel
+statistics alone help) and our <strong>synthetic-dark LoRA adapters</strong> (trained only on synthetic dark
+CIFAR, applied as-is). Whatever the adapters gain on real images is genuine transfer; the
+distance between the synthetic +21-point gain and the real gain is the sim-to-real gap —
+measured, not hand-waved.</p></div><div class="cols cols-4"><div class="col"><div class="metric"><span class="m-label">Dataset</span><span class="m-value">7,363 images</span><span class="delta flat">12 classes</span></div></div><div class="col"><div class="metric"><span class="m-label">Frozen accuracy</span><span class="m-value">0.725</span><span class="delta flat">flat across luminance</span></div></div><div class="col"><div class="metric"><span class="m-label">CLAHE</span><span class="m-value">+0.001</span><span class="delta flat">brightening alone: ~nothing</span></div></div><div class="col"><div class="metric"><span class="m-label">Synthetic-dark LoRA transfer</span><span class="m-value">+0.019</span><span class="delta flat">uniform +0.016</span></div></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/b7f15f3370db24c1.png" alt="generated figure"></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/a801ce90103e3de2.png" alt="generated figure"></figure></div></div><div class="tabs"><input type="radio" name="tb4" id="tb4_0" checked><label for="tb4_0">Figures of record</label><input type="radio" name="tb4" id="tb4_1"><label for="tb4_1">Result tables</label><input type="radio" name="tb4" id="tb4_2"><label for="tb4_2">Transfer experiments</label><div class="panels"><div class="panel" id="p_tb4_0"><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_baseline/exdark_summary.png" alt="ExDark summary figure (of record)"><figcaption>ExDark summary figure (of record)</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_baseline/darkness_curve.png" alt="Darkness-axis curve (of record)"><figcaption>Darkness-axis curve (of record)</figcaption></figure></div></div></div><div class="panel" id="p_tb4_1"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>pass</th>
+      <th>accuracy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>raw</td>
+      <td>0.724762</td>
+    </tr>
+    <tr>
+      <td>clahe</td>
+      <td>0.726120</td>
+    </tr>
+  </tbody>
+</table></div><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>class</th>
+      <th>accuracy</th>
+      <th>n</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Bicycle</td>
+      <td>0.755102</td>
+      <td>196</td>
+    </tr>
+    <tr>
+      <td>Boat</td>
+      <td>0.965686</td>
+      <td>204</td>
+    </tr>
+    <tr>
+      <td>Bottle</td>
+      <td>0.676829</td>
+      <td>164</td>
+    </tr>
+    <tr>
+      <td>Bus</td>
+      <td>0.879747</td>
+      <td>158</td>
+    </tr>
+    <tr>
+      <td>Car</td>
+      <td>0.743455</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>Cat</td>
+      <td>0.751131</td>
+      <td>221</td>
+    </tr>
+    <tr>
+      <td>Chair</td>
+      <td>0.628866</td>
+      <td>194</td>
+    </tr>
+    <tr>
+      <td>Cup</td>
+      <td>0.711538</td>
+      <td>156</td>
+    </tr>
+    <tr>
+      <td>Dog</td>
+      <td>0.745833</td>
+      <td>240</td>
+    </tr>
+    <tr>
+      <td>Motorbike</td>
+      <td>0.781457</td>
+      <td>151</td>
+    </tr>
+    <tr>
+      <td>People</td>
+      <td>0.530055</td>
+      <td>183</td>
+    </tr>
+    <tr>
+      <td>Table</td>
+      <td>0.470199</td>
+      <td>151</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="panel" id="p_tb4_2"><div class="cols cols-2"><div class="col"><div class="md"><p><strong>Drift-weighted transfer</strong></p></div><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>pass</th>
+      <th>accuracy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>raw</td>
+      <td>0.724762</td>
+    </tr>
+    <tr>
+      <td>clahe</td>
+      <td>0.726120</td>
+    </tr>
+    <tr>
+      <td>lora_transfer</td>
+      <td>0.743323</td>
+    </tr>
+  </tbody>
+</table></div><figure class="fig"><img loading="lazy" src="output/exdark_transfer_drift/exdark_summary.png" alt="Transfer summary — drift arm"><figcaption>Transfer summary — drift arm</figcaption></figure></div><div class="col"><div class="md"><p><strong>Uniform transfer</strong></p></div><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>pass</th>
+      <th>accuracy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>raw</td>
+      <td>0.724762</td>
+    </tr>
+    <tr>
+      <td>clahe</td>
+      <td>0.726120</td>
+    </tr>
+    <tr>
+      <td>lora_transfer</td>
+      <td>0.740607</td>
+    </tr>
+  </tbody>
+</table></div><figure class="fig"><img loading="lazy" src="output/exdark_transfer_uniform/exdark_summary.png" alt="Transfer summary — uniform arm"><figcaption>Transfer summary — uniform arm</figcaption></figure></div></div></div></div></div><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>ExDark:</strong> 7,363 images, 12 classes; frozen accuracy 0.725 <strong>flat across the luminance axis</strong> — real low light is far gentler than our synthetic severity 5.</li>
+<li>CLAHE (+0.001) does nothing on its own — pixel-statistics brightening isn't the fix; representation is.</li>
+<li>Synthetic-dark drift-LoRA transfer +1.9 pts (uniform +1.6) — only ~9% of the +21-point synthetic-axis gain.</li>
+<li><strong>Sim-to-real gap quantified, not assumed</strong> — the synthetic axis is a worst-case stress test, and the adapters do transfer, just modestly.</li>
+</ul></div></section><section class="sec" id="vitb"><h2 class="sh">Phase 2.7 — ViT-B/14 cross-architecture</h2><div class="md"><p><em>How we did it.</em> "One model, one seed" is a fragile claim — so we moved to a third, larger
+architecture, <strong>DINOv2 ViT-B/14 (86M params)</strong>, and profiled it at <em>finer grain than before</em>:
+not just each whole block, but every block's <strong>attention</strong> and <strong>MLP</strong> sublayers individually —
+37 modules per condition — under two corruptions × five severities. Everything ran on a free
+Kaggle T4 in 259.5 seconds using the same label-free protocol: two forward passes per
+condition, hooks on each module, CLS-token pooling, matched-noise corruption (<code>1000 +
+severity</code>). The finer grain matters: the attention-vs-MLP asymmetry is invisible at
+whole-block resolution.</p></div><div class="cols cols-4"><div class="col"><div class="metric"><span class="m-label">Model</span><span class="m-value">DINOv2 ViT-B/14</span><span class="delta flat">86M params, frozen</span></div></div><div class="col"><div class="metric"><span class="m-label">Modules probed</span><span class="m-value">37</span><span class="delta flat">patch_embed + 12×(block, attn, mlp)</span></div></div><div class="col"><div class="metric"><span class="m-label">Gate verdict</span><span class="m-value">NO-GO</span></div></div><div class="col"><div class="metric"><span class="m-label">Compute</span><span class="m-value">259.5 s</span><span class="delta flat">Kaggle T4, 2 fwd passes/condition</span></div></div></div><div class="w w-radio horizontal"><span class="w-title">Corruption</span><div class="w-opts"><label class="w-opt"><input type="radio" name="w_vitb_vitb_corr" id="w_vitb_vitb_corr_0" data-w="vitb_corr" value="low_light" checked><span>low_light</span></label><label class="w-opt"><input type="radio" name="w_vitb_vitb_corr" id="w_vitb_vitb_corr_1" data-w="vitb_corr" value="jpeg"><span>jpeg</span></label></div></div><h2 class="sh">Block-level drift heatmap (unbiased CKA drop, all severities)</h2><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/75f8c3142b0b3c81.png" alt="generated figure"></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="static/gen/95d84156c758da96.png" alt="generated figure"></figure></div></div><p class="cap">Sev-5 headline (unbiased drop): low_light b0 0.179 → b9/b10/b11 0.803/0.866/0.859; jpeg b0 0.127 → 0.705/0.790/0.785. Late-heavy on the third architecture — replication holds.</p><h2 class="sh">Sublayer finding: MLP drifts more than attention</h2><div class="vv" data-variants="[[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:5},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:4}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:4},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:5}]]"><div class="vg"><figure class="fig"><img loading="lazy" src="static/gen/47e59cabf190aa24.png" alt="generated figure"></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="static/gen/2d32bca495c6e67c.png" alt="generated figure"></figure></div></div><div class="vv" data-variants="[[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:5},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:4}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:4},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:5}]]"><div class="vg"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>block</th>
+      <th>attn</th>
+      <th>mlp</th>
+      <th>mlp − attn</th>
+      <th>mlp &gt; attn</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.331</td>
+      <td>0.362</td>
+      <td>0.031</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>0.657</td>
+      <td>0.794</td>
+      <td>0.137</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>0.681</td>
+      <td>0.727</td>
+      <td>0.046</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>0.690</td>
+      <td>0.800</td>
+      <td>0.110</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>0.832</td>
+      <td>0.847</td>
+      <td>0.015</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>0.707</td>
+      <td>0.808</td>
+      <td>0.101</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>0.681</td>
+      <td>0.828</td>
+      <td>0.147</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>0.737</td>
+      <td>0.853</td>
+      <td>0.116</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>0.731</td>
+      <td>0.817</td>
+      <td>0.086</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td>0.812</td>
+      <td>0.853</td>
+      <td>0.041</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>0.878</td>
+      <td>0.916</td>
+      <td>0.038</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>0.847</td>
+      <td>0.902</td>
+      <td>0.055</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table></div></div><div class="vg" style="display:none"><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>block</th>
+      <th>attn</th>
+      <th>mlp</th>
+      <th>mlp − attn</th>
+      <th>mlp &gt; attn</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.128</td>
+      <td>0.200</td>
+      <td>0.072</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>0.358</td>
+      <td>0.456</td>
+      <td>0.098</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>0.376</td>
+      <td>0.476</td>
+      <td>0.100</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>0.532</td>
+      <td>0.684</td>
+      <td>0.152</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>0.738</td>
+      <td>0.780</td>
+      <td>0.042</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>0.579</td>
+      <td>0.738</td>
+      <td>0.159</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>0.622</td>
+      <td>0.753</td>
+      <td>0.131</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>0.669</td>
+      <td>0.779</td>
+      <td>0.110</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>0.613</td>
+      <td>0.762</td>
+      <td>0.149</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td>0.750</td>
+      <td>0.787</td>
+      <td>0.037</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>0.819</td>
+      <td>0.881</td>
+      <td>0.062</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>0.757</td>
+      <td>0.874</td>
+      <td>0.117</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table></div></div></div><div class="vv" data-variants="[[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:5},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:4}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:1},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:2},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:3},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:4},{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:5}]]"><div class="vg"><p class="cap">low_light, severity 5, unbiased CKA drop: MLP &gt; attention in 12/12 blocks (max gap 0.147). The claim is computed live from the committed CSV.</p></div><div class="vg" style="display:none"><p class="cap">jpeg, severity 5, unbiased CKA drop: MLP &gt; attention in 12/12 blocks (max gap 0.159). The claim is computed live from the committed CSV.</p></div></div><h2 class="sh">Per-severity profile figures (of record)</h2><div class="w w-slider"><label for="w_vitb_vitb_sev">Severity</label><div class="w-row"><input type="range" id="w_vitb_vitb_sev" data-w="vitb_sev" min="1" max="5" step="1" value="5"><span class="w-val" id="w_vitb_vitb_sev_v">5</span></div></div><div class="vv" data-variants="[[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:5}],[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:1}],[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:2}],[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:3}],[{&quot;vitb_corr&quot;:&quot;low_light&quot;,&quot;vitb_sev&quot;:4}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:1}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:2}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:3}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:4}],[{&quot;vitb_corr&quot;:&quot;jpeg&quot;,&quot;vitb_sev&quot;:5}]]"><div class="vg"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev5.png" alt="Per-module drift profiles — low_light, severity 5"><figcaption>Per-module drift profiles — low_light, severity 5</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev1.png" alt="Per-module drift profiles — low_light, severity 1"><figcaption>Per-module drift profiles — low_light, severity 1</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev2.png" alt="Per-module drift profiles — low_light, severity 2"><figcaption>Per-module drift profiles — low_light, severity 2</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev3.png" alt="Per-module drift profiles — low_light, severity 3"><figcaption>Per-module drift profiles — low_light, severity 3</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev4.png" alt="Per-module drift profiles — low_light, severity 4"><figcaption>Per-module drift profiles — low_light, severity 4</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev1.png" alt="Per-module drift profiles — jpeg, severity 1"><figcaption>Per-module drift profiles — jpeg, severity 1</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev2.png" alt="Per-module drift profiles — jpeg, severity 2"><figcaption>Per-module drift profiles — jpeg, severity 2</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev3.png" alt="Per-module drift profiles — jpeg, severity 3"><figcaption>Per-module drift profiles — jpeg, severity 3</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev4.png" alt="Per-module drift profiles — jpeg, severity 4"><figcaption>Per-module drift profiles — jpeg, severity 4</figcaption></figure></div><div class="vg" style="display:none"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev5.png" alt="Per-module drift profiles — jpeg, severity 5"><figcaption>Per-module drift profiles — jpeg, severity 5</figcaption></figure></div></div><details class="exp"><summary>Raw gate verdict (agreement_report.json)</summary><div class="exp-body"><pre class="json">{
+  &quot;verdict&quot;: &quot;NO-GO&quot;,
+  &quot;best_proxy&quot;: &quot;energy_drop&quot;,
+  &quot;per_proxy&quot;: {
+    &quot;energy_drop&quot;: {
+      &quot;rho&quot;: {
+        &quot;low_light@sev5&quot;: 0.6915599810336651,
+        &quot;jpeg@sev5&quot;: 0.875533428165007
+      },
+      &quot;containment_at_k&quot;: {
+        &quot;low_light@sev5&quot;: 0.4,
+        &quot;jpeg@sev5&quot;: 0.6
+      },
+      &quot;k&quot;: 5,
+      &quot;corruptions_passing_strict&quot;: [],
+      &quot;corruptions_passing_rho&quot;: [
+        &quot;jpeg@sev5&quot;
+      ],
+      &quot;strict_pass&quot;: false
+    },
+    &quot;mean_shift&quot;: {
+      &quot;rho&quot;: {
+        &quot;low_light@sev5&quot;: 0.5687529634898055,
+        &quot;jpeg@sev5&quot;: 0.8632053105737316
+      },
+      &quot;containment_at_k&quot;: {
+        &quot;low_light@sev5&quot;: 0.4,
+        &quot;jpeg@sev5&quot;: 0.4
+      },
+      &quot;k&quot;: 5,
+      &quot;corruptions_passing_strict&quot;: [],
+      &quot;corruptions_passing_rho&quot;: [
+        &quot;jpeg@sev5&quot;
+      ],
+      &quot;strict_pass&quot;: false
+    },
+    &quot;cov_shift&quot;: {
+      &quot;rho&quot;: {
+        &quot;low_light@sev5&quot;: 0.40706495969653866,
+        &quot;jpeg@sev5&quot;: 0.48743480322427685
+      },
+      &quot;containment_at_k&quot;: {
+        &quot;low_light@sev5&quot;: 0.6,
+        &quot;jpeg@sev5&quot;: 0.0
+      },
+      &quot;k&quot;: 5,
+      &quot;corruptions_passing_strict&quot;: [],
+      &quot;corruptions_passing_rho&quot;: [],
+      &quot;strict_pass&quot;: false
+    },
+    &quot;cos_drop&quot;: {
+      &quot;rho&quot;: {
+        &quot;low_light@sev5&quot;: 0.6808914177335229,
+        &quot;jpeg@sev5&quot;: 0.8814604077761972
+      },
+      &quot;containment_at_k&quot;: {
+        &quot;low_light@sev5&quot;: 0.6,
+        &quot;jpeg@sev5&quot;: 0.6
+      },
+      &quot;k&quot;: 5,
+      &quot;corruptions_passing_strict&quot;: [],
+      &quot;corruptions_passing_rho&quot;: [
+        &quot;jpeg@sev5&quot;
+      ],
+      &quot;strict_pass&quot;: false
+    }
+  },
+  &quot;rho_threshold&quot;: 0.8,
+  &quot;topk&quot;: 5,
+  &quot;gate_criterion&quot;: &quot;Spearman rho &gt;= 0.8 on &gt;= 2 corruptions AND full containment at k=5&quot;
+}</pre></div></details><h2 class="sh">Findings</h2><div class="md"><ul>
+<li><strong>Late-heavy block profile replicates</strong> on an 86M-parameter backbone: drift climbs from block 0 to the final blocks (sev-5: low_light 0.18 → 0.80–0.87, jpeg 0.13 → 0.71–0.79) under both corruptions.</li>
+<li><strong>Sublayer finding invisible to ViT-S whole-block CKA:</strong> MLP sublayers drift more than attention sublayers in all 12 blocks under both corruptions (low_light gaps 0.015–0.159, max at b2; jpeg gaps 0.017–0.108, max at b1).</li>
+<li><strong>Gate NO-GO with the scale-invariance signature replicated:</strong> best ρ jpeg 0.876 (energy_drop) / 0.882 (cos_drop) vs low_light 0.692 / 0.681 — third architecture, same failure mode.</li>
+<li><strong>Protocol:</strong> 1,000 CIFAR-10 test images, seed 42, matched-noise rng 1000+sev; low_light + jpeg, sev 1–5; two forward passes per condition, no labels, no backprop.</li>
+<li><strong>Caveat for consumers:</strong> the drift CSVs key <code>layer</code> by profiled-module row (0–36). The v9 LoRA consumer expects dense 0..11 block indices — select the 12 <code>blocks.k</code> rows and re-index before <code>--drift-csv</code> use.</li>
+</ul></div></section><section class="sec" id="bugs"><h2 class="sh">Appendix — bugs &amp; lessons</h2><div class="md"><p><em>Why we show the bugs.</em> Four bugs slipped into the work at different points — and every one was
+caught by a <strong>sanity check</strong> (metric bounds, unexpected stability, static validation,
+eval-matching) <em>before</em> any conclusion trusted the numbers. Publishing them is the point: a
+result is only as good as the checks that could have killed it, and each fix left the pipeline
+stronger — correct formula, actually-independent resamples, ordered definitions, isolated
+worker RNGs.</p></div><div class="tw"><table class="dataframe df">
+  <thead>
+    <tr style="text-align: right;">
+      <th>#</th>
+      <th>Bug</th>
+      <th>What</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CKA sqrt bug</td>
+      <td>Invalid metric (normalized by var1*var2 instead of sqrt(var1*var2)) — all values inflated (sev-5 up to 79.9).</td>
+      <td>Correct formula: CKA = HSIC / sqrt(HSIC_XX * HSIC_YY) + 1e-8. Ordering preserved (squaring monotonic), so late-layer conclusion held; absolute values meaningless. All reported numbers now corrected.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Bootstrap same-seed</td>
+      <td>Re-seeded default_rng(0) inside the severity loop → every severity resampled identically → misleadingly-similar CI bands.</td>
+      <td>Fixed: per-severity seeds (np.random.default_rng(severity)). Lesson: randomness must be actually independent across conditions compared.</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Port-time regression</td>
+      <td>head_ids referenced before head_params defined; caught by static validation pre-commit.</td>
+      <td>Lesson: script-vs-notebook drift is real; order-of-definition bugs hide easily in notebook cells.</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Worker-correlated augmentation + unmatched eval noise</td>
+      <td>NumPy global RNG inside __getitem__ with num_workers=2 (workers fork without re-seeding); eval noise drawn independently for LoRA vs original pass → jitter.</td>
+      <td>Fixes: per-sample default_rng(seed=idx) for training, precomputed seeded corrupted arrays for eval.</td>
+    </tr>
+  </tbody>
+</table></div><div class="md"><ul>
+<li>Each bug caught and fixed <strong>before results were trusted</strong> — no number in this presentation rests on a known-broken artifact.</li>
+<li>Each teaches a reproducibility lesson: metric sanity checks, independent resampling, script-vs-notebook ordering, worker RNG isolation.</li>
+<li>The re-checks are visible in the artifacts: corrected CKA matrices, severity-indexed bootstrap bands, <code>lora_run_fixed/</code> (matched-noise run of record), per-sample seeded augmentation.</li>
+</ul></div></section><section class="sec" id="gallery"><h2 class="sh">Figure gallery — every committed figure</h2><p class="cap">Every committed PNG in output/ and colab_results/, grouped by phase — 84 figures. Use Ctrl+F in the browser to search captions.</p><div class="tabs"><input type="radio" name="tb5" id="tb5_0" checked><label for="tb5_0">Phase 1 · the collapse</label><input type="radio" name="tb5" id="tb5_1"><label for="tb5_1">Phase 2 · localization & mechanism</label><input type="radio" name="tb5" id="tb5_2"><label for="tb5_2">Phase 3 · LoRA run of record</label><input type="radio" name="tb5" id="tb5_3"><label for="tb5_3">Phase 3 · the 9-arm grid</label><input type="radio" name="tb5" id="tb5_4"><label for="tb5_4">Session E · blur & jpeg</label><input type="radio" name="tb5" id="tb5_5"><label for="tb5_5">Session F · jpeg & contrast</label><input type="radio" name="tb5" id="tb5_6"><label for="tb5_6">Track 1 · proxy gate</label><input type="radio" name="tb5" id="tb5_7"><label for="tb5_7">ExDark · real darkness</label><input type="radio" name="tb5" id="tb5_8"><label for="tb5_8">ViT-B/14 · cross-architecture</label><div class="panels"><div class="panel" id="p_tb5_0"><p class="cap">10 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1/dinov2_lowlight_results.png" alt="output/notebook1/dinov2_lowlight_results.png"><figcaption>output/notebook1/dinov2_lowlight_results.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1/severity_visual_check.png" alt="output/notebook1/severity_visual_check.png"><figcaption>output/notebook1/severity_visual_check.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_blur/corruption_results.png" alt="output/notebook1_blur/corruption_results.png"><figcaption>output/notebook1_blur/corruption_results.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_blur/severity_visual_check.png" alt="output/notebook1_blur/severity_visual_check.png"><figcaption>output/notebook1_blur/severity_visual_check.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_contrast/corruption_results.png" alt="output/notebook1_contrast/corruption_results.png"><figcaption>output/notebook1_contrast/corruption_results.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_contrast/severity_visual_check.png" alt="output/notebook1_contrast/severity_visual_check.png"><figcaption>output/notebook1_contrast/severity_visual_check.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_jpeg/corruption_results.png" alt="output/notebook1_jpeg/corruption_results.png"><figcaption>output/notebook1_jpeg/corruption_results.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook1_jpeg/severity_visual_check.png" alt="output/notebook1_jpeg/severity_visual_check.png"><figcaption>output/notebook1_jpeg/severity_visual_check.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook1/dinov2_lowlight_results.png" alt="colab_results/notebook1/dinov2_lowlight_results.png"><figcaption>colab_results/notebook1/dinov2_lowlight_results.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook1/severity_visual_check.png" alt="colab_results/notebook1/severity_visual_check.png"><figcaption>colab_results/notebook1/severity_visual_check.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_1"><p class="cap">38 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/bootstrap_ci.png" alt="output/notebook2/bootstrap_ci.png"><figcaption>output/notebook2/bootstrap_ci.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/corruption_types.png" alt="output/notebook2/corruption_types.png"><figcaption>output/notebook2/corruption_types.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/dinov2_accuracy.png" alt="output/notebook2/dinov2_accuracy.png"><figcaption>output/notebook2/dinov2_accuracy.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/frequency_test.png" alt="output/notebook2/frequency_test.png"><figcaption>output/notebook2/frequency_test.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2/layerwise_cka.png" alt="output/notebook2/layerwise_cka.png"><figcaption>output/notebook2/layerwise_cka.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_blur/accuracy_curve.png" alt="output/notebook2_blur/accuracy_curve.png"><figcaption>output/notebook2_blur/accuracy_curve.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_blur/bootstrap_ci.png" alt="output/notebook2_blur/bootstrap_ci.png"><figcaption>output/notebook2_blur/bootstrap_ci.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_blur/corruption_types.png" alt="output/notebook2_blur/corruption_types.png"><figcaption>output/notebook2_blur/corruption_types.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_blur/frequency_test.png" alt="output/notebook2_blur/frequency_test.png"><figcaption>output/notebook2_blur/frequency_test.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_blur/layerwise_cka.png" alt="output/notebook2_blur/layerwise_cka.png"><figcaption>output/notebook2_blur/layerwise_cka.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_contrast/accuracy_curve.png" alt="output/notebook2_contrast/accuracy_curve.png"><figcaption>output/notebook2_contrast/accuracy_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_contrast/bootstrap_ci.png" alt="output/notebook2_contrast/bootstrap_ci.png"><figcaption>output/notebook2_contrast/bootstrap_ci.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_contrast/corruption_types.png" alt="output/notebook2_contrast/corruption_types.png"><figcaption>output/notebook2_contrast/corruption_types.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_contrast/frequency_test.png" alt="output/notebook2_contrast/frequency_test.png"><figcaption>output/notebook2_contrast/frequency_test.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_contrast/layerwise_cka.png" alt="output/notebook2_contrast/layerwise_cka.png"><figcaption>output/notebook2_contrast/layerwise_cka.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_jpeg/accuracy_curve.png" alt="output/notebook2_jpeg/accuracy_curve.png"><figcaption>output/notebook2_jpeg/accuracy_curve.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_jpeg/bootstrap_ci.png" alt="output/notebook2_jpeg/bootstrap_ci.png"><figcaption>output/notebook2_jpeg/bootstrap_ci.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_jpeg/corruption_types.png" alt="output/notebook2_jpeg/corruption_types.png"><figcaption>output/notebook2_jpeg/corruption_types.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_jpeg/frequency_test.png" alt="output/notebook2_jpeg/frequency_test.png"><figcaption>output/notebook2_jpeg/frequency_test.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/notebook2_jpeg/layerwise_cka.png" alt="output/notebook2_jpeg/layerwise_cka.png"><figcaption>output/notebook2_jpeg/layerwise_cka.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/accuracy_curve.png" alt="colab_results/kaggle_sessionF/nb2_contrast/accuracy_curve.png"><figcaption>colab_results/kaggle_sessionF/nb2_contrast/accuracy_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/bootstrap_ci.png" alt="colab_results/kaggle_sessionF/nb2_contrast/bootstrap_ci.png"><figcaption>colab_results/kaggle_sessionF/nb2_contrast/bootstrap_ci.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/corruption_types.png" alt="colab_results/kaggle_sessionF/nb2_contrast/corruption_types.png"><figcaption>colab_results/kaggle_sessionF/nb2_contrast/corruption_types.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/frequency_test.png" alt="colab_results/kaggle_sessionF/nb2_contrast/frequency_test.png"><figcaption>colab_results/kaggle_sessionF/nb2_contrast/frequency_test.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/nb2_contrast/layerwise_cka.png" alt="colab_results/kaggle_sessionF/nb2_contrast/layerwise_cka.png"><figcaption>colab_results/kaggle_sessionF/nb2_contrast/layerwise_cka.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook2/bootstrap_ci.png" alt="colab_results/notebook2/bootstrap_ci.png"><figcaption>colab_results/notebook2/bootstrap_ci.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook2/corruption_types.png" alt="colab_results/notebook2/corruption_types.png"><figcaption>colab_results/notebook2/corruption_types.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook2/dinov2_accuracy.png" alt="colab_results/notebook2/dinov2_accuracy.png"><figcaption>colab_results/notebook2/dinov2_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook2/frequency_test.png" alt="colab_results/notebook2/frequency_test.png"><figcaption>colab_results/notebook2/frequency_test.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/notebook2/layerwise_cka.png" alt="colab_results/notebook2/layerwise_cka.png"><figcaption>colab_results/notebook2/layerwise_cka.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/accuracy_curve.png" alt="colab_results/sessionE/nb2_blur/accuracy_curve.png"><figcaption>colab_results/sessionE/nb2_blur/accuracy_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/bootstrap_ci.png" alt="colab_results/sessionE/nb2_blur/bootstrap_ci.png"><figcaption>colab_results/sessionE/nb2_blur/bootstrap_ci.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/frequency_test.png" alt="colab_results/sessionE/nb2_blur/frequency_test.png"><figcaption>colab_results/sessionE/nb2_blur/frequency_test.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_blur/layerwise_cka.png" alt="colab_results/sessionE/nb2_blur/layerwise_cka.png"><figcaption>colab_results/sessionE/nb2_blur/layerwise_cka.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/accuracy_curve.png" alt="colab_results/sessionE/nb2_jpeg/accuracy_curve.png"><figcaption>colab_results/sessionE/nb2_jpeg/accuracy_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/bootstrap_ci.png" alt="colab_results/sessionE/nb2_jpeg/bootstrap_ci.png"><figcaption>colab_results/sessionE/nb2_jpeg/bootstrap_ci.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/frequency_test.png" alt="colab_results/sessionE/nb2_jpeg/frequency_test.png"><figcaption>colab_results/sessionE/nb2_jpeg/frequency_test.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/nb2_jpeg/layerwise_cka.png" alt="colab_results/sessionE/nb2_jpeg/layerwise_cka.png"><figcaption>colab_results/sessionE/nb2_jpeg/layerwise_cka.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_2"><p class="cap">4 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run/lora_training_curves.png" alt="colab_results/lora_run/lora_training_curves.png"><figcaption>colab_results/lora_run/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run/lora_vs_orig_accuracy.png" alt="colab_results/lora_run/lora_vs_orig_accuracy.png"><figcaption>colab_results/lora_run/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run_fixed/lora_training_curves.png" alt="colab_results/lora_run_fixed/lora_training_curves.png"><figcaption>colab_results/lora_run_fixed/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/lora_run_fixed/lora_vs_orig_accuracy.png" alt="colab_results/lora_run_fixed/lora_vs_orig_accuracy.png"><figcaption>colab_results/lora_run_fixed/lora_vs_orig_accuracy.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_3"><p class="cap">20 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift/lora_training_curves.png" alt="colab_results/sessionD/drift/lora_training_curves.png"><figcaption>colab_results/sessionD/drift/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/drift/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/drift/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed43/lora_training_curves.png" alt="colab_results/sessionD/drift_seed43/lora_training_curves.png"><figcaption>colab_results/sessionD/drift_seed43/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed43/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/drift_seed43/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/drift_seed43/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed44/lora_training_curves.png" alt="colab_results/sessionD/drift_seed44/lora_training_curves.png"><figcaption>colab_results/sessionD/drift_seed44/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/drift_seed44/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/drift_seed44/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/drift_seed44/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft/lora_training_curves.png" alt="colab_results/sessionD/fullft/lora_training_curves.png"><figcaption>colab_results/sessionD/fullft/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/fullft/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/fullft/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed43/lora_training_curves.png" alt="colab_results/sessionD/fullft_seed43/lora_training_curves.png"><figcaption>colab_results/sessionD/fullft_seed43/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed43/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/fullft_seed43/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/fullft_seed43/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed44/lora_training_curves.png" alt="colab_results/sessionD/fullft_seed44/lora_training_curves.png"><figcaption>colab_results/sessionD/fullft_seed44/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/fullft_seed44/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/fullft_seed44/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/fullft_seed44/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/late/lora_training_curves.png" alt="colab_results/sessionD/late/lora_training_curves.png"><figcaption>colab_results/sessionD/late/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/late/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/late/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/late/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed42_all/lora_training_curves.png" alt="colab_results/sessionD/seed42_all/lora_training_curves.png"><figcaption>colab_results/sessionD/seed42_all/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed42_all/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/seed42_all/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/seed42_all/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed43_all/lora_training_curves.png" alt="colab_results/sessionD/seed43_all/lora_training_curves.png"><figcaption>colab_results/sessionD/seed43_all/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed43_all/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/seed43_all/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/seed43_all/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed44_all/lora_training_curves.png" alt="colab_results/sessionD/seed44_all/lora_training_curves.png"><figcaption>colab_results/sessionD/seed44_all/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionD/seed44_all/lora_vs_orig_accuracy.png" alt="colab_results/sessionD/seed44_all/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionD/seed44_all/lora_vs_orig_accuracy.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_4"><p class="cap">6 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_drift/lora_training_curves.png" alt="colab_results/sessionE/blur_drift/lora_training_curves.png"><figcaption>colab_results/sessionE/blur_drift/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_drift/lora_vs_orig_accuracy.png" alt="colab_results/sessionE/blur_drift/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionE/blur_drift/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_uniform/lora_training_curves.png" alt="colab_results/sessionE/blur_uniform/lora_training_curves.png"><figcaption>colab_results/sessionE/blur_uniform/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/blur_uniform/lora_vs_orig_accuracy.png" alt="colab_results/sessionE/blur_uniform/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionE/blur_uniform/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/jpeg_uniform/lora_training_curves.png" alt="colab_results/sessionE/jpeg_uniform/lora_training_curves.png"><figcaption>colab_results/sessionE/jpeg_uniform/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/sessionE/jpeg_uniform/lora_vs_orig_accuracy.png" alt="colab_results/sessionE/jpeg_uniform/lora_vs_orig_accuracy.png"><figcaption>colab_results/sessionE/jpeg_uniform/lora_vs_orig_accuracy.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_5"><p class="cap">6 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_drift/lora_training_curves.png" alt="colab_results/kaggle_sessionF/contrast_drift/lora_training_curves.png"><figcaption>colab_results/kaggle_sessionF/contrast_drift/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_drift/lora_vs_orig_accuracy.png" alt="colab_results/kaggle_sessionF/contrast_drift/lora_vs_orig_accuracy.png"><figcaption>colab_results/kaggle_sessionF/contrast_drift/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_uniform/lora_training_curves.png" alt="colab_results/kaggle_sessionF/contrast_uniform/lora_training_curves.png"><figcaption>colab_results/kaggle_sessionF/contrast_uniform/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/contrast_uniform/lora_vs_orig_accuracy.png" alt="colab_results/kaggle_sessionF/contrast_uniform/lora_vs_orig_accuracy.png"><figcaption>colab_results/kaggle_sessionF/contrast_uniform/lora_vs_orig_accuracy.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/jpeg_drift/lora_training_curves.png" alt="colab_results/kaggle_sessionF/jpeg_drift/lora_training_curves.png"><figcaption>colab_results/kaggle_sessionF/jpeg_drift/lora_training_curves.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="colab_results/kaggle_sessionF/jpeg_drift/lora_vs_orig_accuracy.png" alt="colab_results/kaggle_sessionF/jpeg_drift/lora_vs_orig_accuracy.png"><figcaption>colab_results/kaggle_sessionF/jpeg_drift/lora_vs_orig_accuracy.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_6"><p class="cap">9 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profile_heatmap.png" alt="output/drift_proxy/profile_heatmap.png"><figcaption>output/drift_proxy/profile_heatmap.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profiles_blur.png" alt="output/drift_proxy/profiles_blur.png"><figcaption>output/drift_proxy/profiles_blur.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy/profiles_low_light.png" alt="output/drift_proxy/profiles_low_light.png"><figcaption>output/drift_proxy/profiles_low_light.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_dinov2_check/profile_heatmap.png" alt="output/drift_proxy_dinov2_check/profile_heatmap.png"><figcaption>output/drift_proxy_dinov2_check/profile_heatmap.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_dinov2_check/profiles_blur.png" alt="output/drift_proxy_dinov2_check/profiles_blur.png"><figcaption>output/drift_proxy_dinov2_check/profiles_blur.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_dinov2_check/profiles_low_light.png" alt="output/drift_proxy_dinov2_check/profiles_low_light.png"><figcaption>output/drift_proxy_dinov2_check/profiles_low_light.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_smoke/profile_heatmap.png" alt="output/drift_proxy_smoke/profile_heatmap.png"><figcaption>output/drift_proxy_smoke/profile_heatmap.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_smoke/profiles_blur.png" alt="output/drift_proxy_smoke/profiles_blur.png"><figcaption>output/drift_proxy_smoke/profiles_blur.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/drift_proxy_smoke/profiles_low_light.png" alt="output/drift_proxy_smoke/profiles_low_light.png"><figcaption>output/drift_proxy_smoke/profiles_low_light.png</figcaption></figure></div><div class="col"></div></div></div><div class="panel" id="p_tb5_7"><p class="cap">6 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_baseline/darkness_curve.png" alt="output/exdark_baseline/darkness_curve.png"><figcaption>output/exdark_baseline/darkness_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_baseline/exdark_summary.png" alt="output/exdark_baseline/exdark_summary.png"><figcaption>output/exdark_baseline/exdark_summary.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_transfer_drift/darkness_curve.png" alt="output/exdark_transfer_drift/darkness_curve.png"><figcaption>output/exdark_transfer_drift/darkness_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_transfer_drift/exdark_summary.png" alt="output/exdark_transfer_drift/exdark_summary.png"><figcaption>output/exdark_transfer_drift/exdark_summary.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_transfer_uniform/darkness_curve.png" alt="output/exdark_transfer_uniform/darkness_curve.png"><figcaption>output/exdark_transfer_uniform/darkness_curve.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/exdark_transfer_uniform/exdark_summary.png" alt="output/exdark_transfer_uniform/exdark_summary.png"><figcaption>output/exdark_transfer_uniform/exdark_summary.png</figcaption></figure></div></div></div><div class="panel" id="p_tb5_8"><p class="cap">11 figures</p><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profile_heatmap.png" alt="output/vitb_profile/profile_heatmap.png"><figcaption>output/vitb_profile/profile_heatmap.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev1.png" alt="output/vitb_profile/profiles_jpeg@sev1.png"><figcaption>output/vitb_profile/profiles_jpeg@sev1.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev2.png" alt="output/vitb_profile/profiles_jpeg@sev2.png"><figcaption>output/vitb_profile/profiles_jpeg@sev2.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev3.png" alt="output/vitb_profile/profiles_jpeg@sev3.png"><figcaption>output/vitb_profile/profiles_jpeg@sev3.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev4.png" alt="output/vitb_profile/profiles_jpeg@sev4.png"><figcaption>output/vitb_profile/profiles_jpeg@sev4.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_jpeg@sev5.png" alt="output/vitb_profile/profiles_jpeg@sev5.png"><figcaption>output/vitb_profile/profiles_jpeg@sev5.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev1.png" alt="output/vitb_profile/profiles_low_light@sev1.png"><figcaption>output/vitb_profile/profiles_low_light@sev1.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev2.png" alt="output/vitb_profile/profiles_low_light@sev2.png"><figcaption>output/vitb_profile/profiles_low_light@sev2.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev3.png" alt="output/vitb_profile/profiles_low_light@sev3.png"><figcaption>output/vitb_profile/profiles_low_light@sev3.png</figcaption></figure></div><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev4.png" alt="output/vitb_profile/profiles_low_light@sev4.png"><figcaption>output/vitb_profile/profiles_low_light@sev4.png</figcaption></figure></div></div><div class="cols cols-2"><div class="col"><figure class="fig"><img loading="lazy" src="output/vitb_profile/profiles_low_light@sev5.png" alt="output/vitb_profile/profiles_low_light@sev5.png"><figcaption>output/vitb_profile/profiles_low_light@sev5.png</figcaption></figure></div><div class="col"></div></div></div></div></div></section>
+ <footer>
+  Static export of the Streamlit presentation — one source of truth, two renderers.
+  Regenerate with <code>python3 tools/export_static_site.py</code>; run
+  <code>PRESENTATION_SMOKE=1 python3 apps/presentation.py</code> for the interactive
+  app's own check. Values match the CSV/PNG artifacts of record in
+  <code>output/</code> and <code>colab_results/</code>.
+ </footer>
+</main>
+<script>
+(function(){
+  document.documentElement.setAttribute('data-js','on');
+  function sectionState(sec){
+    var st={};
+    sec.querySelectorAll('input[data-w]').forEach(function(i){
+      if(i.type==='radio'){ if(i.checked) st[i.dataset.w]=i.value; }
+      else if(i.type==='checkbox'){ st[i.dataset.w]=i.checked; }
+      else { st[i.dataset.w]=i.value; }
+    });
+    return st;
+  }
+  function applySection(sec){
+    var st=sectionState(sec);
+    sec.querySelectorAll('[data-variants]').forEach(function(el){
+      var groups;
+      try{ groups=JSON.parse(el.dataset.variants); }catch(e){ return; }
+      var idx=-1;
+      groups.forEach(function(states,i){
+        for(var j=0;j<states.length;j++){
+          var s=states[j], ok=true;
+          for(var k in s){ if(String(s[k])!==String(st[k])){ ok=false; break; } }
+          if(ok){ idx=i; return; }
+        }
+      });
+      var kids=el.children;
+      for(var i=0;i<kids.length;i++){ kids[i].style.display = (i===idx)?'':'none'; }
+    });
+  }
+  document.addEventListener('input', function(e){
+    var t=e.target;
+    if(t.matches && t.matches('input[type=range][data-w]')){
+      var v=document.getElementById(t.id+'_v');
+      if(v) v.textContent=t.value;
+    }
+    var sec=t.closest && t.closest('section.sec');
+    if(sec) applySection(sec);
+  });
+  document.addEventListener('change', function(e){
+    var sec=e.target.closest && e.target.closest('section.sec');
+    if(sec) applySection(sec);
+  });
+  window.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('section.sec').forEach(applySection);
+    var links=[].slice.call(document.querySelectorAll('.sidebar nav a'));
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(a){
+            a.classList.toggle('active', a.getAttribute('href')==='#'+en.target.id);
+          });
+        }
+      });
+    },{rootMargin:'-15% 0px -70% 0px'});
+    document.querySelectorAll('section.sec').forEach(function(s){ io.observe(s); });
+  });
+})();
+</script>
+</body>
+</html>
