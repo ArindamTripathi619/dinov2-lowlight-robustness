@@ -168,6 +168,28 @@ structure, not the exact rank vector.
 
 ---
 
+### 8.5 Deterministic-noise reconciliation (closed 2026-10-09)
+
+The one item §8.2 left open ("reconcile upstream's deterministic-noise primitive with
+this repo's seeded-noise protocol, or agree the current protocol stands") resolves by
+agreement: **the two primitives coexist by pipeline and must not be merged.**
+
+| | upstream `_deterministic_noise` (`src/corruptions.py`) | fork seeded protocol (`utils.low_light` + `default_rng(1000 + severity)`) |
+|---|---|---|
+| Noise draw | blake2b(image bytes ‖ severity) → `RandomState` — same (image, severity) → same noise under **any** call order | per-severity `default_rng(1000 + severity)` stream, consumed once per pass in fixed image order (seed-42 subset) |
+| dtype | float32, unquantized (`low_light_stage1`) | uint8 (quantized) |
+| Consumers | merged `src/` runners that read `configs/` (`run_experiments.py`, …) | notebooks, LoRA arms (`run_lora_*`), drift profile/proxy, presentation — i.e. **every committed artifact** in `results_pilot/`, `colab_results/`, `output/` |
+| Guarantee proven | order-independence without touching global RNG state | matched-noise eval (both arms graded on identical corrupted arrays) + CPU↔T4 reproducibility to 1e-6 |
+
+Why not merge: swapping primitives re-noises every corrupted image (different generator
+*and* dtype), shifting every reported metric — blocked by the byte-comparability rule
+(AGENTS.md hard rule 3) absent an explicit re-baseline. Why not a conflict: no
+experiment mixes the two — each pipeline is internally consistent, and the §8.2 hazard
+(process-global RNG making results depend on call order) does not arise in the fork
+path, which always passes an explicit per-severity generator. A reviewer who wants one
+primitive across the merged repo needs a re-baseline request, not a code change.
+**Protocol stands; Track 0 residual closed.**
+
 ## 9. Addendum (2026-10-01, verified 2026-10-08): PR #1 merged — integration complete
 
 The rebase plan of §8.1 was executed and shipped as
@@ -183,10 +205,9 @@ merged 2026-10-01 (merge commit `9bc6b50`):
   and the other `configs/`-reading runners) — that open item is closed.
 - Verification on the merged tree (per the PR): upstream's `tests/run_tests.py`
   22/22 pass; no deletions relative to either side — both content sets fully preserved.
-- **Still open from §8.2:** upstream's deterministic-noise corruption primitive was
-  deliberately not ported (it would break byte-comparability with this repo's committed
-  results); the seeded-noise protocol (`1000 + severity`) stands until a follow-up PR
-  reconciles the two. Tracked as the optional residual of ROADMAP Track 0.
+- **Closed (2026-10-09) from §8.2:** the deterministic-noise follow-up — reconciliation
+  verdict in §8.5: upstream's primitive and the seeded `1000 + severity` protocol
+  coexist by pipeline; protocol stands, no re-baseline.
 - §7's post-merge opportunities: (a) ViT-B × drift-weighted → v8 profile done
   (`6a9de11`), LoRA-arm half (v9) still open; (b) single manuscript → ROADMAP Track 6;
   (c) CI-tested parameterizations → `tests/` + `.github/workflows/` now in-tree.

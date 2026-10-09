@@ -5,7 +5,9 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-08: Track 0 closed (PR #1 merged upstream `9bc6b50`, blur re-evals
+*Last updated 2026-10-09: Track 0 residual (deterministic-noise) closed by agreement
+(`DIVERGENCE_REPORT` §8.5); Track 2 v9 kernel `vitb-lora-v9` pushed — T4 run in flight.
+Before that (10-08): Track 0 closed (PR #1 merged upstream `9bc6b50`, blur re-evals
 folded), Track 1 gate run (NO-GO, fallback adopted), Track 2 v8 done (ViT-B profile);
 v9 and Tracks 3–6 remain open.*
 
@@ -65,10 +67,12 @@ Illumination Registers and the Canonicalizer are parked (Archive, §5).
   (DIVERGENCE_REPORT's "configs not ported" note is obsolete — the manifest arrived
   with the merge); `docs/DIVERGENCE_REPORT.md` shipped inside the PR. `main` sits on
   the merged lineage — no rebase cleanup left to do.
-- [ ] Optional, non-blocking: deterministic-noise follow-up (flagged in PR #1) —
-  reconcile upstream's deterministic-noise corruption primitive with this repo's
-  seeded-noise protocol (`1000 + severity`), or agree the current protocol stands and
-  close the item. A reviewer gates it, not the research.
+- [x] Optional, non-blocking: deterministic-noise follow-up (flagged in PR #1) —
+  **closed 2026-10-09**: reconciliation verdict in `docs/DIVERGENCE_REPORT.md` §8.5.
+  The two primitives coexist by pipeline (content-keyed noise for the merged `src/`
+  runners; seeded `1000 + severity` matched-noise for every committed fork artifact);
+  merging them would re-noise all committed results — blocked by byte-comparability
+  (AGENTS rule 3) absent an explicit re-baseline. Protocol stands.
 
 ### Track 1 — Drift-proxy feasibility (the gate; ~1 GPU-session + CPU analysis)
 **Goal:** a drift proxy *much cheaper than CKA* that predicts where adaptation pays off,
@@ -234,6 +238,13 @@ Next up, in order:
 5. **Track 2 v9** — ViT-B LoRA arms (uniform vs ViT-B-drift-weighted vs late-only,
    seed 42) from `output/vitb_profile/drift_profile_sev5_*.csv` (re-index per the
    METHODS §7.8 consumer note).
+   **In flight (2026-10-09):** consumer CSVs built (`output/vitb_profile/v9_lora/` via
+   `tools/reindex_drift_for_lora.py`; drift ranks r2–r8, late-heavy top-4 = b10/b11/b9/b6,
+   76% of uniform params); kernel `arindamtripathi/vitb-lora-v9` (3 arms × low_light,
+   seed 42, epochs 10, T4) pushed and RUNNING. Harvest:
+   `kaggle kernels output arindamtripathi/vitb-lora-v9 -p <dir>` — completion marker
+   `LORA_V9_COMPLETE`, arm artifacts under `output/v9_lora/{uniform,drift,late}/`.
 6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
    (`run_drift_proxy.py` / `run_drift_profile.py`).
-7. Optional: deterministic-noise follow-up PR (Track 0 residual; non-blocking).
+7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
+   closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.
