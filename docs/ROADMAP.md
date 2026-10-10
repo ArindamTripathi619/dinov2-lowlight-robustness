@@ -5,11 +5,12 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-09: Track 0 residual (deterministic-noise) closed by agreement
-(`DIVERGENCE_REPORT` §8.5); Track 2 v9 kernel `vitb-lora-v9` pushed — T4 run in flight.
+*Last updated 2026-10-09: Track 2 v9 DONE (3 ViT-B LoRA arms, kernel `vitb-lora-v9` —
+drift-weighted ≥ uniform at 24% fewer params, RESEARCH §6.5); Track 0 residual
+(deterministic-noise) closed by agreement (`DIVERGENCE_REPORT` §8.5).
 Before that (10-08): Track 0 closed (PR #1 merged upstream `9bc6b50`, blur re-evals
 folded), Track 1 gate run (NO-GO, fallback adopted), Track 2 v8 done (ViT-B profile);
-v9 and Tracks 3–6 remain open.*
+Tracks 3–6 remain open.*
 
 
 ---
@@ -30,8 +31,8 @@ v9 and Tracks 3–6 remain open.*
 - Landed since this roadmap was written: **PR #1 merged upstream** (2026-10-01,
   `9bc6b50` — fork replayed onto the rewritten root; `paper/`, `src/`, `tests/`, CI,
   `configs/` integrated), **blur re-evals folded** (`67a2dc4`), **Track 2 v8 ViT-B
-  profile done** (`6a9de11`, T4 259 s). Open: Track 2 **v9** (ViT-B LoRA arms),
-  Tracks 3–6.
+  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done** (`output/v9_lora/`).
+  Open: Tracks 3–6.
 
 **Decision (advisor's two rankings converge on this):** the paper is **Drift-Profiled
 Adaptation (DPA) + Selective Statistic Recalibration (SSR)** — the "drift-profiled,
@@ -123,10 +124,17 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   `drift_profile_sev5_{low_light,jpeg}.csv` — NOTE: rows cover all 37 profiled modules
   (patch_embed, blocks.k, blocks.k.attn/mlp); the LoRA consumer needs the 12
   blocks.k rows re-indexed 0–11.
-- [ ] v9: LoRA arms on ViT-B: uniform r8 vs drift-weighted (ViT-B-allocated ranks) vs
-  late-only, seed 42, cifar10-python dataset mount reused. Sublayer-resolved allocation
-  (mlp+attn targets ranked by the v8 profiles) is the paper-grade extension the §5.1
-  finding motivates.
+- [x] **v9 DONE (2026-10-09, kernel `vitb-lora-v9` v1, T4, ~97 min, exit 0):** 3 arms ×
+  low_light, seed 42, epochs 10, 5,000 CIFAR-10 imgs, 70% aug — per-arm logs/plots in
+  `output/v9_lora/`, numbers in `output/v9_lora/summary.csv`. Mean Δ / sev-5 Δ /
+  trainable params: drift-weighted **+0.1483 / +0.2967 / 336K (0.39%)** vs uniform r8
+  +0.1450 / +0.2700 / 442K (0.51%) vs late-only r8 +0.0622 / +0.0833 / 110K (0.13%).
+  Verdict: **drift-weighted ≥ uniform on both metrics with 24% fewer params; late-only
+  is far short** — drift is distributed across depth, not confined to the last blocks.
+- [ ] v9 paper-grade extension: sublayer-resolved allocation (mlp+attn targets ranked by
+  the v8 profiles, the §5.1-motivated variant) + §1.4 ablation set (β^τ, top-k,
+  inverted-β) + multi-seed repeats — single-seed (42) parity must not enter the paper
+  before these.
 - Claims it closes: (a) the current paper's ViT-B generality item; (b) first
   cross-architecture profile pair (ViT-S vs ViT-B).
 - Fold into RESEARCH §6 + the future framework paper as the ViT data point.
@@ -235,15 +243,13 @@ Done since this list was written (kept for the record):
 
 Next up, in order:
 
-5. **Track 2 v9** — ViT-B LoRA arms (uniform vs ViT-B-drift-weighted vs late-only,
-   seed 42) from `output/vitb_profile/drift_profile_sev5_*.csv` (re-index per the
-   METHODS §7.8 consumer note).
-   **In flight (2026-10-09):** consumer CSVs built (`output/vitb_profile/v9_lora/` via
-   `tools/reindex_drift_for_lora.py`; drift ranks r2–r8, late-heavy top-4 = b10/b11/b9/b6,
-   76% of uniform params); kernel `arindamtripathi/vitb-lora-v9` (3 arms × low_light,
-   seed 42, epochs 10, T4) pushed and RUNNING. Harvest:
-   `kaggle kernels output arindamtripathi/vitb-lora-v9 -p <dir>` — completion marker
-   `LORA_V9_COMPLETE`, arm artifacts under `output/v9_lora/{uniform,drift,late}/`.
+5. [x] **Track 2 v9** — done 2026-10-09 (kernel `arindamtripathi/vitb-lora-v9`, T4,
+   ~97 min, exit 0, marker `LORA_V9_COMPLETE`). Consumer CSVs via
+   `tools/reindex_drift_for_lora.py` (drift ranks r2–r8, top-4 b10/b11/b9/b6, 76% of
+   uniform params); verdict **drift-weighted +0.1483/+0.2967 vs uniform +0.1450/+0.2700
+   at 24% fewer params, late-only +0.0622/+0.0833** — artifacts `output/v9_lora/`,
+   details RESEARCH §6.5. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-v9
+   -p <dir>`. Open follow-ups: sublayer-resolved ranks + §1.4 ablations + multi-seed.
 6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
    (`run_drift_proxy.py` / `run_drift_profile.py`).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —

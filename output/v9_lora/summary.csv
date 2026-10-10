@@ -1,0 +1,4 @@
+arm,trainable_params,trainable_pct,mean_orig,mean_lora,mean_delta,sev5_orig,sev5_lora,sev5_delta
+uniform,442368,0.51,0.7000,0.8450,+0.1450,0.1567,0.4267,+0.2700
+drift,336384,0.39,0.7000,0.8483,+0.1483,0.1567,0.4533,+0.2967
+late,110592,0.13,0.7000,0.7622,+0.0622,0.1567,0.2400,+0.0833

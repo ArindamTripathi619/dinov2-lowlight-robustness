@@ -62,19 +62,17 @@ Two laddering defects, both found by direct read on the 2nd pass:
 
 ## B. Contradiction to resolve
 
-### B1. Deterministic-noise primitive: present, but report says it was not ported — **[Confirmed]**
+### B1. Deterministic-noise primitive: present, but report says it was not ported — **[Closed 2026-10-09]**
 `src/corruptions.py:22` defines and **uses** `_deterministic_noise` (order-independent
-noise keyed on blake2b(image bytes, severity)) in `low_light_stage1`. Yet
-`docs/DIVERGENCE_REPORT.md` §8.2 and §9 state upstream's deterministic-noise corruption
-primitive was *deliberately not ported* (to preserve byte-comparability), keeping the
-seeded-noise protocol.
+noise keyed on blake2b(image bytes, severity)) in `low_light_stage1`, while the fork's
+seeded protocol (`default_rng(1000 + severity)`) drives every committed artifact.
 
-- Either the merged tree adopted a deterministic primitive after the report was written, or
-  the two "deterministic" designs differ (upstream `0737301` vs this `_deterministic_noise`).
-- **Action:** the owner should reconcile `docs/DIVERGENCE_REPORT.md` §8.2/§9 with the actual
-  `src/corruptions.py` contents, and confirm which corruption protocol the committed
-  `results_pilot/` artifacts were produced with. Until then, treat the report's claim as
-  **stale**.
+- Reconciled by agreement: the two primitives **coexist by pipeline and must not be
+  merged** — verdict + consumer table in `docs/DIVERGENCE_REPORT.md` §8.5; protocol
+  stands, no re-baseline.
+- Which artifacts used which protocol: the seeded protocol produced everything in
+  `results_pilot/`, `colab_results/`, `output/` (§8.5 consumer table); the deterministic
+  primitive serves only the merged `configs/`-reading runners.
 
 ## C. Duplication / dead weight
 
@@ -100,15 +98,17 @@ seeded-noise protocol.
 
 ## E. Open questions / risks
 
-1. **[Question] Corruption protocol of record.** Which of {seeded `1000+severity`,
-   `_deterministic_noise`} produced the committed `results_pilot/` artifacts? Blocks any
-   "reproduce byte-exact" claim (see §B1).
-2. **[Question] GPU-scale drift-weighted LoRA on ViT-B.** Identified in `docs/DIVERGENCE_REPORT.md`
-   §7 / ROADMAP as the strongest remaining open combination; the LoRA-arm half (v9) is open.
+1. **[Closed 2026-10-09] Corruption protocol of record.** The seeded `1000+severity`
+   protocol produced the committed `results_pilot/` artifacts (consumer table in
+   `docs/DIVERGENCE_REPORT.md` §8.5); byte-exact re-run generator pinning stays under E8.
+2. **[Closed 2026-10-09] GPU-scale drift-weighted LoRA on ViT-B.** v9 ran all three arms
+   (kernel `vitb-lora-v9`): drift-weighted ≥ uniform at 24% fewer params, seed 42 —
+   `output/v9_lora/`, RESEARCH §6.5. Multi-seed + allocation ablations still needed
+   before paper claims.
 3. **[Question] Full-scale paper numbers.** When the merged base has full-scale results, all
    tables/figures/macros must be regenerated and the `[pending]` placeholders removed.
-4. **[Question] Optional residual of ROADMAP Track 0.** Reconcile deterministic-noise
-   primitive in a follow-up PR (see `docs/DIVERGENCE_REPORT.md` §9).
+4. **[Closed 2026-10-09] Optional residual of ROADMAP Track 0.** Deterministic-noise
+   reconciled by agreement — verdict in `docs/DIVERGENCE_REPORT.md` §8.5/§9; protocol stands.
 5. **[Risk] No torch-path tests.** CI cannot catch regressions in the model/LoRA/presentation
    paths (see `06_TESTING_AND_QUALITY.md` §5).
 6. **[Risk] No lint/type gate.** Style/type drift is unguarded in CI.
@@ -128,7 +128,7 @@ seeded-noise protocol.
 1. Fix `src/lora.py` augmentation RNG (A1) with re-baseline plan.
 2. Add a clear guard for `analyze_seeds.py` (A3) — cheap, isolated.
 3. Fix the `src/supplementary.py` cross-dataset bugs (A5) — small, isolated, unlocks one experiment.
-4. Reconcile the deterministic-noise contradiction (B1) — documentation + owner decision.
+4. [done 2026-10-09] Reconcile the deterministic-noise contradiction (B1) — verdict in DIVERGENCE §8.5.
 5. Pin which harness version produced the committed `results_pilot/` artifacts (E8).
 6. Consolidate stats duplication (C) behind `stats_tools.py`.
 7. Delete dead `upstream_src/` after confirmation.
