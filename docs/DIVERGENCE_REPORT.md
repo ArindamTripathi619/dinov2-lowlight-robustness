@@ -137,8 +137,8 @@ Audit result that matters for novelty: upstream's `src/lora.py` has **no drift
 allocation** — our drift-weighted rank allocation remains the unique contribution at
 the intersection of the two lines. Their ViT-B late-vs-early CKA gap pilot
 (+0.32 → +0.44) supersedes our planned ViT-B curve run; the remaining open novelty is
-**GPU-scale drift-weighted LoRA on ViT-B** (run as v9 on 2026-10-09 — RESEARCH §6.5;
-status tracked in §9).
+**GPU-scale drift-weighted LoRA on ViT-B** (run as v9 on 2026-10-09/10, n=3 —
+RESEARCH §6.5; status tracked in §9).
 
 ### 8.3 Upstream's H4 confirmed at proper power
 
@@ -210,7 +210,7 @@ merged 2026-10-01 (merge commit `9bc6b50`):
   verdict in §8.5: upstream's primitive and the seeded `1000 + severity` protocol
   coexist by pipeline; protocol stands, no re-baseline.
 - §7's post-merge opportunities: (a) ViT-B × drift-weighted → v8 profile done
-  (`6a9de11`), LoRA-arm half (v9) **closed 2026-10-09** (`output/v9_lora/`: drift-weighted
-  ≥ uniform at 24% fewer params, seed 42 — RESEARCH §6.5); (b) single manuscript →
+  (`6a9de11`), LoRA-arm half (v9) **closed 2026-10-10** (`output/v9_lora/`: n=3 parity
+  with uniform at 24% fewer params — RESEARCH §6.5); (b) single manuscript →
   ROADMAP Track 6; (c) CI-tested parameterizations → `tests/` + `.github/workflows/`
   now in-tree.

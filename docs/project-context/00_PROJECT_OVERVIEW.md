@@ -92,10 +92,11 @@ dataset (CIFAR-10-derived), a synthetic axis.
 - PR #1 merged 2026-10-01; PR #2 open (fork→upstream, MERGEABLE); upstream and fork share
   one lineage; both content sets preserved.
 - 22/22 unit tests pass; static site published to Vercel at HEAD.
-- Track 2 v9 done (2026-10-09): drift-weighted LoRA ≥ uniform on ViT-B at 24% fewer
-  params, seed 42 (RESEARCH §6.5); deterministic-noise residual closed (DIVERGENCE §8.5).
-- Open: Track 3 cross-family atlas; v9 multi-seed + allocation ablations; full-scale paper
-  numbers (pilot-scale bars/macros currently in the text).
+- Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
+  ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
+  closed (DIVERGENCE_REPORT §8.5).
+- Open: Track 3 cross-family atlas; v9 allocation ablations; full-scale paper numbers
+  (pilot-scale bars/macros currently in the text).
 
 ## Where to start reading
 

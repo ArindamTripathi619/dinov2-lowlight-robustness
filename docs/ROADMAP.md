@@ -5,9 +5,10 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-09: Track 2 v9 DONE (3 ViT-B LoRA arms, kernel `vitb-lora-v9` —
-drift-weighted ≥ uniform at 24% fewer params, RESEARCH §6.5); Track 0 residual
-(deterministic-noise) closed by agreement (`DIVERGENCE_REPORT` §8.5).
+*Last updated 2026-10-10: Track 2 v9 DONE at n=3 (3 ViT-B LoRA arms × seeds 42/43/44,
+kernel `vitb-lora-v9` — drift-weighted at parity with uniform while training 24% fewer
+params, RESEARCH §6.5); Track 0 residual (deterministic-noise) closed by agreement
+(`DIVERGENCE_REPORT` §8.5).
 Before that (10-08): Track 0 closed (PR #1 merged upstream `9bc6b50`, blur re-evals
 folded), Track 1 gate run (NO-GO, fallback adopted), Track 2 v8 done (ViT-B profile);
 Tracks 3–6 remain open.*
@@ -31,7 +32,7 @@ Tracks 3–6 remain open.*
 - Landed since this roadmap was written: **PR #1 merged upstream** (2026-10-01,
   `9bc6b50` — fork replayed onto the rewritten root; `paper/`, `src/`, `tests/`, CI,
   `configs/` integrated), **blur re-evals folded** (`67a2dc4`), **Track 2 v8 ViT-B
-  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done** (`output/v9_lora/`).
+  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done at n=3** (`output/v9_lora/`).
   Open: Tracks 3–6.
 
 **Decision (advisor's two rankings converge on this):** the paper is **Drift-Profiled
@@ -124,17 +125,20 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   `drift_profile_sev5_{low_light,jpeg}.csv` — NOTE: rows cover all 37 profiled modules
   (patch_embed, blocks.k, blocks.k.attn/mlp); the LoRA consumer needs the 12
   blocks.k rows re-indexed 0–11.
-- [x] **v9 DONE (2026-10-09, kernel `vitb-lora-v9` v1, T4, ~97 min, exit 0):** 3 arms ×
-  low_light, seed 42, epochs 10, 5,000 CIFAR-10 imgs, 70% aug — per-arm logs/plots in
-  `output/v9_lora/`, numbers in `output/v9_lora/summary.csv`. Mean Δ / sev-5 Δ /
-  trainable params: drift-weighted **+0.1483 / +0.2967 / 336K (0.39%)** vs uniform r8
-  +0.1450 / +0.2700 / 442K (0.51%) vs late-only r8 +0.0622 / +0.0833 / 110K (0.13%).
-  Verdict: **drift-weighted ≥ uniform on both metrics with 24% fewer params; late-only
-  is far short** — drift is distributed across depth, not confined to the last blocks.
+- [x] **v9 DONE at n=3 (2026-10-09/10, kernels `vitb-lora-v9` v1+v2, T4, ~3.5 h total,
+  exit 0 both):** 3 arms × seeds 42/43/44 × low_light, epochs 10, 5,000 CIFAR-10 imgs,
+  70% aug (the Phase-3 v2 seed protocol) — per-arm logs/plots in `output/v9_lora/`,
+  9 rows in `output/v9_lora/summary.csv`. Mean Δ / sev-5 Δ (over seeds, ± sample std):
+  drift-weighted 0.1598±0.0158 / 0.2789±0.0168 at 336K params (0.39%) vs uniform r8
+  0.1607±0.0209 / 0.2756±0.0096 at 442K (0.51%) vs late-only r8 0.0730±0.0096 /
+  0.0944±0.0284 at 110K (0.13%). Verdict: **parity with uniform while training 24%
+  fewer params** (paired drift−uniform −0.0009±0.0051); the seed-42 edge did not
+  replicate; **late-only is far short** — drift is distributed across depth, not
+  confined to the last blocks. Second backbone confirming the ViT-S
+  parity-at-lower-cost story (RESEARCH §6.1).
 - [ ] v9 paper-grade extension: sublayer-resolved allocation (mlp+attn targets ranked by
   the v8 profiles, the §5.1-motivated variant) + §1.4 ablation set (β^τ, top-k,
-  inverted-β) + multi-seed repeats — single-seed (42) parity must not enter the paper
-  before these.
+  inverted-β falsification) — multi-seed done (42/43/44).
 - Claims it closes: (a) the current paper's ViT-B generality item; (b) first
   cross-architecture profile pair (ViT-S vs ViT-B).
 - Fold into RESEARCH §6 + the future framework paper as the ViT data point.
@@ -243,13 +247,14 @@ Done since this list was written (kept for the record):
 
 Next up, in order:
 
-5. [x] **Track 2 v9** — done 2026-10-09 (kernel `arindamtripathi/vitb-lora-v9`, T4,
-   ~97 min, exit 0, marker `LORA_V9_COMPLETE`). Consumer CSVs via
-   `tools/reindex_drift_for_lora.py` (drift ranks r2–r8, top-4 b10/b11/b9/b6, 76% of
-   uniform params); verdict **drift-weighted +0.1483/+0.2967 vs uniform +0.1450/+0.2700
-   at 24% fewer params, late-only +0.0622/+0.0833** — artifacts `output/v9_lora/`,
-   details RESEARCH §6.5. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-v9
-   -p <dir>`. Open follow-ups: sublayer-resolved ranks + §1.4 ablations + multi-seed.
+5. [x] **Track 2 v9** — done 2026-10-09/10 at **n=3** (kernel `arindamtripathi/vitb-lora-v9`
+   v1 = seed 42, v2 = seeds 43/44; T4, exit 0 both; markers `LORA_V9_COMPLETE` /
+   `LORA_V9_SEEDS_COMPLETE`). Consumer CSVs via `tools/reindex_drift_for_lora.py` (drift
+   ranks r2–r8, top-4 b10/b11/b9/b6, 76% of uniform params); verdict **parity at 24%
+   fewer params** (0.1598±0.0158 vs 0.1607±0.0209 mean Δ; paired −0.0009±0.0051),
+   late-only clearly worse (0.0730±0.0096) — artifacts `output/v9_lora/`, details
+   RESEARCH §6.5. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-v9 -p <dir>`.
+   Open follow-ups: sublayer-resolved ranks + §1.4 ablations.
 6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
    (`run_drift_proxy.py` / `run_drift_profile.py`).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
