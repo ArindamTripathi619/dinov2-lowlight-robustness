@@ -237,12 +237,11 @@ if not torch.cuda.is_available():
 print("gpu:", torch.cuda.get_device_name(0))
 
 r = subprocess.run(["bash", "v9_lora.sh"])
-outputs = ["output/v9_lora/uniform/lora_adapters.pt",
-           "output/v9_lora/drift/lora_adapters.pt",
-           "output/v9_lora/late/lora_adapters.pt"]
+outputs = [f"output/v9_lora/seed{s}/{arm}/lora_adapters.pt"
+           for s in (43, 44) for arm in ("uniform", "drift", "late")]
 present = {p: os.path.isfile(p) for p in outputs}
 print("v9 exit:", r.returncode, "| outputs:", present)
-print("LORA_V9_COMPLETE" if (r.returncode == 0 and all(present.values())) else "LORA_V9_FAILED")
+print("LORA_V9_SEEDS_COMPLETE" if (r.returncode == 0 and all(present.values())) else "LORA_V9_SEEDS_FAILED")
 '''
 
 # Kernel driver template. Keep byte-compatible with the v5 build
