@@ -95,6 +95,12 @@ colab_results/sessionA/
 !output/v9_lora/
 !output/v9_lora/**
 output/v9_lora/**/*.pt
+
+# Track 2 v9 allocation-rule ablation kernel results of record (same situation;
+# adapter .pt checkpoints stay ignored — recoverable from the Kaggle kernel output)
+!output/v9_ablation/
+!output/v9_ablation/**
+output/v9_ablation/**/*.pt
 __pycache__/
 *.pyc
 .vercel
