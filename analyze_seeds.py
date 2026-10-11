@@ -94,10 +94,15 @@ def main():
             print(f"{name:<14}{group:<9}{seed:<6}{'-':<8}{'-':<8}{'-':<8}PENDING")
             rows_csv.append([name, group, seed, "", "", "", "PENDING"])
             continue
+        # A log may lack the "severity 0:" clean-baseline line (e.g. a
+        # truncated run). Guard: show '-' and flag the row no_clean instead
+        # of crashing on a None format (debt A3).
         clean = a["per_sev"].get(0)
+        clean_col = f"{clean:<8.4f}" if clean is not None else f"{'-':<8}"
+        status = "ok" if clean is not None else "no_clean"
         print(f"{name:<14}{group:<9}{seed:<6}{a['lora_mean']:<8.4f}"
-              f"{a['lora_sev5'] or 0:<8.4f}{clean:<8.4f}ok")
-        rows_csv.append([name, group, seed, a["lora_mean"], a["lora_sev5"], clean, "ok"])
+              f"{a['lora_sev5'] or 0:<8.4f}{clean_col}{status}")
+        rows_csv.append([name, group, seed, a["lora_mean"], a["lora_sev5"], clean, status])
 
     print("\n" + "-" * 78)
     print("GROUP-LEVEL SEED STATS")

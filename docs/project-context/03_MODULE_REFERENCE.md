@@ -70,7 +70,7 @@ Two-stage model: stage 1 analog `I' = a·I + η`; stage 2 uint8 digitization.
 | `LoRALayer(original_layer, r, alpha)` | 30 | Low-rank wrapper (scaled by alpha/r). |
 | `apply_lora(model, rank, alpha, target="attn")` | 45 | **In-place** install into `block.attn.{qkv,proj}` (+ MLP if `attn_mlp`); freezes base, unfreezes `lora_A/B`. |
 | `LowLightAugCIFAR(Dataset)` | 62 | 70% degraded sev 2–4, 50% h-flip. |
-| `__getitem__` | 71 | **Uses global `np.random`** (L73-74) — see Debt. |
+| `__getitem__` | 71 | Per-index RNG (`default_rng(seed=i)`, worker-safe) — Debt A1 resolved 2026-10-11. |
 | `BackboneClassifier(backbone, num_classes)` | 80 | Frozen-backbone + linear head. |
 | `AnchoredBackboneClassifier(...)` | 93 | Adds representation-anchoring loss. |
 | `info_nce_loss(z1, z2, temperature)` | 119 | Contrastive anchor loss. |
@@ -92,12 +92,12 @@ Lazy-imported by the harness (`run_experiments.py:566`).
 | `_load_stl10_shared_classes(n_test, seed)` | 305 |
 | `exp_cross_dataset(cfg, device, outdir)` | 337 |
 
-> **`src/supplementary.py` cross-dataset path is broken (see Debt A5):**
-> `_load_stl10_shared_classes` (305) references `load_cifar10_subsets.class_names` — a
-> function attribute that does not exist (class names live in `CIFAR10_CLASS_NAMES` in
-> `src/data.py`) → `AttributeError`; and `exp_cross_dataset` (367) uses undefined
-> `n_skipped` (the helper returns `n_dropped`) → `NameError`. `experiment cross_dataset`
-> cannot complete.
+> **`src/supplementary.py` cross-dataset path fixed (Debt A5, resolved 2026-10-11):**
+> the helper now reads `CIFAR10_CLASS_NAMES` (was: nonexistent
+> `load_cifar10_subsets.class_names` → AttributeError), and `exp_cross_dataset` binds the
+> helper's third return as `n_skipped` (was: `n_dropped` binding vs `n_skipped` use →
+> NameError). Regression tests: `test_stl10_helper_maps_shared_classes`,
+> `test_exp_cross_dataset_end_to_end_stubbed`.
 
 ## Root shared libraries
 

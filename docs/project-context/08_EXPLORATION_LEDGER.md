@@ -205,3 +205,19 @@ the first investigation's claims. **Status key: ✓ verified · ✎ corrected in
 | `make_paper_tables.py` / `make_paper_figures.py` targets | ✓ | `--results` default `results` / `results_pilot` as documented. |
 | Headline-number provenance in `00/07` | ✎ | **✎** Committed `results_pilot/` is **pilot-scale (n≈60)**: `main_curve.csv` 0.933→0.108 (cos 1.00→0.16), `cka_by_layer.csv` max 0.816 @ block 11, `mechanism_adapted_probes.csv` +22.5 pp @ sev-4; full-scale numbers (0.913→0.083, +25.3 pp, 5.1×) come from `docs/RESEARCH.md`/Colab. Also discovered `cka_summary.json` uses an **older writer schema** than current harness (see `07` E8). |
 | Remaining unverified | — | Deep notebook cells, exact contents of `output/`/`colab_results/`/`logs/` (provenance only), `paper/main.pdf` rendering, `.freebuff/project-id` contents. |
+
+## 13. Technical-debt verification & mend (2026-10-11)
+
+Every defect claim in `07_TECHNICAL_DEBT_AND_OPEN_QUESTIONS.md` re-verified against the
+code before mending; the three code defects (triage F.1–F.3) were fixed with regression
+tests that were each demonstrated to fail on the pre-fix code.
+
+| Item | Verified | Action |
+|---|---|---|
+| Debt A1 (`src/lora.py` global-RNG aug) | ✓ | Fixed: per-index `default_rng(seed=i)` mirroring the Colab run of record. No committed artifact depends on this path → no re-baseline. Test: `test_lowlight_augmentation_deterministic_per_index` (pre-fix: 11/12 indices changed with access order). |
+| Debt A2 (`apply_lora` in-place) | ✓ | Intentional, documented in-file; left as-is. |
+| Debt A3 (`analyze_seeds.py` None-crash) | ✓ (reproduced: TypeError) | Fixed: missing `severity 0:` line → `-` + `no_clean` CSV status. Test: `test_analyze_seeds_guards_missing_clean_baseline`. |
+| Debt A4 (`run_notebook3.py` output divergence) | ✓ | Real but harmless: no committed artifacts use the three CSV names, no in-repo consumer reads them. Caveat added to `run_notebook3.py` header; no behavior change. |
+| Debt A5 (cross-dataset path broken) | ✓ | Both bugs fixed (`CIFAR10_CLASS_NAMES`; `n_dropped`→`n_skipped` binding). Correction: **no** committed `cross_dataset.csv` exists anywhere. Tests: `test_stl10_helper_maps_shared_classes`, `test_exp_cross_dataset_end_to_end_stubbed`. |
+| Debt E8 (generator pin) | ✓ | Pinned: `results_pilot/` artifacts were introduced by commit `128e9cb` — generator of record; HEAD's writer schema differs. |
+| Suite | ✓ | **26/26 pass, exit 0** (22 existing + 4 new regressions); analysis-stack + torch-path import smokes OK. |

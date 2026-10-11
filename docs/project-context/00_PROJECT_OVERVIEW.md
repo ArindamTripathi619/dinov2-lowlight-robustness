@@ -91,7 +91,7 @@ dataset (CIFAR-10-derived), a synthetic axis.
 
 - PR #1 merged 2026-10-01; PR #2 open (fork→upstream, MERGEABLE); upstream and fork share
   one lineage; both content sets preserved.
-- 22/22 unit tests pass; static site published to Vercel at HEAD.
+- 26/26 unit tests pass; static site published to Vercel at HEAD.
 - Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
   ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
   closed (DIVERGENCE_REPORT §8.5).

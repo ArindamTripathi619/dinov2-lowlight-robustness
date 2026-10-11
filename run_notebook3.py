@@ -10,6 +10,13 @@
 #   Q4  Zero-shot vs probed accuracy gap.
 #   Q5  Ablation: LoRA rank {4, 8, 16} x target-module sets {attn-only, attn+mlp} -> Pareto front.
 #   Q6  Classical mitigation baselines: gamma correction and CLAHE, no training at all.
+#
+# NOTE (output divergence, debt A4): unlike run_notebook3_colab.py / the .ipynb,
+# this plain runner does NOT emit output/quantization_results.csv,
+# output/geometry_results.csv or output/zero_shot_results.csv (it writes a
+# reduced detailed_geometry table plus its own geometry_results summary
+# instead). Downstream consumers must not assume the two runners produce the
+# same output set.
 
 # --- cell separator ---
 

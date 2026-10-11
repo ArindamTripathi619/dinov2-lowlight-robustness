@@ -60,7 +60,7 @@ configs/*.yaml ──► run_experiments.py (registry) ──► src/* (library)
 
 ```bash
 # Unit tests (custom runner, NOT pytest)
-python3 tests/run_tests.py            # expected: 22/22 pass, exit 0
+python3 tests/run_tests.py            # expected: 26/26 pass, exit 0
 
 # Torch-free import smoke (as CI does)
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
