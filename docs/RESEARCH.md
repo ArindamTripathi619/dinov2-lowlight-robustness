@@ -230,6 +230,24 @@ Two further observations. First, the adapted probe is *worse* at sev 1–2 (−1
 
 ---
 
+### 6.5 Drift-weighted allocation on ViT-B — uniform vs drift vs late (v9)
+
+Track 2's question: does the profile→rank rule built from the **ViT-B** drift profile (§5.1) beat a uniform LoRA budget there — the paper's remaining novelty item? The v8 sev-5 profile rows were re-indexed to the 12 LoRA blocks (`tools/reindex_drift_for_lora.py`, METHODS §7.8 consumer note) and mapped to per-block ranks r2–r8 (drift-weighted, 76% of uniform's params). Three arms × three seeds (42/43/44 — the Phase-3 v2 seed protocol, §6.1), kernel `arindamtripathi/vitb-lora-v9` (v1 = seed 42, v2 = seeds 43/44; T4, epochs 10, 5,000 CIFAR-10 images, 70% low_light aug; probe protocol identical within each seed, so each seed's LoRA−original delta is paired). Results over seeds (± sample std; per-seed rows in `output/v9_lora/summary.csv`):
+
+| Arm | Trainable | Mean Δ | Sev-5 Δ |
+|---|---:|---:|---:|
+| drift-weighted (r2–r8 by profile) | 336K (0.39%) | 0.1598 ± 0.0158 | 0.2789 ± 0.0168 |
+| uniform r8 (all 12 blocks) | 442K (0.51%) | 0.1607 ± 0.0209 | 0.2756 ± 0.0096 |
+| late-only r8 (blocks 9–11) | 110K (0.13%) | 0.0730 ± 0.0096 | 0.0944 ± 0.0284 |
+
+**Verdict (n=3).** Drift-weighted is at **statistical parity with uniform while training 24% fewer parameters** — paired per-seed difference drift−uniform: −0.0009 ± 0.0051 (mean), +0.0033 ± 0.0252 (sev-5). The seed-42 advantage (+0.0148 mean, +0.0267 sev-5) **did not replicate** (seeds 43/44 flip sign), so the honest claim is *parity at lower cost*, not superiority. Late-only is clearly worse (≈0.07 vs ≈0.16 mean Δ — a gap many times the seed noise; e.g. at sev-3 seed 42: +0.047 vs uniform's +0.143): drift is distributed across depth, so a last-blocks-only budget leaves most of the mid-severity gap unrepaired. The cross-seed picture matches ViT-S exactly (§6.1: grid parity at 0.78% params) — this is the **second backbone showing parity-at-lower-cost**, which strengthens the framework story (the allocation rule is free performance-wise and cheaper) rather than an "unbeatable allocator" story.
+
+Remaining before the paper: the allocation ablations (β^τ, top-k, inverted-β — DPA_DESIGN §1.4) and sublayer-resolved ranks (mlp vs attn, motivated by §5.1's sublayer finding). Multi-seed: done (42/43/44).
+
+Artifacts: `output/v9_lora/summary.csv` (9 rows) + `output/v9_lora/{uniform,drift,late}/` (seed 42) and `output/v9_lora/seed{43,44}/{uniform,drift,late}/` (per-arm logs, training curves, accuracy plots; adapter `.pt` files recoverable from the kernel output — git-ignored by policy).
+
+---
+
 ## 7. The Findings in Plain Language
 
 1. **DINOv2 fails hard in the dark** (0.91 → 0.09; near-chance at severity 5). Its clean-benchmark reputation does not survive darkness.
@@ -279,7 +297,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 
 - **Synthetic-first design; real data used for validation only.** Our corruptions simulate darkness and frequency loss, not ISP pipelines, color casts, or exposure metadata. The ExDark suite (§6.2) quantifies the sim-to-real gap — adaptation transfers, but only ~9% of the synthetic-axis gain — rather than closing it.
 - **Real-dark validation is bounded by ExDark's luminance range.** ExDark is dark but not extreme; the flat accuracy curve shows the synthetic collapse (an extreme, lower-luminance regime) simply does not manifest there. Findings about *extreme* darkness remain synthetic-only.
-- **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; the ViT-B *profile* replication is done (§5.1), but the ViT-B LoRA arms (v9) and the cross-family atlas are still pending, so generality of the *fix* is not yet verified.
+- **One dataset, one backbone size.** CIFAR-10 at 32×32 (upsampled to 224×224) is far from ImageNet-scale statistics; the ViT-B *profile* replication is done (§5.1) and the ViT-B LoRA arms landed at n=3 — parity with uniform at 24% fewer params (§6.5) — but the cross-family atlas is still pending, so generality of the *fix* across model families is not yet verified.
 - **Corruption-family LoRA arms are single-seed (seed 42).** The §6.1 error bars (±1.2–1.9 pts across seeds) come from the low-light family; family deltas (+19.3 JPEG, +17.7 blur, +6.9 contrast) exceed that noise comfortably, but family-level parity claims (drift vs uniform within blur or contrast) are single-seed and should not be over-read.
 - **Biased CKA estimator in the published allocation.** The drift-weighted ranks derive from the biased estimator's profile; the unbiased recompute shifts 3 of 12 block ranks by one (§5.1) without changing the late-heavy structure. A LoRA re-run on the unbiased profile is planned but unverified.
 - **Linear probe ceiling.** A stronger head might partially compensate for feature drift; we measured the *linear* story deliberately.
@@ -302,7 +320,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 
 ## 11. Future Work
 
-1. **ViT-B generality** — does the late-layer drift signature hold at 86M params? → **profile half done (§5.1): the late-heavy profile replicates on ViT-B/14, with the added mlp > attn sublayer twist; the LoRA-arm half (v9: uniform vs ViT-B-drift-weighted vs late-only) is pending.** A v9-adjacent extension: sublayer-resolved allocation — the ViT-B profiles say MLP sublayers deserve budget before attention.
+1. **ViT-B generality** — does the late-layer drift signature hold at 86M params? → **done: profile half (§5.1, late-heavy replicates on ViT-B/14 with the mlp > attn sublayer twist) + LoRA-arm half (§6.5, n=3: parity with uniform at 24% fewer params).** Remaining before the paper: the allocation ablations and sublayer-resolved allocation — the ViT-B profiles say MLP sublayers deserve budget before attention.
 2. ~~Corruption family expansion~~ — **done end-to-end**: Phase-1 curves + CKA profiles for all four families (§5.1, §6.3) and Phase-3 LoRA arms for low_light, JPEG, blur, contrast — including the blur arms recovered from retained adapters after the session-E log truncation (§6.3). Remaining optional: a noise/saturation family as a third positive control for the frequency-destruction claim.
 3. **LoRA sweep** — rank ∈ {4, 8, 16, 32} × mix ratio ∈ {50/50, 70/30, 90/10}: what is the *minimal* effective intervention?
 4. ~~Seed-replicate the drift and full-FT arms~~ — **done**: all three headline arms now have 3-seed error bars (uniform 0.827 ± 0.012, drift 0.825 ± 0.016, full-FT 0.831 ± 0.019; ranges fully overlap).

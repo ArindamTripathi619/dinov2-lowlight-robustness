@@ -255,7 +255,7 @@ Third-architecture replication of the drift profile (RESEARCH §5.1) plus the Tr
 
 **Headline numbers (sev 5, unbiased CKA drop).** Block-level: low_light 0.179 (b0) → 0.803 / 0.866 / 0.859 (b9 / b10 / b11); jpeg 0.127 (b0) → 0.705 / 0.790 / 0.785. Sublayer level: **mlp drop > attn drop in all 12 blocks under both corruptions** (low_light gaps 0.015–0.159, max at b2: 0.727 vs 0.681; jpeg gaps 0.017–0.108, max at b1: 0.456 vs 0.358). Gate columns at sev 5: best ρ jpeg 0.876 (energy_drop) / 0.882 (cos_drop) vs low_light 0.692 / 0.681, top-5 containment 0.4–0.6 — third-architecture NO-GO.
 
-**v9 consumer note (re-indexing).** The drift CSVs key `layer` by *profiled-module* row (0–36, in the `agreement_report.json` module order: `patch_embed`, then per block `blocks.k`, `blocks.k.attn`, `blocks.k.mlp`). The Phase-3 LoRA consumer (`run_lora_simple_colab.py::load_drift_profile`) expects **dense 0..n_blocks−1 block indices** — v9 must select the 12 `blocks.k` rows (regex `^blocks\.\d+$`) and re-index them 0–11 before `--drift-csv` use.
+**v9 consumer note (re-indexing).** The drift CSVs key `layer` by *profiled-module* row (0–36, in the `agreement_report.json` module order: `patch_embed`, then per block `blocks.k`, `blocks.k.attn`, `blocks.k.mlp`). The Phase-3 LoRA consumer (`run_lora_simple_colab.py::load_drift_profile`) expects **dense 0..n_blocks−1 block indices** — v9 must select the 12 `blocks.k` rows (regex `^blocks\.\d+$`) and re-index them 0–11 before `--drift-csv` use (implemented in `tools/reindex_drift_for_lora.py`; v9 run 2026-10-09).
 
 ### 7.9 ExDark real-dark suite (`run_exdark_baseline.py`)
 

@@ -124,9 +124,10 @@ shift-conditioned, model-conditioned, measured direction + the shared-profile de
   arm) *and* top-k module selection for SSR recalibration (§4). This coupling —
   diagnostic reused across both arms — is what makes the framework coherent rather
   than two methods.
-- **Allocation-rule ablations to run** (Track 2 v9 / Track 3): r ∝ β_m (current) vs
-  r ∝ β^τ (sharpen) vs hard top-k vs uniform (null) — the uniform null already exists
-  (grid parity result); RepSAM-style inverted-β is the natural falsification arm.
+- **Allocation-rule ablations to run** (Track 2 extension / Track 3): r ∝ β_m (current)
+  vs r ∝ β^τ (sharpen) vs hard top-k vs uniform (null) — uniform nulls exist for ViT-S
+  (grid parity) and ViT-B (v9, RESEARCH §6.5); RepSAM-style inverted-β is the natural
+  falsification arm.
 - **Profiling-set size**: n=1000 suffices (cov_shift's n=100 instability is a
   warning); profiling images may be unlabeled and drawn from the deployment-ish
   distribution — no labels consumed anywhere.
@@ -147,10 +148,11 @@ not proxies. ResNet-50 late-heavy rows already exist (§1.2) as the first atlas 
 ## 3. Allocation rule (Tracks 2–3 — pending)
 
 Current rule `r_m = round(r · β_m / max β)` produced grid parity with uniform and
-full-FT at 0.78% params (ViT-S, 4 corruptions, 3 seeds). ViT-B (Track 2 v9) and the
-atlas families (Track 3) generalize it; §1.4 lists the ablation set (β^τ, top-k,
-inverted-β falsification). Routed adapters (routing derived from β) stay parked as the
-end-game ablation per ROADMAP §5.
+full-FT at 0.78% params (ViT-S, 4 corruptions, 3 seeds). The first ViT-B point landed
+2026-10-10 (v9, n=3: parity with uniform at 24% fewer params — RESEARCH §6.5, the same
+parity-at-lower-cost picture ViT-S showed); the atlas families (Track 3) generalize it
+further; §1.4 lists the ablation set (β^τ, top-k, inverted-β falsification). Routed adapters (routing derived from β) stay parked
+as the end-game ablation per ROADMAP §5.
 
 ---
 
@@ -189,8 +191,9 @@ Baselines stay: TENT, BN-adapt (Schneider-style adapt-all), enhancement front-en
 ## 5. Evaluation plan (Tracks 2–5 — pending)
 
 Claims to close, in dependency order: (a) ViT-B profile + drift-weighted LoRA
-(Track 2, Kaggle v8/v9) — cross-architecture pair ViT-S/ViT-B + the ViT-B generality
-item; (b) atlas across 5+ families (Track 3) — the "CNNs early vs ViTs late" question
+(Track 2, Kaggle v8/v9) — **closed at n=3** (RESEARCH §6.5; ablations
+before submission) — cross-architecture pair ViT-S/ViT-B + the ViT-B generality item;
+(b) atlas across 5+ families (Track 3) — the "CNNs early vs ViTs late" question
 phrased as a measurement, with ResNet-50 already late-heavy (§1.2); (c) SSR arms vs
 TENT/BN-adapt on the atlas models (Track 4); (d) real-dark dense eval (Track 5).
 Protocol parity rules carry over: matched-noise rng 1000+severity, probe-on-clean
