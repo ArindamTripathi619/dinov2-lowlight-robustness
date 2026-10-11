@@ -135,7 +135,7 @@ Legacy/shared image + plotting utilities, **duplicating** parts of `src/`:
 | `run_notebook1{,_colab}.py` | Phase 1 curves | imports `src.data/corruptions/models` |
 | `run_notebook2{,_colab}.py` | Phase 2 CKA/mechanism | — |
 | `run_notebook3{,_colab}.py` | Phase 3 remediation/LoRA | plain runner omits 3 CSVs (Debt) |
-| `run_lora_simple_colab.py` | 6-arm LoRA grid | aug seed fix at 275-281 |
+| `run_lora_simple_colab.py` | Parameterized LoRA arm grid (`--layers` all/late/drift/btau/topk/invbeta/fullft) | aug seed fix at 275-281 |
 | `run_readout_repair.py` | Readout-staleness repair | hardened paired-perm + Wilson CI |
 | `run_exdark_baseline.py` | Real-dark baseline + CLAHE | uses opencv `clahe_enhance` |
 | `run_vitb_generality.py` | ViT-B/14 replication | — |

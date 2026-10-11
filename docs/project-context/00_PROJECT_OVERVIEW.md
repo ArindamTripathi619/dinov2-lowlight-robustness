@@ -95,8 +95,11 @@ dataset (CIFAR-10-derived), a synthetic axis.
 - Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
   ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
   closed (DIVERGENCE_REPORT §8.5).
-- Open: Track 3 cross-family atlas; v9 allocation ablations; full-scale paper numbers
-  (pilot-scale bars/macros currently in the text).
+- v9 allocation-shape ablations done at n=3 (2026-10-11, `output/v9_ablation/`): β^τ,
+  top-k and inverted-β all tie uniform/drift at budget-matched Σr — allocation shape
+  inert at ~0.4% params, coverage discriminates (RESEARCH §6.6).
+- Open: Track 3 cross-family atlas; sublayer-resolved allocation; full-scale paper
+  numbers (pilot-scale bars/macros currently in the text).
 
 ## Where to start reading
 

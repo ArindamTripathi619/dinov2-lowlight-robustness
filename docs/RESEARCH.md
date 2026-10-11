@@ -242,9 +242,27 @@ Track 2's question: does the profile→rank rule built from the **ViT-B** drift 
 
 **Verdict (n=3).** Drift-weighted is at **statistical parity with uniform while training 24% fewer parameters** — paired per-seed difference drift−uniform: −0.0009 ± 0.0051 (mean), +0.0033 ± 0.0252 (sev-5). The seed-42 advantage (+0.0148 mean, +0.0267 sev-5) **did not replicate** (seeds 43/44 flip sign), so the honest claim is *parity at lower cost*, not superiority. Late-only is clearly worse (≈0.07 vs ≈0.16 mean Δ — a gap many times the seed noise; e.g. at sev-3 seed 42: +0.047 vs uniform's +0.143): drift is distributed across depth, so a last-blocks-only budget leaves most of the mid-severity gap unrepaired. The cross-seed picture matches ViT-S exactly (§6.1: grid parity at 0.78% params) — this is the **second backbone showing parity-at-lower-cost**, which strengthens the framework story (the allocation rule is free performance-wise and cheaper) rather than an "unbeatable allocator" story.
 
-Remaining before the paper: the allocation ablations (β^τ, top-k, inverted-β — DPA_DESIGN §1.4) and sublayer-resolved ranks (mlp vs attn, motivated by §5.1's sublayer finding). Multi-seed: done (42/43/44).
+The §1.4 allocation-shape ablations (β^τ, top-k, inverted-β) landed next (§6.6: shape-inert at this budget — coverage discriminates). Remaining before the paper: sublayer-resolved ranks (mlp vs attn, motivated by §5.1's sublayer finding). Multi-seed: done (42/43/44).
 
 Artifacts: `output/v9_lora/summary.csv` (9 rows) + `output/v9_lora/{uniform,drift,late}/` (seed 42) and `output/v9_lora/seed{43,44}/{uniform,drift,late}/` (per-arm logs, training curves, accuracy plots; adapter `.pt` files recoverable from the kernel output — git-ignored by policy).
+
+---
+
+### 6.6 Allocation-shape ablations on ViT-B — β^τ, top-k, inverted-β (v9-abl)
+
+§6.5 left open whether the *shape* of the drift-weighted allocation does any work, or whether any full-12-block allocation of similar size ties — late-only being the only clear loser. DPA_DESIGN §1.4 pre-registered the set: sharpened β^τ, hard top-k, and RepSAM-style **inverted-β as the falsification arm** (most rank in the *least*-drifted blocks). All three arms are **budget-matched to the drift rule's own Σr = 73** (336K trainable, 0.39%; top-k at Σr = 72, 332K, 0.38%), so allocation *shape* is the only thing that varies. Rank vectors (fixed by the profile — identical across seeds): btau τ=2.0 `{0:1, 1:2, 2:2, 3:4, 4:7, 5:7, 6:8, 7:7, 8:8, 9:9, 10:9, 11:9}`; topk k=9 `{3–11: 8}`; invbeta `{0:18, 1:13, 2:13, 3:9, 4:4, 5:4, 6:3, 7:3, 8:3, 9:1, 10:1, 11:1}`. Protocol identical to §6.5 (ViT-B/14, low_light, epochs 10, 5,000 CIFAR-10 images, 70% aug, seeds 42/43/44, paired probe protocol). Arms live in `run_lora_simple_colab.py --layers {btau,topk,invbeta}`; kernel `arindamtripathi/vitb-lora-abl` (v1, T4, 19,204 s ≈ 5.3 h, exit 0, marker `LORA_V9_ABL_COMPLETE`), built by `scripts/build_kaggle_kernel.py --variant lora-abl` with tail `scripts/kaggle/v9_ablation.sh`. Results (n=3 over seeds, ± sample std; §6.5 arms included as references):
+
+| arm | Σr | trainable | mean Δ | sev-5 Δ |
+|---|---:|---:|---:|---:|
+| uniform r8 (§6.5 ref) | 96 | 442K (0.51%) | 0.1607 ± 0.0209 | 0.2756 ± 0.0096 |
+| drift r2–r8 (§6.5 ref) | 73 | 336K (0.39%) | 0.1598 ± 0.0158 | 0.2789 ± 0.0168 |
+| **btau** (r ∝ β^2.0) | 73 | 336K (0.39%) | 0.1626 ± 0.0176 | 0.2844 ± 0.0084 |
+| **topk** (k=9, r8) | 72 | 332K (0.38%) | 0.1596 ± 0.0189 | 0.2945 ± 0.0157 |
+| **invbeta** (falsification) | 73 | 336K (0.39%) | 0.1620 ± 0.0152 | 0.2822 ± 0.0135 |
+
+**Verdict (n=3): the allocation shape is inert at this budget — coverage is what discriminates.** All five full-12-block configurations land inside a 0.003 band of mean Δ (0.1596–0.1626), an order of magnitude narrower than the cross-seed spread (0.016–0.021). Paired same-seed diffs vs drift: btau +0.0028 ± 0.0020, topk −0.0002 ± 0.0038, invbeta +0.0022 ± 0.0006. **The falsification arm did not falsify**: inverted-β — which puts 18 rank units at block 0 (the *least*-drifted block) and 1 at blocks 9–11 (the most-drifted) — matches uniform almost exactly (paired invbeta−uniform +0.0013 ± 0.0057; per-seed +0.0061 / −0.0050 / +0.0028) and still beats late-only on every seed (+0.0891 ± 0.0097). Only restricting adaptation to the last three blocks clearly loses (§6.5). This *sharpens* §6.5's claim rather than weakening it: the drift rule's demonstrated value on ViT-B is the **param saving at parity** (24% fewer than uniform — the same picture ViT-S showed), not a privileged rank shape; and parity-at-lower-cost cannot be an artifact of a lucky shape, because even the anti-profile ties. Open question this raises (not a blocker): does shape start to matter below ~0.4% budget or under mixed corruptions — a shape×budget interaction testable by a budget sweep on the Track 3 atlas models. Sanity gates: budget match exact for btau/invbeta, top-k within 1.4%; the pre-push CPU smoke reproduced the v9-of-record drift ranks byte-identically before the kernel went out; all 9 kernel runs finished with 0 tracebacks.
+
+Artifacts: `output/v9_ablation/summary.csv` (9 rows) + `output/v9_ablation/seed{42,43,44}/{btau,topk,invbeta}/` (per-arm logs, training curves, accuracy plots; adapter `.pt` recoverable from the kernel output — git-ignored by policy); kernel log `output/v9_ablation/kernel_log.txt`. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-abl -p <dir>`.
 
 ---
 
@@ -258,6 +276,7 @@ Artifacts: `output/v9_lora/summary.csv` (9 rows) + `output/v9_lora/{uniform,drif
 6. **Synthetic darkness ≠ real darkness.** On real low-light photography (ExDark), frozen accuracy is flat across the luminance axis and CLAHE buys nothing — but synthetic-dark adapters still transfer a small (+1.9 pt) benefit. The synthetic regime is harsher than real darkness; sim-to-real gains are real but ~9% of synthetic-axis gains.
 7. **The failure and the fix generalize across frequency-destroying corruptions.** Blur and JPEG reproduce the late-layer drift signature and the cliff; contrast (frequency-preserving) does not. Drift-weighted LoRA posts its biggest win on JPEG (+19.3 pts mean) and gracefully degrades to uniform on contrast — the CKA diagnostic allocates budget only where the diagnostic says drift lives.
 8. **Half the deep-regime damage is a stale readout — the other half is the features.** A severity-adapted probe recovers up to +30 pts (sev 5) but still only reaches 0.38 vs 0.91 clean; and its predictions collapse onto a single class (top1_share 0.73, "frog") as darkness deepens. Feature adaptation, not readout retraining, is the binding constraint — which is why LoRA works.
+9. **How you slice a full-depth budget barely matters; touching the right depth does.** At ~0.4% trainable params, sharpening the drift profile (β^τ), dropping the three least-drifted blocks (top-k), or even *inverting* the profile all land within seed noise of uniform — but restricting adaptation to the last three blocks clearly loses. The drift rule earns its keep as a *param saving at parity*, not as a privileged shape (§6.6).
 
 ---
 
@@ -320,7 +339,7 @@ Two related issues surfaced during a full-codebase audit and re-run. First, augm
 
 ## 11. Future Work
 
-1. **ViT-B generality** — does the late-layer drift signature hold at 86M params? → **done: profile half (§5.1, late-heavy replicates on ViT-B/14 with the mlp > attn sublayer twist) + LoRA-arm half (§6.5, n=3: parity with uniform at 24% fewer params).** Remaining before the paper: the allocation ablations and sublayer-resolved allocation — the ViT-B profiles say MLP sublayers deserve budget before attention.
+1. **ViT-B generality** — does the late-layer drift signature hold at 86M params? → **done: profile half (§5.1, late-heavy replicates on ViT-B/14 with the mlp > attn sublayer twist) + LoRA-arm half (§6.5, n=3: parity with uniform at 24% fewer params).** Remaining before the paper: sublayer-resolved allocation — the ViT-B profiles say MLP sublayers deserve budget before attention (the §1.4 shape ablations closed 2026-10-11 at §6.6: shape-inert, coverage discriminates).
 2. ~~Corruption family expansion~~ — **done end-to-end**: Phase-1 curves + CKA profiles for all four families (§5.1, §6.3) and Phase-3 LoRA arms for low_light, JPEG, blur, contrast — including the blur arms recovered from retained adapters after the session-E log truncation (§6.3). Remaining optional: a noise/saturation family as a third positive control for the frequency-destruction claim.
 3. **LoRA sweep** — rank ∈ {4, 8, 16, 32} × mix ratio ∈ {50/50, 70/30, 90/10}: what is the *minimal* effective intervention?
 4. ~~Seed-replicate the drift and full-FT arms~~ — **done**: all three headline arms now have 3-seed error bars (uniform 0.827 ± 0.012, drift 0.825 ± 0.016, full-FT 0.831 ± 0.019; ranges fully overlap).

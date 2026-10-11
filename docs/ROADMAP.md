@@ -5,7 +5,11 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-10: Track 2 v9 DONE at n=3 (3 ViT-B LoRA arms × seeds 42/43/44,
+*Last updated 2026-10-11: v9 allocation-shape ablations DONE at n=3 (β^τ / top-k /
+inverted-β falsification, kernel `vitb-lora-abl`) — all shapes tie uniform/drift at
+budget-matched Σr, so the allocation shape is inert at ~0.4% params; coverage
+discriminates (RESEARCH §6.6).
+Before that (10-10): Track 2 v9 DONE at n=3 (3 ViT-B LoRA arms × seeds 42/43/44,
 kernel `vitb-lora-v9` — drift-weighted at parity with uniform while training 24% fewer
 params, RESEARCH §6.5); Track 0 residual (deterministic-noise) closed by agreement
 (`DIVERGENCE_REPORT` §8.5).
@@ -32,7 +36,8 @@ Tracks 3–6 remain open.*
 - Landed since this roadmap was written: **PR #1 merged upstream** (2026-10-01,
   `9bc6b50` — fork replayed onto the rewritten root; `paper/`, `src/`, `tests/`, CI,
   `configs/` integrated), **blur re-evals folded** (`67a2dc4`), **Track 2 v8 ViT-B
-  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done at n=3** (`output/v9_lora/`).
+  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done at n=3** (`output/v9_lora/`),
+  **v9 allocation-shape ablations done at n=3** (`output/v9_ablation/`, RESEARCH §6.6).
   Open: Tracks 3–6.
 
 **Decision (advisor's two rankings converge on this):** the paper is **Drift-Profiled
@@ -136,9 +141,16 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   replicate; **late-only is far short** — drift is distributed across depth, not
   confined to the last blocks. Second backbone confirming the ViT-S
   parity-at-lower-cost story (RESEARCH §6.1).
-- [ ] v9 paper-grade extension: sublayer-resolved allocation (mlp+attn targets ranked by
-  the v8 profiles, the §5.1-motivated variant) + §1.4 ablation set (β^τ, top-k,
-  inverted-β falsification) — multi-seed done (42/43/44).
+- [x] **§1.4 allocation-shape ablations DONE at n=3 (2026-10-11, kernel `vitb-lora-abl`,
+  T4, 19,204 s, exit 0, marker `LORA_V9_ABL_COMPLETE`):** btau (r ∝ β^τ, τ=2.0) /
+  topk (k=9, r8) / invbeta (inverted-β falsification), all budget-matched to the drift
+  rule's Σr=73 (topk at 72), × seeds 42/43/44. All three tie uniform and drift
+  (mean Δ 0.1626 / 0.1596 / 0.1620 vs 0.1607 / 0.1598) — **allocation shape inert at
+  this budget; coverage discriminates** (late-only still clearly worse). Artifacts
+  `output/v9_ablation/`, verdict RESEARCH §6.6.
+- [ ] v9 paper-grade extension (remainder): sublayer-resolved allocation (mlp+attn
+  targets ranked by the v8 profiles, the §5.1-motivated variant) — multi-seed done
+  (42/43/44).
 - Claims it closes: (a) the current paper's ViT-B generality item; (b) first
   cross-architecture profile pair (ViT-S vs ViT-B).
 - Fold into RESEARCH §6 + the future framework paper as the ViT data point.
@@ -254,7 +266,8 @@ Next up, in order:
    fewer params** (0.1598±0.0158 vs 0.1607±0.0209 mean Δ; paired −0.0009±0.0051),
    late-only clearly worse (0.0730±0.0096) — artifacts `output/v9_lora/`, details
    RESEARCH §6.5. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-v9 -p <dir>`.
-   Open follow-ups: sublayer-resolved ranks + §1.4 ablations.
+   Open follow-ups: sublayer-resolved ranks only (§1.4 shape ablations closed
+   2026-10-11 — kernel `vitb-lora-abl`, RESEARCH §6.6).
 6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
    (`run_drift_proxy.py` / `run_drift_profile.py`).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —

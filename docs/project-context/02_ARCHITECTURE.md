@@ -76,8 +76,9 @@ produced by `run_pilot_cpu.py` (hardcoded `OUTDIR = "results_pilot"`, line 31) a
 - `run_notebook{1,2,3}.py` reinterpret the three notebooks as scripts; the `_colab`
   variants target GPU Colab. **Notebooks are self-contained** (duplicate `src/` logic,
   do not import `src`).
-- LoRA-specific runners (`run_lora_simple_colab.py` = 6-arm grid incl. drift-weighted
-  allocation; `run_lora_finetune_colab.py`; `run_lora_smoke_colab.py`).
+- LoRA-specific runners (`run_lora_simple_colab.py` = parameterized arm grid incl.
+  drift-weighted allocation + v9-abl allocation-shape arms btau/topk/invbeta;
+  `run_lora_finetune_colab.py`; `run_lora_smoke_colab.py`).
 - Special studies listed in `01_REPOSITORY_MAP.md`.
 
 ### 5. Artifact layer
