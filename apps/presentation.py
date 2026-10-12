@@ -1426,13 +1426,14 @@ def _render_vitb():
     with st.expander("All 9 rows (output/v9_lora/summary.csv)"):
         st.dataframe(v9, use_container_width=True, hide_index=True)
 
-    seed9 = st.radio("Figures by seed", ["42", "43", "44"], horizontal=True,
-                     key="vitb_v9_seed")
-    base9 = {"42": "output/v9_lora", "43": "output/v9_lora/seed43",
-             "44": "output/v9_lora/seed44"}[seed9]
-    for cc, arm9 in zip(st.columns(3), ["uniform", "drift", "late"]):
-        with cc:
-            _img(f"{base9}/{arm9}/lora_vs_orig_accuracy.png", f"{arm9} \u2014 seed {seed9}")
+    seed_tabs = st.tabs(["seed 42 (of record)", "seed 43", "seed 44"])
+    for tab9, seed9 in zip(seed_tabs, ["42", "43", "44"]):
+        with tab9:
+            base9 = "output/v9_lora" if seed9 == "42" else f"output/v9_lora/seed{seed9}"
+            for cc, arm9 in zip(st.columns(3), ["uniform", "drift", "late"]):
+                with cc:
+                    _img(f"{base9}/{arm9}/lora_vs_orig_accuracy.png",
+                         f"{arm9} \u2014 seed {seed9}")
 
     # -- Allocation-shape ablations: shape inert (RESEARCH \u00a76.6) ---------
     st.subheader("Allocation-shape ablations \u2014 the shape is inert, coverage discriminates")

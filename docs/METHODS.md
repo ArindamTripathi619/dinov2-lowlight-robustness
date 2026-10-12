@@ -290,6 +290,7 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 | Readout-repair decomposition | 42 | test draw, probe split, permutation resampling (5,000) |
 | ViT-B drift-profile sweep (v8) | 42 | n = 1,000 test draw (`load_cifar10_subset`); eval corruption rng `1000 + severity` per §7.3; harness `run_drift_profile.py`, kernel `vitb-drift-profile` v1 |
 | Blur adapter re-evaluation | 42 | test draw + eval corruption (`1000 + severity`), identical to §7.3; adapters from sessionE (seed 42) |
+| Track 2 v9 LoRA arms + allocation-shape ablations | 42/43/44 | per-arm test draw, init, shuffling; identical across arms within a seed for paired comparisons; kernels `vitb-lora-v9`, `vitb-lora-abl` — protocol + results in RESEARCH §6.5/§6.6 |
 
 ---
 

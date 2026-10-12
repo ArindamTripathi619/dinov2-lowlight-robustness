@@ -2,7 +2,8 @@
 
 *Design doc for the methods paper (docs/ROADMAP.md §1 decision). Created 2026-10-03.*
 *§1 is complete: profiler selection is settled by the Track 1 gate run (commit 5e7afe4)
-and the prior-art searches (§1.3, log in §6). §2–§5 are scoped stubs pending Tracks 2–4.
+and the prior-art searches (§1.3, log in §6). §2–§5 are scoped stubs pending Tracks 3–4
+(Track 2 closed 2026-10-11 apart from the sublayer-resolved extension).
 Claims in this doc are deliberately narrow — see PAPER_RELATED_WORK.md §2.7.*
 
 ---
