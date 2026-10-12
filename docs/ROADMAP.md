@@ -114,7 +114,8 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   "cheap proxy". **The paper does not die here.**
 - [x] `docs/DPA_DESIGN.md` §1 (after the §6 prior-art searches; records the gate outcome
   above as the profiler-selection evidence, the allocation-signal taxonomy, and the
-  SSR adjacency; §2–§5 stubs pending Tracks 2–4).
+  SSR adjacency; §2–§5 stubs pending Tracks 3–4 — Track 2 closed 2026-10-11, only the
+  sublayer-resolved extension open).
 - Note: ResNet-50 profile itself is strongly late-heavy under both corruptions
   (layer4.2 CKA drop 0.64 blur / 0.79 low_light vs layer1 0.06/0.14) — first CNN data
   point for Track 3's cross-architecture story; attn/mlp sub-modules of ViT-S also
