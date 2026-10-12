@@ -103,7 +103,10 @@ seeded protocol (`default_rng(1000 + severity)`) drives every committed artifact
    `docs/DIVERGENCE_REPORT.md` §8.5); byte-exact re-run generator pinning stays under E8.
 2. **[Closed 2026-10-10] GPU-scale drift-weighted LoRA on ViT-B.** v9 ran all three arms
    × seeds 42/43/44 (kernel `vitb-lora-v9`): parity with uniform at 24% fewer params —
-   `output/v9_lora/`, RESEARCH §6.5. Allocation ablations still needed before paper claims.
+   `output/v9_lora/`, RESEARCH §6.5. The allocation-shape ablations (β^τ / top-k /
+   inverted-β) closed 2026-10-11 at n=3 (kernel `vitb-lora-abl`, `output/v9_ablation/`,
+   RESEARCH §6.6): all shapes tie uniform/drift — shape inert, coverage discriminates;
+   only sublayer-resolved allocation remains before paper claims.
 3. **[Question] Full-scale paper numbers.** When the merged base has full-scale results, all
    tables/figures/macros must be regenerated and the `[pending]` placeholders removed.
 4. **[Closed 2026-10-09] Optional residual of ROADMAP Track 0.** Deterministic-noise

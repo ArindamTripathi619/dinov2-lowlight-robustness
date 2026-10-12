@@ -1,0 +1,821 @@
+[{"stream_name":"stdout","time":0.826294363,"data":"CWD: /kaggle/working\n"}
+,{"stream_name":"stdout","time":0.826865178,"data":"staged run_lora_simple_colab.py\n"}
+,{"stream_name":"stdout","time":0.827061972,"data":"staged drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":0.82729738,"data":"staged v9_ablation.sh\n"}
+,{"stream_name":"stdout","time":0.892284943,"data":"mount hits: [('dir', '/kaggle/input/datasets/arindamtripathi/cifar10-python')]\n"}
+,{"stream_name":"stdout","time":0.892323499,"data":"using dir /kaggle/input/datasets/arindamtripathi/cifar10-python\n"}
+,{"stream_name":"stdout","time":19.004154924,"data":"data ready: ['batches.meta', 'data_batch_1', 'data_batch_2'] ...\n"}
+,{"stream_name":"stdout","time":27.619684018,"data":"cuda: True\n"}
+,{"stream_name":"stdout","time":27.664659842,"data":"gpu: Tesla T4\n"}
+,{"stream_name":"stdout","time":46.061300071,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":46.061337863,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":46.066068396,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":46.066089053,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":46.067170992,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":46.067182161,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":47.4152667,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":47.415293386,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":47.41529961,"data":"  rank=8 alpha=16 mix=0.7 layers=btau\n"}
+,{"stream_name":"stdout","time":47.415304799,"data":"  seed=42 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":47.415310052,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":47.415315335,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":47.415320307,"data":"\n"}
+,{"stream_name":"stdout","time":47.415325296,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":47.41533124,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":47.415336153,"data":"\n"}
+,{"stream_name":"stdout","time":47.415340498,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":47.415344966,"data":"Downloading: \"https://github.com/facebookresearch/dinov2/zipball/main\" to /root/.cache/torch/hub/main.zip\n"}
+,{"stream_name":"stdout","time":47.415349833,"data":"Downloading: \"https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth\" to /root/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth\n"}
+,{"stream_name":"stdout","time":48.439187191,"data":"\r  0%|          | 0.00/330M [00:00\u003c?, ?B/s]\r  3%|▎         | 8.75M/330M [00:00\u003c00:04, 76.5MB/s]\r 15%|█▌        | 50.9M/330M [00:00\u003c00:01, 275MB/s] \r 26%|██▌       | 85.5M/330M [00:00\u003c00:00, 313MB/s]\r 36%|███▋      | 120M/330M [00:00\u003c00:00, 332MB/s] \r 47%|████▋     | 154M/330M [00:00\u003c00:00, 338MB/s]\r 57%|█████▋    | 188M/330M [00:00\u003c00:00, 343MB/s]\r 67%|██████▋   | 221M/330M [00:00\u003c00:00, 339MB/s]\r 77%|███████▋  | 256M/330M [00:00\u003c00:00, 340MB/s]\r 90%|████████▉ | 297M/330M [00:00\u003c00:00, 367MB/s]\r100%|██████████| 330M/330M [00:01\u003c00:00, 338MB/s]\n"}
+,{"stream_name":"stdout","time":49.194688547,"data":"\n"}
+,{"stream_name":"stdout","time":49.194717918,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":49.19472424,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":49.194728662,"data":"  btau(tau=2.0) ranks (drift budget Σr=73, this arm Σr=73): {0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":49.194733784,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":49.194752062,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":49.194756594,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":49.194760257,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":49.194763776,"data":"\n"}
+,{"stream_name":"stdout","time":49.194767132,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":237.384455535,"data":"  Epoch 1/10: loss=0.5675, acc=0.8222\n"}
+,{"stream_name":"stdout","time":435.413370036,"data":"  Epoch 2/10: loss=0.1621, acc=0.9484\n"}
+,{"stream_name":"stdout","time":633.293512315,"data":"  Epoch 3/10: loss=0.0978, acc=0.9700\n"}
+,{"stream_name":"stdout","time":831.977107302,"data":"  Epoch 4/10: loss=0.0622, acc=0.9846\n"}
+,{"stream_name":"stdout","time":1030.659387767,"data":"  Epoch 5/10: loss=0.0439, acc=0.9888\n"}
+,{"stream_name":"stdout","time":1229.167189171,"data":"  Epoch 6/10: loss=0.0226, acc=0.9962\n"}
+,{"stream_name":"stdout","time":1427.642120513,"data":"  Epoch 7/10: loss=0.0131, acc=0.9994\n"}
+,{"stream_name":"stdout","time":1626.120306666,"data":"  Epoch 8/10: loss=0.0069, acc=1.0000\n"}
+,{"stream_name":"stdout","time":1824.768480859,"data":"  Epoch 9/10: loss=0.0046, acc=1.0000\n"}
+,{"stream_name":"stdout","time":2142.545588231,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":2255.051243387,"data":"  Epoch 10/10: loss=0.0032, acc=1.0000\n"}
+,{"stream_name":"stdout","time":2255.051292324,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":2255.05129992,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":2255.051306283,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051312382,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":2255.05131814,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.051323947,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.051330096,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.051335462,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.051341002,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.0513462,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":2255.051351793,"data":"\n"}
+,{"stream_name":"stdout","time":2255.05135702,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":2255.051362643,"data":"  severity 0: 0.977\n"}
+,{"stream_name":"stdout","time":2255.051368136,"data":"  severity 1: 0.973\n"}
+,{"stream_name":"stdout","time":2255.051373714,"data":"  severity 2: 0.963\n"}
+,{"stream_name":"stdout","time":2255.051379677,"data":"  severity 3: 0.930\n"}
+,{"stream_name":"stdout","time":2255.051385479,"data":"  severity 4: 0.810\n"}
+,{"stream_name":"stdout","time":2255.051402389,"data":"  severity 5: 0.450\n"}
+,{"stream_name":"stdout","time":2255.051407473,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051411758,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":2255.051416174,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051420447,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":2255.051424907,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":2255.051429203,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051432737,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":2255.051437112,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":2255.051442041,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":2255.051446598,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051450577,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=btau\n"}
+,{"stream_name":"stdout","time":2255.051455325,"data":"  rank=8, alpha=16, per-block ranks={0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":2255.051460194,"data":"  mix=0.7, seed=42, epochs=10\n"}
+,{"stream_name":"stdout","time":2255.051464399,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":2255.051468295,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":2255.051472918,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051476929,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":2255.051482005,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":2255.051486531,"data":"0              0.9500     0.9767    +0.0267\n"}
+,{"stream_name":"stdout","time":2255.051491047,"data":"1              0.9567     0.9733    +0.0167\n"}
+,{"stream_name":"stdout","time":2255.05149528,"data":"2              0.9333     0.9633    +0.0300\n"}
+,{"stream_name":"stdout","time":2255.051500049,"data":"3              0.7867     0.9300    +0.1433\n"}
+,{"stream_name":"stdout","time":2255.051504319,"data":"4              0.4167     0.8100    +0.3933\n"}
+,{"stream_name":"stdout","time":2255.051508763,"data":"5              0.1567     0.4500    +0.2933\n"}
+,{"stream_name":"stdout","time":2255.051513353,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051517842,"data":"Mean accuracy: Original=0.7000, LoRA=0.8506, Delta=+0.1506\n"}
+,{"stream_name":"stdout","time":2255.051522278,"data":"Sev 5 (darkest): Original=0.1567, LoRA=0.4500, Delta=+0.2933\n"}
+,{"stream_name":"stdout","time":2255.051526894,"data":"\n"}
+,{"stream_name":"stdout","time":2255.051531364,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":2255.051535493,"data":"✅ LoRA improved mean accuracy by +0.1506\n"}
+,{"stream_name":"stdout","time":2255.051541507,"data":"✅ LoRA improved worst-case (sev 5) by +0.2933\n"}
+,{"stream_name":"stdout","time":2255.051546313,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":2270.361547219,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":2270.368854518,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":2270.368873558,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":2270.369664075,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":2270.369676129,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":2270.370264725,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":2270.370271698,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":2272.158288186,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":2272.158315367,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":2272.158320411,"data":"  rank=8 alpha=16 mix=0.7 layers=topk\n"}
+,{"stream_name":"stdout","time":2272.158324108,"data":"  seed=42 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":2272.158328808,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":2272.158332562,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":2272.158336206,"data":"\n"}
+,{"stream_name":"stdout","time":2272.158339807,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":2272.158343949,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":2272.158347947,"data":"\n"}
+,{"stream_name":"stdout","time":2272.158351767,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":2272.158356205,"data":"\n"}
+,{"stream_name":"stdout","time":2272.158360001,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":2272.158364275,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":2272.158368528,"data":"  topk(k=9,r=8) ranks (drift budget Σr=73, this arm Σr=72): {3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":2272.158373709,"data":"Total params: 86,912,256\n"}
+,{"stream_name":"stdout","time":2272.158377385,"data":"Trainable (LoRA/adapters): 331,776 (0.38%)\n"}
+,{"stream_name":"stdout","time":2272.158381088,"data":"LoRA modules: 18 across 9 targeted block(s)\n"}
+,{"stream_name":"stdout","time":2272.158384814,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":2272.158388687,"data":"\n"}
+,{"stream_name":"stdout","time":2272.158392573,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":2442.456161135,"data":"  Epoch 1/10: loss=0.5980, acc=0.8138\n"}
+,{"stream_name":"stdout","time":2612.36857405,"data":"  Epoch 2/10: loss=0.1669, acc=0.9458\n"}
+,{"stream_name":"stdout","time":2782.539425544,"data":"  Epoch 3/10: loss=0.1044, acc=0.9658\n"}
+,{"stream_name":"stdout","time":2951.959681444,"data":"  Epoch 4/10: loss=0.0711, acc=0.9782\n"}
+,{"stream_name":"stdout","time":3121.554352286,"data":"  Epoch 5/10: loss=0.0495, acc=0.9856\n"}
+,{"stream_name":"stdout","time":3291.465602196,"data":"  Epoch 6/10: loss=0.0263, acc=0.9958\n"}
+,{"stream_name":"stdout","time":3461.232584564,"data":"  Epoch 7/10: loss=0.0167, acc=0.9986\n"}
+,{"stream_name":"stdout","time":3630.509978355,"data":"  Epoch 8/10: loss=0.0095, acc=0.9994\n"}
+,{"stream_name":"stdout","time":3800.069311585,"data":"  Epoch 9/10: loss=0.0060, acc=1.0000\n"}
+,{"stream_name":"stdout","time":4087.761246866,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":4199.937299412,"data":"  Epoch 10/10: loss=0.0040, acc=1.0000\n"}
+,{"stream_name":"stdout","time":4199.937352885,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":4199.937358519,"data":"Saved lora_adapters.pt (36 adapter tensors)\n"}
+,{"stream_name":"stdout","time":4199.937362996,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937367384,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":4199.937372022,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937376942,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937381588,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937385952,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937390099,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937394685,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":4199.937399203,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937403541,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":4199.937408052,"data":"  severity 0: 0.973\n"}
+,{"stream_name":"stdout","time":4199.937412179,"data":"  severity 1: 0.967\n"}
+,{"stream_name":"stdout","time":4199.937416032,"data":"  severity 2: 0.967\n"}
+,{"stream_name":"stdout","time":4199.93742039,"data":"  severity 3: 0.913\n"}
+,{"stream_name":"stdout","time":4199.937424361,"data":"  severity 4: 0.787\n"}
+,{"stream_name":"stdout","time":4199.937428586,"data":"  severity 5: 0.457\n"}
+,{"stream_name":"stdout","time":4199.937432865,"data":"\n"}
+,{"stream_name":"stdout","time":4199.93743717,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":4199.937442494,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937446812,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":4199.937452005,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":4199.937456382,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937460485,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":4199.937464916,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":4199.937469709,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":4199.937474607,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937479013,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=topk\n"}
+,{"stream_name":"stdout","time":4199.937482816,"data":"  rank=8, alpha=16, per-block ranks={3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":4199.937487314,"data":"  mix=0.7, seed=42, epochs=10\n"}
+,{"stream_name":"stdout","time":4199.937491362,"data":"Trainable: 331,776 / 86,912,256 (0.38%)\n"}
+,{"stream_name":"stdout","time":4199.937495998,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":4199.937500418,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937504114,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":4199.937508238,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":4199.937512312,"data":"0              0.9500     0.9733    +0.0233\n"}
+,{"stream_name":"stdout","time":4199.937516314,"data":"1              0.9567     0.9667    +0.0100\n"}
+,{"stream_name":"stdout","time":4199.937519969,"data":"2              0.9333     0.9667    +0.0333\n"}
+,{"stream_name":"stdout","time":4199.937524562,"data":"3              0.7867     0.9133    +0.1267\n"}
+,{"stream_name":"stdout","time":4199.937532802,"data":"4              0.4167     0.7867    +0.3700\n"}
+,{"stream_name":"stdout","time":4199.93753702,"data":"5              0.1567     0.4567    +0.3000\n"}
+,{"stream_name":"stdout","time":4199.937540687,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937544575,"data":"Mean accuracy: Original=0.7000, LoRA=0.8439, Delta=+0.1439\n"}
+,{"stream_name":"stdout","time":4199.937548676,"data":"Sev 5 (darkest): Original=0.1567, LoRA=0.4567, Delta=+0.3000\n"}
+,{"stream_name":"stdout","time":4199.937552116,"data":"\n"}
+,{"stream_name":"stdout","time":4199.937556132,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":4199.937559485,"data":"✅ LoRA improved mean accuracy by +0.1439\n"}
+,{"stream_name":"stdout","time":4199.937563958,"data":"✅ LoRA improved worst-case (sev 5) by +0.3000\n"}
+,{"stream_name":"stdout","time":4199.937567421,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":4210.378029918,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":4210.385046853,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":4210.385066429,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":4210.385896457,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":4210.385912221,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":4210.386485771,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":4210.386495862,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":4212.206958334,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":4212.206985931,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":4212.206989469,"data":"  rank=8 alpha=16 mix=0.7 layers=invbeta\n"}
+,{"stream_name":"stdout","time":4212.206992502,"data":"  seed=42 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":4212.206995665,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":4212.206999068,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":4212.207002051,"data":"\n"}
+,{"stream_name":"stdout","time":4212.207005072,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":4212.207008395,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":4212.207011224,"data":"\n"}
+,{"stream_name":"stdout","time":4212.207014101,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":4212.20701716,"data":"\n"}
+,{"stream_name":"stdout","time":4212.207020033,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":4212.207023145,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":4212.20702622,"data":"  invbeta ranks (drift budget Σr=73, this arm Σr=73): {0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":4212.207030528,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":4212.207033473,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":4212.207048513,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":4212.207051678,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":4212.207054659,"data":"\n"}
+,{"stream_name":"stdout","time":4212.207057528,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":4410.278050939,"data":"  Epoch 1/10: loss=0.5710, acc=0.8210\n"}
+,{"stream_name":"stdout","time":4608.011751322,"data":"  Epoch 2/10: loss=0.1614, acc=0.9474\n"}
+,{"stream_name":"stdout","time":4805.764909547,"data":"  Epoch 3/10: loss=0.0960, acc=0.9704\n"}
+,{"stream_name":"stdout","time":5004.02240217,"data":"  Epoch 4/10: loss=0.0611, acc=0.9848\n"}
+,{"stream_name":"stdout","time":5202.007394025,"data":"  Epoch 5/10: loss=0.0419, acc=0.9902\n"}
+,{"stream_name":"stdout","time":5399.881385395,"data":"  Epoch 6/10: loss=0.0213, acc=0.9968\n"}
+,{"stream_name":"stdout","time":5597.599979575,"data":"  Epoch 7/10: loss=0.0120, acc=0.9998\n"}
+,{"stream_name":"stdout","time":5795.472363441,"data":"  Epoch 8/10: loss=0.0066, acc=1.0000\n"}
+,{"stream_name":"stdout","time":5993.455398793,"data":"  Epoch 9/10: loss=0.0043, acc=1.0000\n"}
+,{"stream_name":"stdout","time":6310.475085339,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":6423.049600536,"data":"  Epoch 10/10: loss=0.0031, acc=1.0000\n"}
+,{"stream_name":"stdout","time":6423.04968681,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":6423.049693736,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":6423.049698553,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049702942,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":6423.049707832,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049712284,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049716905,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049738114,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049741317,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049744101,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":6423.049746883,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049749616,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":6423.049752511,"data":"  severity 0: 0.980\n"}
+,{"stream_name":"stdout","time":6423.049755195,"data":"  severity 1: 0.973\n"}
+,{"stream_name":"stdout","time":6423.049757836,"data":"  severity 2: 0.967\n"}
+,{"stream_name":"stdout","time":6423.049760558,"data":"  severity 3: 0.930\n"}
+,{"stream_name":"stdout","time":6423.049763186,"data":"  severity 4: 0.810\n"}
+,{"stream_name":"stdout","time":6423.049765811,"data":"  severity 5: 0.447\n"}
+,{"stream_name":"stdout","time":6423.049768451,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049771234,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":6423.049773989,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049776556,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":6423.049779276,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":6423.049782137,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049784739,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":6423.049787469,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":6423.049798921,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":6423.049801362,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049803452,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=invbeta\n"}
+,{"stream_name":"stdout","time":6423.049805672,"data":"  rank=8, alpha=16, per-block ranks={0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":6423.049808263,"data":"  mix=0.7, seed=42, epochs=10\n"}
+,{"stream_name":"stdout","time":6423.049810754,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":6423.049812894,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":6423.049815057,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049817554,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":6423.049820734,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":6423.049823979,"data":"0              0.9500     0.9800    +0.0300\n"}
+,{"stream_name":"stdout","time":6423.049827528,"data":"1              0.9567     0.9733    +0.0167\n"}
+,{"stream_name":"stdout","time":6423.049829663,"data":"2              0.9333     0.9667    +0.0333\n"}
+,{"stream_name":"stdout","time":6423.049831793,"data":"3              0.7867     0.9300    +0.1433\n"}
+,{"stream_name":"stdout","time":6423.049833914,"data":"4              0.4167     0.8100    +0.3933\n"}
+,{"stream_name":"stdout","time":6423.049836108,"data":"5              0.1567     0.4467    +0.2900\n"}
+,{"stream_name":"stdout","time":6423.049838911,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049840985,"data":"Mean accuracy: Original=0.7000, LoRA=0.8511, Delta=+0.1511\n"}
+,{"stream_name":"stdout","time":6423.049843221,"data":"Sev 5 (darkest): Original=0.1567, LoRA=0.4467, Delta=+0.2900\n"}
+,{"stream_name":"stdout","time":6423.049845575,"data":"\n"}
+,{"stream_name":"stdout","time":6423.049847627,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":6423.049849733,"data":"✅ LoRA improved mean accuracy by +0.1511\n"}
+,{"stream_name":"stdout","time":6423.049852616,"data":"✅ LoRA improved worst-case (sev 5) by +0.2900\n"}
+,{"stream_name":"stdout","time":6423.049854888,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":6433.959023096,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":6433.966221637,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":6433.966242187,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":6433.967205462,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":6433.967224209,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":6433.967824517,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":6433.967836557,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":6435.710137745,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":6435.710165195,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":6435.71018271,"data":"  rank=8 alpha=16 mix=0.7 layers=btau\n"}
+,{"stream_name":"stdout","time":6435.710186364,"data":"  seed=43 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":6435.710189735,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":6435.710193016,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":6435.710196242,"data":"\n"}
+,{"stream_name":"stdout","time":6435.710199445,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":6435.710203365,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":6435.710206542,"data":"\n"}
+,{"stream_name":"stdout","time":6435.710211082,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":6435.71021826,"data":"\n"}
+,{"stream_name":"stdout","time":6435.710220925,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":6435.710223119,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":6435.710225385,"data":"  btau(tau=2.0) ranks (drift budget Σr=73, this arm Σr=73): {0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":6435.710243729,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":6435.710247778,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":6435.710251849,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":6435.710255586,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":6435.710259624,"data":"\n"}
+,{"stream_name":"stdout","time":6435.710263437,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":6634.802523021,"data":"  Epoch 1/10: loss=0.6204, acc=0.8044\n"}
+,{"stream_name":"stdout","time":6833.689181057,"data":"  Epoch 2/10: loss=0.1525, acc=0.9508\n"}
+,{"stream_name":"stdout","time":7032.542394749,"data":"  Epoch 3/10: loss=0.0924, acc=0.9716\n"}
+,{"stream_name":"stdout","time":7231.230490657,"data":"  Epoch 4/10: loss=0.0576, acc=0.9826\n"}
+,{"stream_name":"stdout","time":7429.687551012,"data":"  Epoch 5/10: loss=0.0370, acc=0.9900\n"}
+,{"stream_name":"stdout","time":7628.353727497,"data":"  Epoch 6/10: loss=0.0210, acc=0.9964\n"}
+,{"stream_name":"stdout","time":7826.233538861,"data":"  Epoch 7/10: loss=0.0107, acc=0.9996\n"}
+,{"stream_name":"stdout","time":8024.346474107,"data":"  Epoch 8/10: loss=0.0097, acc=0.9992\n"}
+,{"stream_name":"stdout","time":8222.307064892,"data":"  Epoch 9/10: loss=0.0065, acc=0.9994\n"}
+,{"stream_name":"stdout","time":8539.759760889,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":8652.630762227,"data":"  Epoch 10/10: loss=0.0032, acc=1.0000\n"}
+,{"stream_name":"stdout","time":8652.63080055,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":8652.6308064,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":8652.63081106,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630815472,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":8652.63082117,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630825932,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630830508,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630834785,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630839274,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630854663,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":8652.630858726,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630862107,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":8652.630865489,"data":"  severity 0: 0.990\n"}
+,{"stream_name":"stdout","time":8652.630869452,"data":"  severity 1: 0.990\n"}
+,{"stream_name":"stdout","time":8652.630873485,"data":"  severity 2: 0.987\n"}
+,{"stream_name":"stdout","time":8652.63087668,"data":"  severity 3: 0.967\n"}
+,{"stream_name":"stdout","time":8652.630880452,"data":"  severity 4: 0.823\n"}
+,{"stream_name":"stdout","time":8652.630884325,"data":"  severity 5: 0.447\n"}
+,{"stream_name":"stdout","time":8652.630888261,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630892336,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":8652.63089645,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630899843,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":8652.630903312,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":8652.63090729,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630910879,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":8652.630914519,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":8652.630918163,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":8652.630922036,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630925496,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=btau\n"}
+,{"stream_name":"stdout","time":8652.630929692,"data":"  rank=8, alpha=16, per-block ranks={0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":8652.630933872,"data":"  mix=0.7, seed=43, epochs=10\n"}
+,{"stream_name":"stdout","time":8652.630937739,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":8652.630942195,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":8652.630946277,"data":"\n"}
+,{"stream_name":"stdout","time":8652.63095017,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":8652.630954043,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":8652.630957684,"data":"0              0.9733     0.9900    +0.0167\n"}
+,{"stream_name":"stdout","time":8652.630961601,"data":"1              0.9633     0.9900    +0.0267\n"}
+,{"stream_name":"stdout","time":8652.630965781,"data":"2              0.9400     0.9867    +0.0467\n"}
+,{"stream_name":"stdout","time":8652.630969996,"data":"3              0.7533     0.9667    +0.2133\n"}
+,{"stream_name":"stdout","time":8652.630973757,"data":"4              0.3133     0.8233    +0.5100\n"}
+,{"stream_name":"stdout","time":8652.630977536,"data":"5              0.1633     0.4467    +0.2833\n"}
+,{"stream_name":"stdout","time":8652.630981547,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630985158,"data":"Mean accuracy: Original=0.6844, LoRA=0.8672, Delta=+0.1828\n"}
+,{"stream_name":"stdout","time":8652.630989697,"data":"Sev 5 (darkest): Original=0.1633, LoRA=0.4467, Delta=+0.2833\n"}
+,{"stream_name":"stdout","time":8652.630993711,"data":"\n"}
+,{"stream_name":"stdout","time":8652.630997303,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":8652.631000874,"data":"✅ LoRA improved mean accuracy by +0.1828\n"}
+,{"stream_name":"stdout","time":8652.631005834,"data":"✅ LoRA improved worst-case (sev 5) by +0.2833\n"}
+,{"stream_name":"stdout","time":8652.631014959,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":8663.535370108,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":8663.542419144,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":8663.542434766,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":8663.543295282,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":8663.543308532,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":8663.543946934,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":8663.543957119,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":8665.316832748,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":8665.316869086,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":8665.316873743,"data":"  rank=8 alpha=16 mix=0.7 layers=topk\n"}
+,{"stream_name":"stdout","time":8665.316877766,"data":"  seed=43 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":8665.316881617,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":8665.316885272,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":8665.316889202,"data":"\n"}
+,{"stream_name":"stdout","time":8665.316892475,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":8665.316896287,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":8665.316899619,"data":"\n"}
+,{"stream_name":"stdout","time":8665.316902941,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":8665.316908698,"data":"\n"}
+,{"stream_name":"stdout","time":8665.316915991,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":8665.31693408,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":8665.316937823,"data":"  topk(k=9,r=8) ranks (drift budget Σr=73, this arm Σr=72): {3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":8665.316941926,"data":"Total params: 86,912,256\n"}
+,{"stream_name":"stdout","time":8665.316945243,"data":"Trainable (LoRA/adapters): 331,776 (0.38%)\n"}
+,{"stream_name":"stdout","time":8665.316949412,"data":"LoRA modules: 18 across 9 targeted block(s)\n"}
+,{"stream_name":"stdout","time":8665.316952882,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":8665.316956264,"data":"\n"}
+,{"stream_name":"stdout","time":8665.316959397,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":8835.943467854,"data":"  Epoch 1/10: loss=0.6050, acc=0.8098\n"}
+,{"stream_name":"stdout","time":9005.50012781,"data":"  Epoch 2/10: loss=0.1642, acc=0.9478\n"}
+,{"stream_name":"stdout","time":9175.603667625,"data":"  Epoch 3/10: loss=0.1029, acc=0.9678\n"}
+,{"stream_name":"stdout","time":9345.783609692,"data":"  Epoch 4/10: loss=0.0682, acc=0.9796\n"}
+,{"stream_name":"stdout","time":9515.847604248,"data":"  Epoch 5/10: loss=0.0426, acc=0.9884\n"}
+,{"stream_name":"stdout","time":9685.631709339,"data":"  Epoch 6/10: loss=0.0276, acc=0.9946\n"}
+,{"stream_name":"stdout","time":9855.623138326,"data":"  Epoch 7/10: loss=0.0154, acc=0.9976\n"}
+,{"stream_name":"stdout","time":10025.417022845,"data":"  Epoch 8/10: loss=0.0106, acc=0.9994\n"}
+,{"stream_name":"stdout","time":10195.622539851,"data":"  Epoch 9/10: loss=0.0056, acc=1.0000\n"}
+,{"stream_name":"stdout","time":10482.856289133,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":10594.809079305,"data":"  Epoch 10/10: loss=0.0036, acc=1.0000\n"}
+,{"stream_name":"stdout","time":10594.809121046,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":10594.809125225,"data":"Saved lora_adapters.pt (36 adapter tensors)\n"}
+,{"stream_name":"stdout","time":10594.809128262,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809130971,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":10594.80913419,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809137023,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809139829,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809142501,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809145241,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809148053,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":10594.809150763,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809153396,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":10594.809156265,"data":"  severity 0: 0.990\n"}
+,{"stream_name":"stdout","time":10594.809158926,"data":"  severity 1: 0.990\n"}
+,{"stream_name":"stdout","time":10594.809161637,"data":"  severity 2: 0.983\n"}
+,{"stream_name":"stdout","time":10594.80916428,"data":"  severity 3: 0.963\n"}
+,{"stream_name":"stdout","time":10594.809166936,"data":"  severity 4: 0.823\n"}
+,{"stream_name":"stdout","time":10594.809169571,"data":"  severity 5: 0.440\n"}
+,{"stream_name":"stdout","time":10594.809172283,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809174905,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":10594.80917766,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809180261,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":10594.809183042,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":10594.809185768,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809188366,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":10594.809191115,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":10594.809193791,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":10594.809196513,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809199123,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=topk\n"}
+,{"stream_name":"stdout","time":10594.809201928,"data":"  rank=8, alpha=16, per-block ranks={3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":10594.809204741,"data":"  mix=0.7, seed=43, epochs=10\n"}
+,{"stream_name":"stdout","time":10594.809207442,"data":"Trainable: 331,776 / 86,912,256 (0.38%)\n"}
+,{"stream_name":"stdout","time":10594.809210148,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":10594.809212883,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809223695,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":10594.809226097,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":10594.809228267,"data":"0              0.9733     0.9900    +0.0167\n"}
+,{"stream_name":"stdout","time":10594.809230427,"data":"1              0.9633     0.9900    +0.0267\n"}
+,{"stream_name":"stdout","time":10594.809232536,"data":"2              0.9400     0.9833    +0.0433\n"}
+,{"stream_name":"stdout","time":10594.809234648,"data":"3              0.7533     0.9633    +0.2100\n"}
+,{"stream_name":"stdout","time":10594.809236761,"data":"4              0.3133     0.8233    +0.5100\n"}
+,{"stream_name":"stdout","time":10594.809238874,"data":"5              0.1633     0.4400    +0.2767\n"}
+,{"stream_name":"stdout","time":10594.809241003,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809243027,"data":"Mean accuracy: Original=0.6844, LoRA=0.8650, Delta=+0.1806\n"}
+,{"stream_name":"stdout","time":10594.809245383,"data":"Sev 5 (darkest): Original=0.1633, LoRA=0.4400, Delta=+0.2767\n"}
+,{"stream_name":"stdout","time":10594.809248079,"data":"\n"}
+,{"stream_name":"stdout","time":10594.809250501,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":10594.8092526,"data":"✅ LoRA improved mean accuracy by +0.1806\n"}
+,{"stream_name":"stdout","time":10594.809255413,"data":"✅ LoRA improved worst-case (sev 5) by +0.2767\n"}
+,{"stream_name":"stdout","time":10594.809257623,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":10605.182906762,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":10605.18958663,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":10605.189636572,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":10605.190300315,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":10605.190307349,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":10605.190942774,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":10605.190953085,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":10606.926221945,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":10606.92624979,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":10606.926261021,"data":"  rank=8 alpha=16 mix=0.7 layers=invbeta\n"}
+,{"stream_name":"stdout","time":10606.926264939,"data":"  seed=43 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":10606.92627399,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":10606.926277283,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":10606.926279616,"data":"\n"}
+,{"stream_name":"stdout","time":10606.926281766,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":10606.926284506,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":10606.926286741,"data":"\n"}
+,{"stream_name":"stdout","time":10606.926288878,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":10606.926291126,"data":"\n"}
+,{"stream_name":"stdout","time":10606.926302826,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":10606.926305184,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":10606.926307481,"data":"  invbeta ranks (drift budget Σr=73, this arm Σr=73): {0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":10606.926310467,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":10606.926312581,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":10606.92631473,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":10606.926316967,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":10606.926319583,"data":"\n"}
+,{"stream_name":"stdout","time":10606.926321945,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":10804.920453029,"data":"  Epoch 1/10: loss=0.6159, acc=0.8048\n"}
+,{"stream_name":"stdout","time":11001.708118035,"data":"  Epoch 2/10: loss=0.1522, acc=0.9520\n"}
+,{"stream_name":"stdout","time":11199.22195622,"data":"  Epoch 3/10: loss=0.0925, acc=0.9722\n"}
+,{"stream_name":"stdout","time":11396.860059528,"data":"  Epoch 4/10: loss=0.0583, acc=0.9826\n"}
+,{"stream_name":"stdout","time":11594.508283103,"data":"  Epoch 5/10: loss=0.0375, acc=0.9890\n"}
+,{"stream_name":"stdout","time":11791.685602253,"data":"  Epoch 6/10: loss=0.0203, acc=0.9966\n"}
+,{"stream_name":"stdout","time":11989.313377697,"data":"  Epoch 7/10: loss=0.0108, acc=0.9996\n"}
+,{"stream_name":"stdout","time":12186.759599397,"data":"  Epoch 8/10: loss=0.0082, acc=0.9996\n"}
+,{"stream_name":"stdout","time":12383.908849582,"data":"  Epoch 9/10: loss=0.0066, acc=0.9994\n"}
+,{"stream_name":"stdout","time":12700.05173297,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":12812.316129345,"data":"  Epoch 10/10: loss=0.0031, acc=1.0000\n"}
+,{"stream_name":"stdout","time":12812.316174557,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":12812.316179558,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":12812.316182635,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316185472,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":12812.316188673,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316191464,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316194297,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316197019,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316199687,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316202339,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":12812.316204995,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316207661,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":12812.316210398,"data":"  severity 0: 0.987\n"}
+,{"stream_name":"stdout","time":12812.316213058,"data":"  severity 1: 0.983\n"}
+,{"stream_name":"stdout","time":12812.316215679,"data":"  severity 2: 0.983\n"}
+,{"stream_name":"stdout","time":12812.316218397,"data":"  severity 3: 0.963\n"}
+,{"stream_name":"stdout","time":12812.316221038,"data":"  severity 4: 0.837\n"}
+,{"stream_name":"stdout","time":12812.316223676,"data":"  severity 5: 0.430\n"}
+,{"stream_name":"stdout","time":12812.31622632,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316238042,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":12812.316240486,"data":"\n"}
+,{"stream_name":"stdout","time":12812.31624252,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":12812.316244688,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":12812.31624683,"data":"\n"}
+,{"stream_name":"stdout","time":12812.31624886,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":12812.316251042,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":12812.316253315,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":12812.316255453,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316257553,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=invbeta\n"}
+,{"stream_name":"stdout","time":12812.316259829,"data":"  rank=8, alpha=16, per-block ranks={0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":12812.316262528,"data":"  mix=0.7, seed=43, epochs=10\n"}
+,{"stream_name":"stdout","time":12812.316264723,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":12812.316266873,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":12812.316269027,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316271075,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":12812.316273229,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":12812.316275344,"data":"0              0.9733     0.9867    +0.0133\n"}
+,{"stream_name":"stdout","time":12812.316277477,"data":"1              0.9633     0.9833    +0.0200\n"}
+,{"stream_name":"stdout","time":12812.316279595,"data":"2              0.9400     0.9833    +0.0433\n"}
+,{"stream_name":"stdout","time":12812.316281777,"data":"3              0.7533     0.9633    +0.2100\n"}
+,{"stream_name":"stdout","time":12812.316283882,"data":"4              0.3133     0.8367    +0.5233\n"}
+,{"stream_name":"stdout","time":12812.31628599,"data":"5              0.1633     0.4300    +0.2667\n"}
+,{"stream_name":"stdout","time":12812.316288108,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316290222,"data":"Mean accuracy: Original=0.6844, LoRA=0.8639, Delta=+0.1794\n"}
+,{"stream_name":"stdout","time":12812.316292388,"data":"Sev 5 (darkest): Original=0.1633, LoRA=0.4300, Delta=+0.2667\n"}
+,{"stream_name":"stdout","time":12812.316294645,"data":"\n"}
+,{"stream_name":"stdout","time":12812.316296714,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":12812.316298825,"data":"✅ LoRA improved mean accuracy by +0.1794\n"}
+,{"stream_name":"stdout","time":12812.316301502,"data":"✅ LoRA improved worst-case (sev 5) by +0.2667\n"}
+,{"stream_name":"stdout","time":12812.316303755,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":12823.235125869,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":12823.242882179,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":12823.242905391,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":12823.243684787,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":12823.243709346,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":12823.244274191,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":12823.244281809,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":12824.996685717,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":12824.996734286,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":12824.996739158,"data":"  rank=8 alpha=16 mix=0.7 layers=btau\n"}
+,{"stream_name":"stdout","time":12824.996742546,"data":"  seed=44 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":12824.996746095,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":12824.996749492,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":12824.996752769,"data":"\n"}
+,{"stream_name":"stdout","time":12824.996756324,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":12824.996759872,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":12824.99676307,"data":"\n"}
+,{"stream_name":"stdout","time":12824.996766149,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":12824.996769259,"data":"\n"}
+,{"stream_name":"stdout","time":12824.996780477,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":12824.996787161,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":12824.996790007,"data":"  btau(tau=2.0) ranks (drift budget Σr=73, this arm Σr=73): {0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":12824.99679306,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":12824.996795199,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":12824.996797416,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":12824.996799538,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":12824.996801799,"data":"\n"}
+,{"stream_name":"stdout","time":12824.996803847,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":13023.134276694,"data":"  Epoch 1/10: loss=0.5876, acc=0.8136\n"}
+,{"stream_name":"stdout","time":13221.218113741,"data":"  Epoch 2/10: loss=0.1442, acc=0.9528\n"}
+,{"stream_name":"stdout","time":13419.130518574,"data":"  Epoch 3/10: loss=0.0818, acc=0.9762\n"}
+,{"stream_name":"stdout","time":13616.993981584,"data":"  Epoch 4/10: loss=0.0557, acc=0.9852\n"}
+,{"stream_name":"stdout","time":13815.245420188,"data":"  Epoch 5/10: loss=0.0312, acc=0.9924\n"}
+,{"stream_name":"stdout","time":14013.25009611,"data":"  Epoch 6/10: loss=0.0170, acc=0.9986\n"}
+,{"stream_name":"stdout","time":14211.018359912,"data":"  Epoch 7/10: loss=0.0085, acc=0.9998\n"}
+,{"stream_name":"stdout","time":14409.127045996,"data":"  Epoch 8/10: loss=0.0051, acc=1.0000\n"}
+,{"stream_name":"stdout","time":14606.904949422,"data":"  Epoch 9/10: loss=0.0037, acc=1.0000\n"}
+,{"stream_name":"stdout","time":14923.168807072,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":15035.739759617,"data":"  Epoch 10/10: loss=0.0025, acc=1.0000\n"}
+,{"stream_name":"stdout","time":15035.739810448,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":15035.739816959,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":15035.739833789,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739837458,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":15035.739841248,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739844473,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739847693,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739850778,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739854014,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739862314,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":15035.739865506,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739867562,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":15035.739869701,"data":"  severity 0: 0.987\n"}
+,{"stream_name":"stdout","time":15035.739871879,"data":"  severity 1: 0.983\n"}
+,{"stream_name":"stdout","time":15035.739873954,"data":"  severity 2: 0.977\n"}
+,{"stream_name":"stdout","time":15035.739876024,"data":"  severity 3: 0.960\n"}
+,{"stream_name":"stdout","time":15035.739878351,"data":"  severity 4: 0.833\n"}
+,{"stream_name":"stdout","time":15035.739880505,"data":"  severity 5: 0.427\n"}
+,{"stream_name":"stdout","time":15035.739882564,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739884601,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":15035.739886804,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739888884,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":15035.739891058,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":15035.739893194,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739895623,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":15035.739910751,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":15035.739914533,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":15035.739918556,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739921722,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=btau\n"}
+,{"stream_name":"stdout","time":15035.73992576,"data":"  rank=8, alpha=16, per-block ranks={0: 1, 1: 2, 2: 2, 3: 4, 4: 7, 5: 7, 6: 8, 7: 7, 8: 8, 9: 9, 10: 9, 11: 9}\n"}
+,{"stream_name":"stdout","time":15035.739929558,"data":"  mix=0.7, seed=44, epochs=10\n"}
+,{"stream_name":"stdout","time":15035.739932731,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":15035.739935978,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":15035.739939325,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739942334,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":15035.739945596,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":15035.739948781,"data":"0              0.9767     0.9867    +0.0100\n"}
+,{"stream_name":"stdout","time":15035.739952096,"data":"1              0.9767     0.9833    +0.0067\n"}
+,{"stream_name":"stdout","time":15035.739955294,"data":"2              0.9367     0.9767    +0.0400\n"}
+,{"stream_name":"stdout","time":15035.739958481,"data":"3              0.7833     0.9600    +0.1767\n"}
+,{"stream_name":"stdout","time":15035.739961673,"data":"4              0.4167     0.8333    +0.4167\n"}
+,{"stream_name":"stdout","time":15035.73996499,"data":"5              0.1500     0.4267    +0.2767\n"}
+,{"stream_name":"stdout","time":15035.739973941,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739980708,"data":"Mean accuracy: Original=0.7067, LoRA=0.8611, Delta=+0.1544\n"}
+,{"stream_name":"stdout","time":15035.73998291,"data":"Sev 5 (darkest): Original=0.1500, LoRA=0.4267, Delta=+0.2767\n"}
+,{"stream_name":"stdout","time":15035.739985086,"data":"\n"}
+,{"stream_name":"stdout","time":15035.739987147,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":15035.739989252,"data":"✅ LoRA improved mean accuracy by +0.1544\n"}
+,{"stream_name":"stdout","time":15035.739992213,"data":"✅ LoRA improved worst-case (sev 5) by +0.2767\n"}
+,{"stream_name":"stdout","time":15035.740007256,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":15046.162318939,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":15046.169437968,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":15046.169454825,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":15046.170369745,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":15046.170380469,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":15046.17098048,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":15046.170990497,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":15047.916896848,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":15047.917014702,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":15047.917023097,"data":"  rank=8 alpha=16 mix=0.7 layers=topk\n"}
+,{"stream_name":"stdout","time":15047.917027741,"data":"  seed=44 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":15047.917032483,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":15047.917037325,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":15047.917041304,"data":"\n"}
+,{"stream_name":"stdout","time":15047.917045014,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":15047.917049434,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":15047.91705337,"data":"\n"}
+,{"stream_name":"stdout","time":15047.917057305,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":15047.917062031,"data":"\n"}
+,{"stream_name":"stdout","time":15047.917066249,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":15047.917070485,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":15047.917074565,"data":"  topk(k=9,r=8) ranks (drift budget Σr=73, this arm Σr=72): {3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":15047.917079478,"data":"Total params: 86,912,256\n"}
+,{"stream_name":"stdout","time":15047.917083281,"data":"Trainable (LoRA/adapters): 331,776 (0.38%)\n"}
+,{"stream_name":"stdout","time":15047.917087288,"data":"LoRA modules: 18 across 9 targeted block(s)\n"}
+,{"stream_name":"stdout","time":15047.917091307,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":15047.917109642,"data":"\n"}
+,{"stream_name":"stdout","time":15047.917113482,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":15218.586773815,"data":"  Epoch 1/10: loss=0.5883, acc=0.8170\n"}
+,{"stream_name":"stdout","time":15387.924569176,"data":"  Epoch 2/10: loss=0.1472, acc=0.9508\n"}
+,{"stream_name":"stdout","time":15557.818522738,"data":"  Epoch 3/10: loss=0.0859, acc=0.9742\n"}
+,{"stream_name":"stdout","time":15728.004655698,"data":"  Epoch 4/10: loss=0.0608, acc=0.9838\n"}
+,{"stream_name":"stdout","time":15897.452776361,"data":"  Epoch 5/10: loss=0.0322, acc=0.9934\n"}
+,{"stream_name":"stdout","time":16067.395367364,"data":"  Epoch 6/10: loss=0.0191, acc=0.9984\n"}
+,{"stream_name":"stdout","time":16237.387259333,"data":"  Epoch 7/10: loss=0.0097, acc=0.9996\n"}
+,{"stream_name":"stdout","time":16407.228687963,"data":"  Epoch 8/10: loss=0.0060, acc=1.0000\n"}
+,{"stream_name":"stdout","time":16577.250086119,"data":"  Epoch 9/10: loss=0.0042, acc=1.0000\n"}
+,{"stream_name":"stdout","time":16864.384700477,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":16977.535857299,"data":"  Epoch 10/10: loss=0.0028, acc=1.0000\n"}
+,{"stream_name":"stdout","time":16977.535899793,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":16977.535908443,"data":"Saved lora_adapters.pt (36 adapter tensors)\n"}
+,{"stream_name":"stdout","time":16977.535914744,"data":"\n"}
+,{"stream_name":"stdout","time":16977.535921311,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":16977.535927713,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535933714,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535939583,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535945857,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535951445,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535957495,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":16977.535964067,"data":"\n"}
+,{"stream_name":"stdout","time":16977.535970019,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":16977.535975453,"data":"  severity 0: 0.983\n"}
+,{"stream_name":"stdout","time":16977.53598074,"data":"  severity 1: 0.983\n"}
+,{"stream_name":"stdout","time":16977.535985611,"data":"  severity 2: 0.973\n"}
+,{"stream_name":"stdout","time":16977.535991946,"data":"  severity 3: 0.953\n"}
+,{"stream_name":"stdout","time":16977.535997942,"data":"  severity 4: 0.817\n"}
+,{"stream_name":"stdout","time":16977.536004229,"data":"  severity 5: 0.457\n"}
+,{"stream_name":"stdout","time":16977.536009634,"data":"\n"}
+,{"stream_name":"stdout","time":16977.536015472,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":16977.536021457,"data":"\n"}
+,{"stream_name":"stdout","time":16977.536027456,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":16977.536032527,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":16977.53603757,"data":"\n"}
+,{"stream_name":"stdout","time":16977.536043131,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":16977.536049263,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":16977.536055886,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":16977.536061964,"data":"\n"}
+,{"stream_name":"stdout","time":16977.536081057,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=topk\n"}
+,{"stream_name":"stdout","time":16977.53608645,"data":"  rank=8, alpha=16, per-block ranks={3: 8, 4: 8, 5: 8, 6: 8, 7: 8, 8: 8, 9: 8, 10: 8, 11: 8}\n"}
+,{"stream_name":"stdout","time":16977.536091168,"data":"  mix=0.7, seed=44, epochs=10\n"}
+,{"stream_name":"stdout","time":16977.536095434,"data":"Trainable: 331,776 / 86,912,256 (0.38%)\n"}
+,{"stream_name":"stdout","time":16977.536099984,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":16977.536104923,"data":"\n"}
+,{"stream_name":"stdout","time":16977.53610879,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":16977.536113027,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":16977.536117098,"data":"0              0.9767     0.9833    +0.0067\n"}
+,{"stream_name":"stdout","time":16977.536121914,"data":"1              0.9767     0.9833    +0.0067\n"}
+,{"stream_name":"stdout","time":16977.536126141,"data":"2              0.9367     0.9733    +0.0367\n"}
+,{"stream_name":"stdout","time":16977.536130474,"data":"3              0.7833     0.9533    +0.1700\n"}
+,{"stream_name":"stdout","time":16977.536134519,"data":"4              0.4167     0.8167    +0.4000\n"}
+,{"stream_name":"stdout","time":16977.536138533,"data":"5              0.1500     0.4567    +0.3067\n"}
+,{"stream_name":"stdout","time":16977.536142181,"data":"\n"}
+,{"stream_name":"stdout","time":16977.53614602,"data":"Mean accuracy: Original=0.7067, LoRA=0.8611, Delta=+0.1544\n"}
+,{"stream_name":"stdout","time":16977.536150268,"data":"Sev 5 (darkest): Original=0.1500, LoRA=0.4567, Delta=+0.3067\n"}
+,{"stream_name":"stdout","time":16977.536153992,"data":"\n"}
+,{"stream_name":"stdout","time":16977.536157874,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":16977.536162028,"data":"✅ LoRA improved mean accuracy by +0.1544\n"}
+,{"stream_name":"stdout","time":16977.536167459,"data":"✅ LoRA improved worst-case (sev 5) by +0.3067\n"}
+,{"stream_name":"stdout","time":16977.536172071,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":16988.310140266,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":16988.316580565,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)\n"}
+,{"stream_name":"stdout","time":16988.316599855,"data":"  warnings.warn(\"xFormers is not available (SwiGLU)\")\n"}
+,{"stream_name":"stdout","time":16988.317375617,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)\n"}
+,{"stream_name":"stdout","time":16988.317385929,"data":"  warnings.warn(\"xFormers is not available (Attention)\")\n"}
+,{"stream_name":"stdout","time":16988.318002785,"data":"/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)\n"}
+,{"stream_name":"stdout","time":16988.318012177,"data":"  warnings.warn(\"xFormers is not available (Block)\")\n"}
+,{"stream_name":"stdout","time":16990.113356169,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":16990.113386332,"data":"LoRA Fine-Tuning Experiment (parameterized)\n"}
+,{"stream_name":"stdout","time":16990.113391642,"data":"  rank=8 alpha=16 mix=0.7 layers=invbeta\n"}
+,{"stream_name":"stdout","time":16990.113395656,"data":"  seed=44 model=dinov2_vitb14 corruption=low_light epochs=10\n"}
+,{"stream_name":"stdout","time":16990.113411617,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":16990.113415355,"data":"Device: cuda\n"}
+,{"stream_name":"stdout","time":16990.113419859,"data":"\n"}
+,{"stream_name":"stdout","time":16990.113423513,"data":"\u003e\u003e\u003e Loading CIFAR-10\n"}
+,{"stream_name":"stdout","time":16990.113427855,"data":"Test: 1000, Train: 5000\n"}
+,{"stream_name":"stdout","time":16990.113431832,"data":"\n"}
+,{"stream_name":"stdout","time":16990.113435416,"data":"\u003e\u003e\u003e Loading DINOv2\n"}
+,{"stream_name":"stdout","time":16990.113439156,"data":"\n"}
+,{"stream_name":"stdout","time":16990.113442583,"data":"\u003e\u003e\u003e Applying adaptation to attention layers\n"}
+,{"stream_name":"stdout","time":16990.113446176,"data":"  Drift profile from drift_sev5_low_light.csv\n"}
+,{"stream_name":"stdout","time":16990.113450392,"data":"  invbeta ranks (drift budget Σr=73, this arm Σr=73): {0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":16990.113455795,"data":"Total params: 86,916,864\n"}
+,{"stream_name":"stdout","time":16990.11345941,"data":"Trainable (LoRA/adapters): 336,384 (0.39%)\n"}
+,{"stream_name":"stdout","time":16990.113463042,"data":"LoRA modules: 24 across 12 targeted block(s)\n"}
+,{"stream_name":"stdout","time":16990.113466709,"data":"Training: 5000 images (70% corruption aug, low_light)\n"}
+,{"stream_name":"stdout","time":16990.113470286,"data":"\n"}
+,{"stream_name":"stdout","time":16990.113473688,"data":"\u003e\u003e\u003e Training\n"}
+,{"stream_name":"stdout","time":17188.280908616,"data":"  Epoch 1/10: loss=0.5868, acc=0.8134\n"}
+,{"stream_name":"stdout","time":17386.251698308,"data":"  Epoch 2/10: loss=0.1441, acc=0.9542\n"}
+,{"stream_name":"stdout","time":17583.562448453,"data":"  Epoch 3/10: loss=0.0823, acc=0.9766\n"}
+,{"stream_name":"stdout","time":17781.045897546,"data":"  Epoch 4/10: loss=0.0555, acc=0.9848\n"}
+,{"stream_name":"stdout","time":17978.641698167,"data":"  Epoch 5/10: loss=0.0317, acc=0.9916\n"}
+,{"stream_name":"stdout","time":18176.850654229,"data":"  Epoch 6/10: loss=0.0172, acc=0.9982\n"}
+,{"stream_name":"stdout","time":18375.130595651,"data":"  Epoch 7/10: loss=0.0091, acc=0.9996\n"}
+,{"stream_name":"stdout","time":18572.605268056,"data":"  Epoch 8/10: loss=0.0052, acc=1.0000\n"}
+,{"stream_name":"stdout","time":18770.372003927,"data":"  Epoch 9/10: loss=0.0038, acc=1.0000\n"}
+,{"stream_name":"stdout","time":19090.675007827,"data":"Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main\n"}
+,{"stream_name":"stdout","time":19203.575349152,"data":"  Epoch 10/10: loss=0.0026, acc=1.0000\n"}
+,{"stream_name":"stdout","time":19203.575382616,"data":"Saved lora_training_curves.png\n"}
+,{"stream_name":"stdout","time":19203.575402185,"data":"Saved lora_adapters.pt (48 adapter tensors)\n"}
+,{"stream_name":"stdout","time":19203.57540744,"data":"\n"}
+,{"stream_name":"stdout","time":19203.57541199,"data":"\u003e\u003e\u003e Extracting embeddings with LoRA model\n"}
+,{"stream_name":"stdout","time":19203.57541732,"data":"  severity 0: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.575421821,"data":"  severity 1: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.575425971,"data":"  severity 2: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.575430012,"data":"  severity 3: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.57543406,"data":"  severity 4: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.575438061,"data":"  severity 5: (1000, 768)\n"}
+,{"stream_name":"stdout","time":19203.575442115,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575461935,"data":"\u003e\u003e\u003e Linear probe evaluation\n"}
+,{"stream_name":"stdout","time":19203.575464721,"data":"  severity 0: 0.983\n"}
+,{"stream_name":"stdout","time":19203.575466893,"data":"  severity 1: 0.983\n"}
+,{"stream_name":"stdout","time":19203.575468989,"data":"  severity 2: 0.973\n"}
+,{"stream_name":"stdout","time":19203.575471078,"data":"  severity 3: 0.957\n"}
+,{"stream_name":"stdout","time":19203.575473211,"data":"  severity 4: 0.837\n"}
+,{"stream_name":"stdout","time":19203.575475694,"data":"  severity 5: 0.440\n"}
+,{"stream_name":"stdout","time":19203.57547777,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575479865,"data":"\u003e\u003e\u003e Loading original DINOv2 for comparison\n"}
+,{"stream_name":"stdout","time":19203.575482043,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575485173,"data":"\u003e\u003e\u003e Generating comparison plots\n"}
+,{"stream_name":"stdout","time":19203.575499698,"data":"Saved lora_vs_orig_accuracy.png\n"}
+,{"stream_name":"stdout","time":19203.575503777,"data":"\n"}
+,{"stream_name":"stdout","time":19203.57550741,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":19203.57551138,"data":"LORA EXPERIMENT COMPLETE\n"}
+,{"stream_name":"stdout","time":19203.575515245,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":19203.575518712,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575521792,"data":"Config: corruption=low_light, model=dinov2_vitb14, layers=invbeta\n"}
+,{"stream_name":"stdout","time":19203.575525148,"data":"  rank=8, alpha=16, per-block ranks={0: 18, 1: 13, 2: 13, 3: 9, 4: 4, 5: 4, 6: 3, 7: 3, 8: 3, 9: 1, 10: 1, 11: 1}\n"}
+,{"stream_name":"stdout","time":19203.575528573,"data":"  mix=0.7, seed=44, epochs=10\n"}
+,{"stream_name":"stdout","time":19203.575531927,"data":"Trainable: 336,384 / 86,916,864 (0.39%)\n"}
+,{"stream_name":"stdout","time":19203.575535145,"data":"Training: 10 epochs, 5000 images (70% low_light aug)\n"}
+,{"stream_name":"stdout","time":19203.575538457,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575541515,"data":"Severity     Original       LoRA      Delta\n"}
+,{"stream_name":"stdout","time":19203.575544812,"data":"------------------------------------------\n"}
+,{"stream_name":"stdout","time":19203.575548015,"data":"0              0.9767     0.9833    +0.0067\n"}
+,{"stream_name":"stdout","time":19203.575551338,"data":"1              0.9767     0.9833    +0.0067\n"}
+,{"stream_name":"stdout","time":19203.57555457,"data":"2              0.9367     0.9733    +0.0367\n"}
+,{"stream_name":"stdout","time":19203.575557791,"data":"3              0.7833     0.9567    +0.1733\n"}
+,{"stream_name":"stdout","time":19203.57556609,"data":"4              0.4167     0.8367    +0.4200\n"}
+,{"stream_name":"stdout","time":19203.575568943,"data":"5              0.1500     0.4400    +0.2900\n"}
+,{"stream_name":"stdout","time":19203.575571083,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575573132,"data":"Mean accuracy: Original=0.7067, LoRA=0.8622, Delta=+0.1556\n"}
+,{"stream_name":"stdout","time":19203.575575312,"data":"Sev 5 (darkest): Original=0.1500, LoRA=0.4400, Delta=+0.2900\n"}
+,{"stream_name":"stdout","time":19203.575577502,"data":"\n"}
+,{"stream_name":"stdout","time":19203.575579552,"data":"--- Verdict ---\n"}
+,{"stream_name":"stdout","time":19203.575582526,"data":"✅ LoRA improved mean accuracy by +0.1556\n"}
+,{"stream_name":"stdout","time":19203.575596363,"data":"✅ LoRA improved worst-case (sev 5) by +0.2900\n"}
+,{"stream_name":"stdout","time":19203.575600217,"data":"============================================================\n"}
+,{"stream_name":"stdout","time":19204.786998121,"data":"v9-abl exit: 0 | outputs: {'output/v9_ablation/seed42/btau/lora_adapters.pt': True, 'output/v9_ablation/seed42/topk/lora_adapters.pt': True, 'output/v9_ablation/seed42/invbeta/lora_adapters.pt': True, 'output/v9_ablation/seed43/btau/lora_adapters.pt': True, 'output/v9_ablation/seed43/topk/lora_adapters.pt': True, 'output/v9_ablation/seed43/invbeta/lora_adapters.pt': True, 'output/v9_ablation/seed44/btau/lora_adapters.pt': True, 'output/v9_ablation/seed44/topk/lora_adapters.pt': True, 'output/v9_ablation/seed44/invbeta/lora_adapters.pt': True}\n"}
+,{"stream_name":"stdout","time":19204.78703771,"data":"LORA_V9_ABL_COMPLETE\n"}
+,{"stream_name":"stderr","time":19207.365220073,"data":"/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":19207.365243244,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":19207.657519341,"data":"/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":19207.657543599,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":19208.45165308,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":19209.524584622,"data":"[NbConvertApp] Writing 336258 bytes to __results__.html\n"}
+]

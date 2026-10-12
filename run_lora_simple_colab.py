@@ -12,6 +12,9 @@ Examples (Colab):
   python3 run_lora_simple_colab.py --seed 43 --outdir /content/output/seed43
   python3 run_lora_simple_colab.py --layers late --rank 8            # blocks 9-11 only
   python3 run_lora_simple_colab.py --layers drift --rank 8           # CKA-proportional ranks
+  python3 run_lora_simple_colab.py --layers btau --tau 2             # ablation: r ∝ β^τ (sharpened)
+  python3 run_lora_simple_colab.py --layers topk --topk-k 9          # ablation: hard top-k drift blocks
+  python3 run_lora_simple_colab.py --layers invbeta                  # ablation: inverted-β falsification
   python3 run_lora_simple_colab.py --layers fullft                   # full fine-tune baseline
   python3 run_lora_simple_colab.py --rank 16 --mix 0.5 --epochs 10
 """
@@ -24,8 +27,14 @@ def parse_args():
     p.add_argument("--rank", type=int, default=8, help="base LoRA rank (drift mode scales it per block)")
     p.add_argument("--alpha", type=int, default=16, help="LoRA alpha (scaling = alpha/rank)")
     p.add_argument("--mix", type=float, default=0.7, help="probability of corruption augmentation per training image")
-    p.add_argument("--layers", default="all", choices=["all", "late", "drift", "fullft"],
-                   help="where to adapt: all blocks | late blocks 9-11 | CKA-drift-weighted ranks | full fine-tune")
+    p.add_argument("--layers", default="all", choices=["all", "late", "drift", "btau", "topk", "invbeta", "fullft"],
+                   help="where to adapt: all blocks | late blocks 9-11 | CKA-drift-weighted ranks | "
+                        "budget-matched allocation ablations (btau = r ∝ β^τ, topk = hard top-k drift "
+                        "blocks, invbeta = inverted-β falsification; DPA_DESIGN §1.4) | full fine-tune")
+    p.add_argument("--tau", type=float, default=2.0,
+                   help="exponent τ for --layers btau (sharpen >1, flatten <1; default 2.0)")
+    p.add_argument("--topk-k", type=int, default=9, dest="topk_k",
+                   help="k for --layers topk: the top-k drift blocks receive equal rank (default 9)")
     p.add_argument("--seed", type=int, default=42, help="seed for data draw + torch init/shuffling")
     p.add_argument("--model", default="dinov2_vits14", help="torch.hub DINOv2 entry")
     p.add_argument("--corruption", default="low_light", choices=["low_light", "blur", "jpeg", "contrast"])
@@ -216,14 +225,65 @@ if ARGS.layers == "all":
     block_ranks = {b: ARGS.rank for b in range(len(dinov2.blocks))}
 elif ARGS.layers == "late":
     block_ranks = {b: ARGS.rank for b in range(len(dinov2.blocks)) if b >= len(dinov2.blocks) - 3}
-elif ARGS.layers == "drift":
+elif ARGS.layers in ("drift", "btau", "topk", "invbeta"):
     drift = load_drift_profile(len(dinov2.blocks))
     dmax = max(drift)
-    for b, d in enumerate(drift):
-        scaled = int(round(ARGS.rank * d / dmax))
-        if scaled >= 1:
-            block_ranks[b] = max(1, scaled)
-    print("  Drift-weighted ranks:", block_ranks)
+
+    def allocate_ranks(weights, total, min_r=1):
+        """Largest-remainder integer allocation of `total` rank units over
+        `weights`: proportional, exact sum, floor of `min_r` per block. Used by
+        the DPA_DESIGN §1.4 ablations so TOTAL budget is held constant and only
+        the allocation shape varies."""
+        n = len(weights)
+        wsum = sum(weights)
+        raw = [total * (w / wsum) for w in weights] if wsum > 0 else [total / n] * n
+        ranks = [int(x) for x in raw]
+        for i in sorted(range(n), key=lambda j: raw[j] - ranks[j],
+                        reverse=True)[: total - sum(ranks)]:
+            ranks[i] += 1
+        deficit = sum(min_r - r for r in ranks if r < min_r)
+        if deficit:
+            for i, r in enumerate(ranks):
+                if r < min_r:
+                    ranks[i] = min_r
+            for i in sorted(range(n), key=lambda j: -ranks[j]):
+                if deficit == 0:
+                    break
+                take = min(deficit, ranks[i] - min_r)
+                ranks[i] -= take
+                deficit -= take
+        assert sum(ranks) == total, (ranks, total)
+        return ranks
+
+    if ARGS.layers == "drift":
+        # Published rule (METHODS §7.3): r_b = round(rank · β_b / max β); a
+        # rounded-to-0 block gets no adapter. Kept byte-identical to the v9 runs.
+        for b, d in enumerate(drift):
+            scaled = int(round(ARGS.rank * d / dmax))
+            if scaled >= 1:
+                block_ranks[b] = max(1, scaled)
+        print("  Drift-weighted ranks:", block_ranks)
+    else:
+        # Ablations (DPA_DESIGN §1.4): hold the total budget at the drift rule's
+        # own rank-sum on this profile, so a performance difference can only come
+        # from the allocation shape, not from having more/fewer parameters.
+        budget = sum(max(1, int(round(ARGS.rank * d / dmax))) for d in drift)
+        if ARGS.layers == "btau":
+            ranks = allocate_ranks([d ** ARGS.tau for d in drift], budget)
+            label = f"btau(tau={ARGS.tau})"
+        elif ARGS.layers == "invbeta":
+            ranks = allocate_ranks([dmax - d for d in drift], budget)
+            label = "invbeta"
+        else:  # topk: hard selection — equal full budget on the top-k drift blocks
+            k = min(ARGS.topk_k, len(drift))
+            order = sorted(range(len(drift)), key=lambda b: (-drift[b], b))[:k]
+            r_sel = max(1, int(round(budget / k)))
+            ranks = [0] * len(drift)
+            for b in order:
+                ranks[b] = r_sel
+            label = f"topk(k={k},r={r_sel})"
+        block_ranks = {b: r for b, r in enumerate(ranks) if r >= 1}
+        print(f"  {label} ranks (drift budget Σr={budget}, this arm Σr={sum(ranks)}):", block_ranks)
 elif not FULL_FT:
     raise ValueError(f"unknown --layers {ARGS.layers!r}")
 

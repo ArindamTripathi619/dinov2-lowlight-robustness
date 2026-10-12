@@ -124,10 +124,14 @@ shift-conditioned, model-conditioned, measured direction + the shared-profile de
   arm) *and* top-k module selection for SSR recalibration (§4). This coupling —
   diagnostic reused across both arms — is what makes the framework coherent rather
   than two methods.
-- **Allocation-rule ablations to run** (Track 2 extension / Track 3): r ∝ β_m (current)
-  vs r ∝ β^τ (sharpen) vs hard top-k vs uniform (null) — uniform nulls exist for ViT-S
-  (grid parity) and ViT-B (v9, RESEARCH §6.5); RepSAM-style inverted-β is the natural
-  falsification arm.
+- **Allocation-rule ablations — DONE at n=3 (2026-10-11, kernel `vitb-lora-abl`,
+  RESEARCH §6.6):** r ∝ β^τ (τ=2.0) vs hard top-k (k=9) vs RepSAM-style inverted-β
+  (falsification), budget-matched to the drift rule's Σr=73. All three tie uniform and
+  r ∝ β_m within seed noise — **allocation shape is inert at this budget on
+  ViT-B/low_light; coverage is the discriminator** (late-only stays clearly short).
+  The inverted-β falsification *failed to falsify*: putting 18 rank units on the
+  least-drifted block still matches uniform (+0.0013 ± 0.0057 paired). Nulls were
+  already on record for ViT-S (grid parity) and ViT-B (v9, RESEARCH §6.5).
 - **Profiling-set size**: n=1000 suffices (cov_shift's n=100 instability is a
   warning); profiling images may be unlabeled and drawn from the deployment-ish
   distribution — no labels consumed anywhere.
@@ -151,7 +155,11 @@ Current rule `r_m = round(r · β_m / max β)` produced grid parity with uniform
 full-FT at 0.78% params (ViT-S, 4 corruptions, 3 seeds). The first ViT-B point landed
 2026-10-10 (v9, n=3: parity with uniform at 24% fewer params — RESEARCH §6.5, the same
 parity-at-lower-cost picture ViT-S showed); the atlas families (Track 3) generalize it
-further; §1.4 lists the ablation set (β^τ, top-k, inverted-β falsification). Routed adapters (routing derived from β) stay parked
+further. The §1.4 shape ablations closed 2026-10-11 with a null result that *sharpens*
+the claim (RESEARCH §6.6): at ~0.4% budget the loss surface is flat across allocation
+shapes — sharpened, top-k, even inverted-β all tie uniform — so the defensible value of
+the rule is the param saving at parity, and "our shape wins" is off the table; whether
+shape matters at tighter budgets is the open shape×budget question for Track 3. Routed adapters (routing derived from β) stay parked
 as the end-game ablation per ROADMAP §5.
 
 ---
@@ -191,8 +199,8 @@ Baselines stay: TENT, BN-adapt (Schneider-style adapt-all), enhancement front-en
 ## 5. Evaluation plan (Tracks 2–5 — pending)
 
 Claims to close, in dependency order: (a) ViT-B profile + drift-weighted LoRA
-(Track 2, Kaggle v8/v9) — **closed at n=3** (RESEARCH §6.5; ablations
-before submission) — cross-architecture pair ViT-S/ViT-B + the ViT-B generality item;
+(Track 2, Kaggle v8/v9 + ablations) — **closed at n=3** (RESEARCH §6.5; shape
+ablations §6.6) — cross-architecture pair ViT-S/ViT-B + the ViT-B generality item;
 (b) atlas across 5+ families (Track 3) — the "CNNs early vs ViTs late" question
 phrased as a measurement, with ResNet-50 already late-heavy (§1.2); (c) SSR arms vs
 TENT/BN-adapt on the atlas models (Track 4); (d) real-dark dense eval (Track 5).
