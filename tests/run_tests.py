@@ -267,11 +267,169 @@ def test_ntrainable_probe_uses_exactly_n_per_class():
     probe = NTrainableProbe(n_per_class=5, seed=0).fit(X, y)
     # smoke: predictions have the right shape/classes
     preds = probe.predict(X)
-    assert preds.shape == (200,) and set(np.unique(preds)) <= {0, 1}
+    assert preds.shape == (200,) and set(np.unique(preds)) <= {0, 1}# ---------------------------------------------------------------------------
+# Regression tests for technical-debt fixes (docs/project-context/07 §A1/A3/A5)
+# ---------------------------------------------------------------------------
+
+class _FakeSTL10:
+    """Stand-in for torchvision.datasets.STL10: one image per class plus a
+    second 'monkey' image (monkey has no CIFAR-10 counterpart)."""
+
+    classes = ["airplane", "bird", "car", "cat", "deer",
+               "dog", "horse", "monkey", "ship", "truck"]
+
+    def __init__(self, root=None, split=None, download=None):
+        self._items = [(np.full((6, 6, 3), 30 + k, dtype=np.uint8), k)
+                       for k in range(10)] + \
+                      [(np.full((6, 6, 3), 200, dtype=np.uint8), 7)]
+
+    def __len__(self):
+        return len(self._items)
+
+    def __getitem__(self, j):
+        return self._items[j]
+
+
+def _supp_and_torchvision_or_skip():
+    """Import torch-dependent modules; return None when unavailable (CI)."""
+    try:
+        import torchvision
+        import src.supplementary as supp
+    except ImportError:
+        return None
+    return supp, torchvision
+
+
+def test_analyze_seeds_guards_missing_clean_baseline():
+    """Debt A3: a log without a 'severity 0:' (clean) line must not crash
+    analyze_seeds.py with a None-formatting TypeError; the row is flagged
+    no_clean instead."""
+    import subprocess
+    import tempfile
+
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    log = ("Mean accuracy: Original=0.500, LoRA=0.700, Delta=+0.200\n"
+           "severity 1: 0.6500\nseverity 5: 0.3000\n")
+    with tempfile.TemporaryDirectory() as td:
+        arm = os.path.join(td, "seed42_all")
+        os.makedirs(arm)
+        with open(os.path.join(arm, "full_log.txt"), "w", encoding="utf-8") as f:
+            f.write(log)
+        proc = subprocess.run(
+            [sys.executable, os.path.join(repo, "analyze_seeds.py"), "--roots", td],
+            cwd=td, capture_output=True, text=True, timeout=120)
+        assert proc.returncode == 0, (
+            "analyze_seeds must survive a log without a severity-0 line:\n"
+            f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}")
+        csv_path = os.path.join(td, "output", "seed_replication", "seed_analysis.csv")
+        assert os.path.isfile(csv_path), "seed_analysis.csv not written"
+        with open(csv_path, encoding="utf-8") as f:
+            row = next(line for line in f if line.startswith("seed42_all,"))
+        assert "no_clean" in row, f"row should be flagged no_clean: {row!r}"
+
+
+def test_lowlight_augmentation_deterministic_per_index():
+    """Debt A1: LowLightAugCIFAR must key augmentation on the sample index
+    (per-index RNG), so output is independent of access order — the global
+    np.random stream made it depend on DataLoader worker interleaving.
+    Skipped when torch is absent (e.g. CI)."""
+    try:
+        from src.lora import LowLightAugCIFAR
+    except ImportError:
+        return
+    imgs = np.random.default_rng(0).integers(0, 256, (12, 8, 8, 3)).astype(np.uint8)
+    labels = np.arange(12) % 10
+    ds = LowLightAugCIFAR(imgs, labels, transform=lambda x: x)
+    in_order = {i: ds[i][0] for i in range(12)}
+    for i in (7, 0, 11, 3, 5, 1, 9, 2, 10, 4, 8, 6):
+        out = ds[i][0]
+        assert np.array_equal(in_order[i], out), (
+            f"index {i} augmented differently when accessed in a different "
+            f"order — the RNG is not per-index")
+
+
+def test_stl10_helper_maps_shared_classes():
+    """Debt A5 (1): _load_stl10_shared_classes must read class names from
+    CIFAR10_CLASS_NAMES (the old load_cifar10_subsets.class_names raised
+    AttributeError) and count dropped 'monkey' samples. Skipped without torch."""
+    got = _supp_and_torchvision_or_skip()
+    if got is None:
+        return
+    supp, torchvision = got
+    orig = torchvision.datasets.STL10
+    torchvision.datasets.STL10 = _FakeSTL10
+    try:
+        imgs, labels, n_skipped = supp._load_stl10_shared_classes(n_test=9, seed=0)
+    finally:
+        torchvision.datasets.STL10 = orig
+    assert len(imgs) == 9 and len(labels) == 9
+    assert n_skipped == 2, f"both monkey images must be counted skipped, got {n_skipped}"
+    # 9 shared classes; car -> automobile (1); frog (6) never present; monkey dropped
+    assert set(labels.tolist()) == {0, 1, 2, 3, 4, 5, 7, 8, 9}, labels.tolist()
+    assert imgs[0].dtype == np.uint8
+
+
+def test_exp_cross_dataset_end_to_end_stubbed():
+    """Debt A5 (2): exp_cross_dataset must complete (the n_dropped/n_skipped
+    binding mismatch raised NameError after the probe was fit) and write
+    cross_dataset.csv + cross_dataset_summary.json. All externals are stubbed
+    (CIFAR-10, DINOv2, STL-10) — no downloads, no real model.
+    Skipped when torch is absent (e.g. CI)."""
+    import csv as _csv
+    import json as _json
+    import tempfile
+
+    got = _supp_and_torchvision_or_skip()
+    if got is None:
+        return
+    supp, torchvision = got
+
+    n = 100
+    rng = np.random.default_rng(3)
+    labels = np.arange(n) % 10
+    imgs = (rng.integers(0, 40, (n, 8, 8, 3))
+            + (labels * 18)[:, None, None, None]).astype(np.uint8)
+
+    def fake_cifar(n_test, n_train, seed, **_kw):
+        return imgs, labels, np.arange(n_test), imgs, labels, np.arange(n)
+
+    class _FakeExtractor:
+        def __init__(self, model, device):
+            pass
+
+        def __call__(self, batch, batch_size=None):
+            return np.stack([np.asarray(im, dtype=np.float32).mean(axis=(0, 1))
+                             for im in batch])
+
+    cfg = {"seed": 0,
+           "data": {"n_test": 9, "n_train": 40, "split_seed": 42, "test_fraction": 0.3},
+           "model": {"backbone": "stub"},
+           "probe": {"C": 1.0, "max_iter": 200},
+           "corruption": {"brightness_factors": [1.0] * 6}}
+
+    saved = (supp.load_cifar10_subsets, supp.load_dinov2, supp.EmbeddingExtractor,
+             torchvision.datasets.STL10)
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            supp.load_cifar10_subsets = fake_cifar
+            supp.load_dinov2 = lambda backbone, device: object()
+            supp.EmbeddingExtractor = _FakeExtractor
+            torchvision.datasets.STL10 = _FakeSTL10
+            supp.exp_cross_dataset(cfg, "cpu", td)
+        finally:
+            (supp.load_cifar10_subsets, supp.load_dinov2, supp.EmbeddingExtractor,
+             torchvision.datasets.STL10) = saved
+        with open(os.path.join(td, "cross_dataset.csv"), encoding="utf-8") as f:
+            rows = list(_csv.DictReader(f))
+        assert [int(r["severity"]) for r in rows] == [0, 1, 2, 3, 4, 5], rows
+        assert all(0.0 <= float(r["accuracy"]) <= 1.0 for r in rows), rows
+        with open(os.path.join(td, "cross_dataset_summary.json"), encoding="utf-8") as f:
+            summary = _json.load(f)
+        assert summary["n_stl10_used"] == 9, summary
+        assert summary["n_skipped_monkey"] == 2, summary
 
 
 # ---------------------------------------------------------------------------
-
 def main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

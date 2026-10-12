@@ -29,7 +29,7 @@ contributed `src/`/`tests/`/`paper/`/CI (see `docs/DIVERGENCE_REPORT.md`).
 ## Verify before/after any change
 
 ```bash
-python3 tests/run_tests.py                                    # expect 22/22, exit 0
+python3 tests/run_tests.py                                    # expect 26/26, exit 0
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # only if touching the site's source
 git status --porcelain

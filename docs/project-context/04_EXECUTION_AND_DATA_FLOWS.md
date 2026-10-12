@@ -66,7 +66,7 @@ frozen DINOv2 backbone
    │  apply_lora(model, rank, alpha, target)   ← installs LoRALayer into attn(/mlp)
    ▼
 BackboneClassifier  (frozen backbone + linear head)   [or AnchoredBackboneClassifier]
-   │  training data: LowLightAugCIFAR  (70% sev 2–4, 50% h-flip, DataLoader num_workers=2)
+   │  training data: LowLightAugCIFAR  (70% sev 2–4, 50% h-flip, per-index RNG; DataLoader num_workers=2)
    ▼
 train_lora / train_lora_anchored  (AdamW; lr_lora / lr_head; epochs; alpha = 2·rank)
    ▼
@@ -132,9 +132,10 @@ Datasets are not committed (excluded: `data/`, `colab_results/`, `output/`, `log
 
 - Config SHA-256 is embedded in every manifest → result provenance.
 - Corruption noise is order-independent (`_deterministic_noise`).
-- **Exception:** `src/lora.py:73-74` (`LowLightAugCIFAR.__getitem__`) consumes the global
-  `np.random` stream inside a `num_workers=2` DataLoader → augmentation draws can correlate
-  across workers. `run_lora_simple_colab.py:275-281` works around this. See Debt §.
+- **Augmentation RNG:** both augmentation paths key their RNG on the sample index
+  (`src/lora.py` since Debt A1 was resolved 2026-10-11; `run_lora_simple_colab.py:275-282`
+  from the start), so DataLoader worker forks never share RNG state and augmented outputs
+  are independent of access order.
 - `docs/METHODS.md` §10 records the exact pinned reference environment that produced the
   committed results.
 

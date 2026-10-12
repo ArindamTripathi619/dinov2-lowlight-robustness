@@ -17,13 +17,15 @@ pytest** (pytest is not a dependency and is not installed in the observed enviro
 python3 tests/run_tests.py
 ```
 
-**Observed result at HEAD `90577cb`: `22/22 passed`, exit 0.**
+**Observed result (2026-10-11): `26/26 passed`, exit 0.**
 
-## 2. What is covered (22 tests)
+## 2. What is covered (26 tests)
 
-Everything tested is in the **torch-free analysis stack** (`src/corruptions.py`,
-`src/analysis.py`, `src/probes.py`, plus local `biased` math in-test). The runner does not
-import torch.
+Almost everything tested is in the **torch-free analysis stack** (`src/corruptions.py`,
+`src/analysis.py`, `src/probes.py`, plus local `biased` math in-test). The runner itself
+does not import torch; since 2026-10-11 it also carries four **torch-optional regression
+tests** (Debt §A1/A3/A5) that self-skip when torch is absent (CI) and run fully in
+torch-enabled local environments.
 
 | Group | Tests |
 |---|---|
@@ -32,6 +34,7 @@ import torch.
 | Spectral / curves (4) | `participation_ratio_isotropic_and_lowrank`, `curve_test_detects_cliff_shape`, `curve_test_passes_linear_shape`, `paired_permutation_detects_and_calibrates` |
 | Statistics (3) | `bh_correction_controls_fdr_monotonicity`, `bootstrap_ci_brackets_observed`, `wilson_extreme_cases` |
 | Probes / splits (2) | `stratified_split_preserves_class_balance`, `ntrainable_probe_uses_exactly_n_per_class` |
+| Debt regressions (4) | `analyze_seeds_guards_missing_clean_baseline` (stdlib, subprocess), `lowlight_augmentation_deterministic_per_index`, `stl10_helper_maps_shared_classes`, `exp_cross_dataset_end_to_end_stubbed` (last three torch-optional) |
 
 ## 3. Continuous integration
 
@@ -62,9 +65,11 @@ This proves the **torch-optional import invariant** enforced by `src/common.py:_
 
 ## 5. Gaps / weaknesses
 
-- **No torch-path tests.** The DINOv2 loader, `EmbeddingExtractor`, LoRA training, and the
-  presentation app are untested by CI (torch absent). Model-layer behavior is validated only
-  by the research runs themselves.
+- **No torch-path tests in CI.** The DINOv2 loader, `EmbeddingExtractor`, LoRA training,
+  and the presentation app are untested *by CI* (torch absent). Since 2026-10-11 the suite
+  includes torch-optional regression tests that exercise `src/lora` and
+  `src/supplementary` in torch-enabled local environments; model-layer behavior is
+  otherwise validated only by the research runs themselves.
 - **No pytest / coverage tooling.** The custom runner has no fixtures, parametrization,
   coverage, or test isolation; tests run in one process and share global RNG state.
 - **No lint/type gate.** No ruff/flake8/mypy/pyright config or CI step (some scripts do carry
@@ -75,7 +80,7 @@ This proves the **torch-optional import invariant** enforced by `src/common.py:_
 ## 6. How to verify a change (practical checklist)
 
 ```bash
-python3 tests/run_tests.py                                   # 22/22 expected
+python3 tests/run_tests.py                                   # 26/26 expected
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # if touching the site's source
 git status --porcelain                                        # confirm no stray artifacts

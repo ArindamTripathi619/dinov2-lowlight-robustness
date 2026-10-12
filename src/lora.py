@@ -70,9 +70,17 @@ class LowLightAugCIFAR(Dataset):
 
     def __getitem__(self, i):
         img = self.images[i].copy()
-        if np.random.random() < 0.7:
-            img = low_light(img, np.random.randint(2, 5))
-        if np.random.random() < 0.5:
+        # Per-sample RNG (seeded by index) instead of the global np.random
+        # stream: DataLoader workers fork without re-seeding NumPy, so a
+        # global-RNG draw can be correlated across workers and depends on
+        # worker scheduling. Deterministic per image, independent across
+        # images — same pattern as run_lora_simple_colab.py (the Phase-3 run
+        # of record). No committed artifact came from this path (Phase-3
+        # results of record came from the Colab runner), so no re-baseline.
+        rng = np.random.default_rng(seed=i)
+        if rng.random() < 0.7:
+            img = low_light(img, int(rng.integers(2, 5)))
+        if rng.random() < 0.5:
             img = np.flip(img, axis=1).copy()
         return self.transform(img), self.labels[i]
 

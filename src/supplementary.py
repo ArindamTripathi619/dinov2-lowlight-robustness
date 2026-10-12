@@ -314,7 +314,7 @@ def _load_stl10_shared_classes(n_test: int, seed: int):
     rng = np.random.RandomState(seed)
     order = rng.permutation(len(ds))
 
-    cifar_names = load_cifar10_subsets.class_names
+    cifar_names = CIFAR10_CLASS_NAMES
     name_to_cifar = {n: i for i, n in enumerate(cifar_names)}
     # explicit cross-dataset name mapping (car -> automobile)
     stl_to_cifar = {i: name_to_cifar["automobile"] if n == "car" else name_to_cifar[n]
@@ -352,7 +352,7 @@ def exp_cross_dataset(cfg, device, outdir):
     probe = fit_probe(extractor([low_light(cifar_images[i], 0) for i in idx_tr]),
                       cifar_labels[idx_tr], C=p["C"], max_iter=p["max_iter"])
 
-    stl_images, stl_labels, n_dropped = _load_stl10_shared_classes(
+    stl_images, stl_labels, n_skipped = _load_stl10_shared_classes(
         d["n_test"], d["split_seed"])
     rows = []
     for s in _severities(cfg):

@@ -6,7 +6,7 @@
 
 ## A. Confirmed / reported defects
 
-### A1. Global-RNG augmentation under multiprocessing — **[Confirmed]**
+### A1. Global-RNG augmentation under multiprocessing — **[Resolved 2026-10-11]**
 `src/lora.py:73-74` (`LowLightAugCIFAR.__getitem__`) draws from the global `np.random`
 stream (`np.random.random()`, `np.random.randint`) inside a `DataLoader` using
 `num_workers=2`. With worker processes, the global RNG is forked, so augmentation draws can
@@ -19,6 +19,13 @@ be **correlated across workers**, and reproducibility depends on worker scheduli
 - **Fix direction:** give each sample a deterministic per-index seed (as
   `src/corruptions.py:_deterministic_noise` already does for corruption) instead of the
   global stream. Do **not** change without re-baselining committed artifacts.
+- **Resolved 2026-10-11:** `__getitem__` now uses `np.random.default_rng(seed=i)`
+  (mirrors `run_lora_simple_colab.py`, the Phase-3 run of record). Re-baseline check:
+  no committed artifact was produced by this path — the Phase-3 results of record came
+  from the Colab runner, and no `lora_*.csv` from the harness `lora_ablation` experiment
+  is committed — so nothing needed re-baselining. Regression test:
+  `test_lowlight_augmentation_deterministic_per_index` (torch-optional; verified to fail
+  on the pre-fix code: 11/12 indices changed with access order).
 
 ### A2. `apply_lora` mutates its argument in place — **[Confirmed, intentional]**
 `src/lora.py:45-59` replaces submodules on the passed model and flips `requires_grad`
@@ -29,19 +36,27 @@ latent footgun for any caller that passes a still-needed model.
 
 - **Fix direction:** return a wrapped copy, or guard against double-application.
 
-### A3. `analyze_seeds.py` None-guard — **[Reported]**
+### A3. `analyze_seeds.py` None-guard — **[Resolved 2026-10-11]**
 `analyze_seeds.py:97,99` assumes a `severity 0:` line exists in each log; if a log lacks it,
 `clean` stays `None` and later arithmetic raises `TypeError`.
 
 - **Fix direction:** skip/guard runs with no clean baseline, or fail with a clear message.
+- **Resolved 2026-10-11:** crash reproduced first (TypeError), then guarded: a missing
+  `severity 0:` line now prints `-` and marks the CSV row `no_clean` instead of crashing.
+  Regression test: `test_analyze_seeds_guards_missing_clean_baseline`.
 
-### A4. `run_notebook3.py` output divergence — **[Reported]**
+### A4. `run_notebook3.py` output divergence — **[Confirmed, documented]**
 The plain `run_notebook3.py` does not emit three CSVs that its `.ipynb` counterpart and
 `run_notebook3_colab.py` produce: `quantization_results.csv`, `geometry_results.csv`,
-`zero_shot_results.csv`. Downstream consumers must not assume the plain runner's output set
-matches the Colab/notebook output set.
+`zero_shot_results.csv`.Downstream consumers must not assume the plain runner's output set matches
+the Colab/notebook output set.
+- **Re-verified 2026-10-11:** no committed artifacts use these three names anywhere in
+  the tree, and no in-repo consumer reads them (the CSVs read downstream —
+  `make_paper_tables.py`, `make_readme_figures.py`, `run_all_colab.py` — are different
+  files such as `cross_dataset.csv`, and those readers tolerate absence). The caveat is
+  now stated in `run_notebook3.py`'s header; no behavior change made to the unused path.
 
-### A5. `src/supplementary.py` cross-dataset path is broken — **[Confirmed]**
+### A5. `src/supplementary.py` cross-dataset path is broken — **[Resolved 2026-10-11]**
 Two laddering defects, both found by direct read on the 2nd pass:
 
 1. `_load_stl10_shared_classes` (`src/supplementary.py:305`) does
@@ -59,6 +74,16 @@ Two laddering defects, both found by direct read on the 2nd pass:
 - **Fix direction:** read class names from `CIFAR10_CLASS_NAMES`; rename `n_dropped` →
   `n_skipped` (or vice-versa); add a torch-optional unit test exercising the helper with a
   stubbed loader.
+- **Resolved 2026-10-11:** helper reads `CIFAR10_CLASS_NAMES` (imported at module top);
+  the call site binds the helper's third return to `n_skipped` (matching the JSON key).
+  Two torch-optional regression tests added: `test_stl10_helper_maps_shared_classes` and
+  `test_exp_cross_dataset_end_to_end_stubbed` (stubs CIFAR-10/DINOv2/STL-10 — no
+  downloads). Both verified to fail on the pre-fix code (AttributeError / NameError).
+- **Correction:** the claim that a committed `cross_dataset.csv` exists in
+  `results_pilot/` was wrong — `git ls-files` shows **no** committed `cross_dataset.csv`
+  anywhere; the experiment never produced a committed artifact. Downstream readers
+  (`make_paper_tables.py:163,259`, `make_readme_figures.py:149`, `run_all_colab.py:161`)
+  tolerate its absence.
 
 ## B. Contradiction to resolve
 
@@ -111,8 +136,11 @@ seeded protocol (`default_rng(1000 + severity)`) drives every committed artifact
    tables/figures/macros must be regenerated and the `[pending]` placeholders removed.
 4. **[Closed 2026-10-09] Optional residual of ROADMAP Track 0.** Deterministic-noise
    reconciled by agreement — verdict in `docs/DIVERGENCE_REPORT.md` §8.5/§9; protocol stands.
-5. **[Risk] No torch-path tests.** CI cannot catch regressions in the model/LoRA/presentation
-   paths (see `06_TESTING_AND_QUALITY.md` §5).
+5. **[Risk, reduced 2026-10-11] No torch-path tests in CI.** CI cannot catch regressions
+   in the model/LoRA/presentation paths (torch absent — see `06_TESTING_AND_QUALITY.md`
+   §5), but three torch-optional regression tests (Debt §A1/A3/A5) now exercise
+   `src/lora` + `src/supplementary` whenever the suite runs in a torch-enabled local
+   environment. A dedicated torch CI job remains open (F.8).
 6. **[Risk] No lint/type gate.** Style/type drift is unguarded in CI.
 7. **[Risk] Presentation drift.** The README section list and the app's `SECTION_ORDER` were
    reconciled in recent commits (`6f75d67`, `8d1c1fc`); any section rename must update both.
@@ -124,12 +152,18 @@ seeded protocol (`default_rng(1000 + severity)`) drives every committed artifact
    (0.913 → 0.083, n=1000), and no `lora_*.csv` exists in `results_pilot/`. **The committed
    artifacts were not all produced by the current `run_experiments.py`** — pin the generator
    commit before promising byte-exact re-runs (ties into B1).
+   **Pin (2026-10-11):** `results_pilot/` artifacts were introduced by commit `128e9cb`
+   ("Run real CPU pilot, add collapse finding, supplementary suite, CVPR audit") — that
+   commit's harness state is the generator of record; HEAD's writer schema differs (the
+   `cka_summary.json` drift above). Byte-exact re-runs must check out `128e9cb`.
 
 ## F. Suggested triage order (if asked to harden)
 
-1. Fix `src/lora.py` augmentation RNG (A1) with re-baseline plan.
-2. Add a clear guard for `analyze_seeds.py` (A3) — cheap, isolated.
-3. Fix the `src/supplementary.py` cross-dataset bugs (A5) — small, isolated, unlocks one experiment.
+1. [done 2026-10-11] Fix `src/lora.py` augmentation RNG (A1) — resolved without
+   re-baseline (no committed artifact came from that path).
+2. [done 2026-10-11] Add a clear guard for `analyze_seeds.py` (A3) — cheap, isolated.
+3. [done 2026-10-11] Fix the `src/supplementary.py` cross-dataset bugs (A5) — small,
+   isolated, unlocks one experiment.
 4. [done 2026-10-09] Reconcile the deterministic-noise contradiction (B1) — verdict in DIVERGENCE §8.5.
 5. Pin which harness version produced the committed `results_pilot/` artifacts (E8).
 6. Consolidate stats duplication (C) behind `stats_tools.py`.
