@@ -30,7 +30,7 @@ Tracked files: **327**. Non-heavy working-tree files enumerated below: **~140**.
 | HEAD | `90577cb` — "Publish the static site to Vercel with pinned deploy config" |
 | `origin` | `github.com/ArindamTripathi619/dinov2-lowlight-robustness` |
 | `upstream` | `github.com/officialarghya29/dinov2-lowlight-robustness` |
-| Merge lineage | PR #1 merged 2026-10-01 (merge commit `9bc6b50`); single shared lineage with upstream |
+| Merge lineage | PRs #1–#4 merged upstream (PR #1 `9bc6b50` 10-01 → PR #4 `0ad0ef5` 10-12); single shared lineage with upstream |
 | Working tree | clean at time of recon; earlier HEAD `0f6fea0` observed then superseded |
 
 > **Note on a moving target.** During recon the checkout advanced from `0f6fea0`
