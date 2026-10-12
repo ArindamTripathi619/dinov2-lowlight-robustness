@@ -5,7 +5,10 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-11: v9 allocation-shape ablations DONE at n=3 (β^τ / top-k /
+*Last updated 2026-10-12: upstream PR #4 (allocation-shape ablations) MERGED (`0ad0ef5`) —
+results of record now on upstream `main`, fork `main` synced; presentation ViT-B section
+extended with the v9 n=3 + ablation verdicts (RESEARCH §6.5/§6.6).
+Before that (10-11): v9 allocation-shape ablations DONE at n=3 (β^τ / top-k /
 inverted-β falsification, kernel `vitb-lora-abl`) — all shapes tie uniform/drift at
 budget-matched Σr, so the allocation shape is inert at ~0.4% params; coverage
 discriminates (RESEARCH §6.6).
@@ -36,9 +39,11 @@ Tracks 3–6 remain open.*
 - Landed since this roadmap was written: **PR #1 merged upstream** (2026-10-01,
   `9bc6b50` — fork replayed onto the rewritten root; `paper/`, `src/`, `tests/`, CI,
   `configs/` integrated), **blur re-evals folded** (`67a2dc4`), **Track 2 v8 ViT-B
-  profile done** (  `6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done at n=3** (`output/v9_lora/`),
+  profile done** (`6a9de11`, T4 259 s), **Track 2 v9 ViT-B LoRA arms done at n=3** (`output/v9_lora/`),
   **v9 allocation-shape ablations done at n=3** (`output/v9_ablation/`, RESEARCH §6.6).
-  Open: Tracks 3–6.
+  **PRs #2–#4 merged upstream**: #2 research tracks + presentation/deployment (10-09,
+  `053f5b4`), #3 Track 2 v9 (10-10, `dc4f0c8`), #4 allocation-shape ablations (10-11,
+  `0ad0ef5`) — fork `main` synced to upstream. Open: Tracks 3–6.
 
 **Decision (advisor's two rankings converge on this):** the paper is **Drift-Profiled
 Adaptation (DPA) + Selective Statistic Recalibration (SSR)** — the "drift-profiled,
@@ -55,7 +60,7 @@ Illumination Registers and the Canonicalizer are parked (Archive, §5).
 |---|-------|-------------------|
 | 0 | ~~Close sessionE blur arms; PR #1 follow-through~~ — **closed** | blur re-evals folded (`67a2dc4`); PR #1 merged upstream (`9bc6b50`) |
 | 1 | **Drift-proxy pipeline on ResNet-50** (advisor's "suggested next step") | **the whole paper stands or falls here**, for ~1 GPU-session; validates "cheap proxy ≈ CKA" outside ViT |
-| 2 | **ViT-B drift-weighted LoRA** (kernel v8/v9) | the one remaining novelty claim from the *current* paper; also the ViT-family data point for the cross-architecture claim |
+| 2 | ~~**ViT-B drift-weighted LoRA** (kernel v8/v9)~~ — **core closed 2026-10-11** (v9 n=3 parity at 24% fewer params + allocation-shape ablations n=3; only the sublayer-resolved extension open) | delivered the ViT data point: parity-at-lower-cost replicated on a second backbone (RESEARCH §6.5/§6.6) |
 | 3 | **Cross-family drift profiles** (6 models) | the reviewer-ungettable result: *shape* of drift profiles across CNN/ViT/hybrid/state-space |
 | 4 | **SSR: selective test-time recalibration** | label-free, inference-only, fits free tier; combines with DPA into the framework paper |
 | 5 | **Real-darkness dense-task eval** (ACDC/Dark Zurich) | answers the "synthetic problem" objection on the benchmarks where darkness actually hurts |
