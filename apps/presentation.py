@@ -72,7 +72,7 @@ SECTION_TITLES = {
     "families": "Corruption families \u2014 does the fix generalize?",
     "readout": "Readout staleness \u2014 features, not the head",
     "exdark": "ExDark \u2014 real darkness",
-    "vitb": "Phase 2.7 \u2014 ViT-B/14 cross-architecture",
+    "vitb": "Phase 2.7 \u2014 ViT-B/14 cross-architecture + v9 LoRA (n=3)",
     "bugs": "Appendix \u2014 bugs & lessons",
     "gallery": "Figure gallery \u2014 every committed figure",
 }
@@ -151,6 +151,22 @@ def load_vitb_agreement():
 def load_drift_proxy_agreement():
     with open(OUTPUT / "drift_proxy" / "agreement_report.json") as f:
         return json.load(f)
+
+@st.cache_data
+def load_v9_lora():
+    """Track 2 v9: 3 LoRA arms x seeds 42/43/44 (RESEARCH \u00a76.5)."""
+    df = pd.read_csv(OUTPUT / "v9_lora" / "summary.csv")
+    for c in ("mean_delta", "sev5_delta"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    return df
+
+@st.cache_data
+def load_v9_ablation():
+    """Allocation-shape ablations (btau/topk/invbeta) x seeds 42/43/44 (RESEARCH \u00a76.6)."""
+    df = pd.read_csv(OUTPUT / "v9_ablation" / "summary.csv")
+    for c in ("mean_delta", "sev5_delta"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +403,21 @@ def _bullets(items):
     st.markdown("\n".join(f"- {it}" for it in items))
 
 
+def _v9_agg(df, arms):
+    """Per-arm params and mean \u0394 \u00b1 sample-std over seeds, for the v9 summary CSVs."""
+    rows = []
+    for arm in arms:
+        s = df[df["arm"] == arm]
+        rows.append({
+            "arm": arm,
+            "params": int(s["trainable_params"].iloc[0]),
+            "% of model": float(s["trainable_pct"].iloc[0]),
+            "mean \u0394": f"{s['mean_delta'].mean():.4f} \u00b1 {s['mean_delta'].std():.4f}",
+            "sev-5 \u0394": f"{s['sev5_delta'].mean():.4f} \u00b1 {s['sev5_delta'].std():.4f}",
+        })
+    return pd.DataFrame(rows)
+
+
 def _findings(items):
     st.subheader("Findings")
     st.markdown("\n".join(f"- {it}" for it in items))
@@ -448,7 +479,11 @@ def _render_home():
         {"Question": "How much does it recover?",
          "Answer": "Mean 0.594 \u2192 0.818 (+22.4); worst-case 0.073 \u2192 0.377 (5.1\u00d7); clean accuracy rises"},
         {"Question": "Does drift-weighting beat uniform LoRA?",
-         "Answer": "Parity: 0.825 / 0.827 / 0.831 (drift / uniform / full FT), 3-seed ranges overlap"},
+         "Answer": "Parity twice: ViT-S 0.825 / 0.827 / 0.831 (drift / uniform / full FT, 3 seeds); "
+                   "ViT-B drift = uniform at 24% fewer params (n=3, 0.1598 vs 0.1607)"},
+        {"Question": "Does the allocation shape matter?",
+         "Answer": "No \u2014 \u03b2^\u03c4 / top-k / inverted-\u03b2 all tie at budget-matched \u03a3r (n=3); "
+                   "coverage of blocks discriminates, not the rank rule"},
         {"Question": "Does the fix generalize?",
          "Answer": "JPEG +19.3, blur +17.7, contrast +7.5 \u2014 gain tracks fragility"},
         {"Question": "Is it just the linear head going stale?",
@@ -456,7 +491,8 @@ def _render_home():
         {"Question": "Real darkness (ExDark, 7,363 images)?",
          "Answer": "Frozen model 0.725, flat across luminance; synthetic-dark LoRA transfers +1.9 pts"},
         {"Question": "Cross-architecture?",
-         "Answer": "ViT-B/14 confirms late-heavy drift; MLP drifts more than attention in all 12 blocks"},
+         "Answer": "ViT-B/14 confirms late-heavy drift, MLP > attention in all 12 blocks; LoRA parity "
+                   "replicates at 24% fewer params (n=3)"},
     ])
     st.dataframe(headline, use_container_width=True, hide_index=True)
 
@@ -493,7 +529,7 @@ def _render_home():
         ("families", "Blur / JPEG / contrast: profile, fix, and per-family figures."),
         ("readout", "Probe-retrain control: how much was the head vs the features."),
         ("exdark", "7,363 real low-light images: the sim-to-real gap, measured."),
-        ("vitb", "86M-parameter replication: late-heavy + MLP > attention in 12/12 blocks."),
+        ("vitb", "86M-parameter replication: late-heavy + MLP > attention; v9 LoRA parity at 24% fewer params (n=3)."),
         ("bugs", "Four bugs, each caught pre-trust, each with a reproducibility lesson."),
         ("gallery", "Every committed figure, grouped by phase."),
     ]
@@ -1301,7 +1337,10 @@ def _render_vitb():
     Kaggle T4 in 259.5 seconds using the same label-free protocol: two forward passes per
     condition, hooks on each module, CLS-token pooling, matched-noise corruption (`1000 +
     severity`). The finer grain matters: the attention-vs-MLP asymmetry is invisible at
-    whole-block resolution.
+    whole-block resolution. The same backbone was then *adapted*, not just profiled:
+    drift-weighted vs uniform vs late-only LoRA over **3 seeds**, plus allocation-shape
+    ablations (\u03b2^\u03c4 / top-k / inverted-\u03b2) \u2014 the two adaptation verdicts sit
+    below the profile.
     """)
     profiles = load_vitb_profiles()
     agreement = load_vitb_agreement()
@@ -1364,6 +1403,72 @@ def _render_vitb():
     with st.expander("Raw gate verdict (agreement_report.json)"):
         st.json(gate)
 
+    # -- Track 2 v9: LoRA arms at n=3 (RESEARCH \u00a76.5) --------------------
+    st.subheader("Track 2 v9 \u2014 drift-weighted LoRA at n=3 (parity at 24% fewer params)")
+    v9 = load_v9_lora()
+    d_drift = v9[v9["arm"] == "drift"]["mean_delta"]
+    d_unif = v9[v9["arm"] == "uniform"]["mean_delta"]
+    paired = v9.pivot(index="seed", columns="arm", values="mean_delta")
+    paired_diff = paired["drift"] - paired["uniform"]
+    p_unif = int(v9[v9["arm"] == "uniform"]["trainable_params"].iloc[0])
+    p_drift = int(v9[v9["arm"] == "drift"]["trainable_params"].iloc[0])
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("drift-weighted mean \u0394", f"{d_drift.mean():.4f}",
+              f"\u00b1{d_drift.std():.4f} across 3 seeds")
+    c2.metric("uniform r8 mean \u0394", f"{d_unif.mean():.4f}",
+              f"\u00b1{d_unif.std():.4f} across 3 seeds")
+    c3.metric("param saving", f"{100 * (1 - p_drift / p_unif):.0f}%",
+              f"{p_drift:,} vs {p_unif:,} params (0.39% vs 0.51%)")
+    c4.metric("paired drift\u2212uniform", f"{paired_diff.mean():+.4f}",
+              f"\u00b1{paired_diff.std():.4f} \u2014 parity")
+    st.dataframe(_v9_agg(v9, ["uniform", "drift", "late"]), use_container_width=True,
+                 hide_index=True)
+    with st.expander("All 9 rows (output/v9_lora/summary.csv)"):
+        st.dataframe(v9, use_container_width=True, hide_index=True)
+
+    seed_tabs = st.tabs(["seed 42 (of record)", "seed 43", "seed 44"])
+    for tab9, seed9 in zip(seed_tabs, ["42", "43", "44"]):
+        with tab9:
+            base9 = "output/v9_lora" if seed9 == "42" else f"output/v9_lora/seed{seed9}"
+            for cc, arm9 in zip(st.columns(3), ["uniform", "drift", "late"]):
+                with cc:
+                    _img(f"{base9}/{arm9}/lora_vs_orig_accuracy.png",
+                         f"{arm9} \u2014 seed {seed9}")
+
+    # -- Allocation-shape ablations: shape inert (RESEARCH \u00a76.6) ---------
+    st.subheader("Allocation-shape ablations \u2014 the shape is inert, coverage discriminates")
+    abl = load_v9_ablation()
+    st.dataframe(_v9_agg(abl, ["btau", "topk", "invbeta"]), use_container_width=True,
+                 hide_index=True)
+
+    vals9, errs9 = [], []
+    for arm9, df9 in [("uniform", v9), ("drift", v9), ("late", v9),
+                      ("btau", abl), ("topk", abl), ("invbeta", abl)]:
+        s9 = df9[df9["arm"] == arm9]["mean_delta"]
+        vals9.append(float(s9.mean()))
+        errs9.append(float(s9.std()))
+    fig, ax = plt.subplots(figsize=(8.6, 4.0))
+    ax.bar(["uniform r8", "drift-weighted", "late-only", "\u03b2^\u03c4 (\u03c4=2)",
+            "top-k (k=9)", "inverted-\u03b2"],
+           vals9, yerr=errs9, capsize=5,
+           color=["#1f77b4", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2"],
+           alpha=0.9)
+    ax.axhline(vals9[0], color="#1f77b4", linestyle="--", linewidth=1.2,
+               label=f"uniform baseline {vals9[0]:.4f}")
+    ax.set_ylabel("Mean \u0394 accuracy (over severities)")
+    ax.set_title("Track 2 v9 + allocation-shape ablations \u2014 mean \u0394, n=3 seeds "
+                 "(error bars = \u00b11 sample sd)")
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(framealpha=0.9)
+    ax.tick_params(axis="x", labelrotation=15)
+    fig.tight_layout()
+    st.pyplot(fig)
+    st.caption("All ablation arms budget-matched to the drift rule's \u03a3r = 73 (topk at 72); "
+               "inverted-\u03b2 is the falsification arm (ranks anti-correlated with drift). Every "
+               "shape ties uniform and drift at this budget \u2014 what discriminates is coverage "
+               "(late-only is far short), not the rank-shape rule. Artifacts: "
+               "output/v9_ablation/, verdict RESEARCH \u00a76.6.")
+
     st.subheader("Findings")
     _bullets([
         "**Late-heavy block profile replicates** on an 86M-parameter backbone: drift climbs from block 0 "
@@ -1376,6 +1481,14 @@ def _render_vitb():
         "two forward passes per condition, no labels, no backprop.",
         "**Caveat for consumers:** the drift CSVs key `layer` by profiled-module row (0\u201336). The v9 LoRA consumer "
         "expects dense 0..11 block indices \u2014 select the 12 `blocks.k` rows and re-index before `--drift-csv` use.",
+        "**v9 at n=3: parity at 24% fewer params** \u2014 drift-weighted 0.1598\u00b10.0158 vs "
+        "uniform 0.1607\u00b10.0209 mean \u0394 (paired \u22120.0009\u00b10.0051) while training 336K "
+        "params (0.39%) vs 442K (0.51%); late-only far short (0.0730\u00b10.0096) \u2014 second "
+        "backbone replicating parity-at-lower-cost (RESEARCH \u00a76.5).",
+        "**Allocation shape inert, coverage discriminates** \u2014 \u03b2^\u03c4 / top-k / "
+        "inverted-\u03b2 all tie uniform and drift at budget-matched \u03a3r (mean \u0394 0.1626 / "
+        "0.1596 / 0.1620); the falsification arm failed to falsify, and which blocks get rank "
+        "is what matters (RESEARCH \u00a76.6).",
     ])
 
 
@@ -1431,6 +1544,10 @@ def _gallery_bucket(rel: Path) -> str:
         return "Track 1 \u00b7 proxy gate"
     if "exdark" in s:
         return "ExDark \u00b7 real darkness"
+    if "v9_ablation" in s:
+        return "Track 2 v9 \u00b7 allocation ablations"
+    if "v9_lora" in s:
+        return "Track 2 v9 \u00b7 ViT-B LoRA arms"
     if "vitb" in s:
         return "ViT-B/14 \u00b7 cross-architecture"
     return "Other"
@@ -1445,6 +1562,8 @@ GALLERY_BUCKETS = [
     "Session F \u00b7 jpeg & contrast",
     "Track 1 \u00b7 proxy gate",
     "ExDark \u00b7 real darkness",
+    "Track 2 v9 \u00b7 ViT-B LoRA arms",
+    "Track 2 v9 \u00b7 allocation ablations",
     "ViT-B/14 \u00b7 cross-architecture",
     "Other",
 ]
@@ -1452,8 +1571,6 @@ GALLERY_BUCKETS = [
 
 def _render_gallery():
     st.subheader(SECTION_TITLES["gallery"])
-    st.caption("Every committed PNG in output/ and colab_results/, grouped by phase \u2014 84 figures. "
-               "Use Ctrl+F in the browser to search captions.")
 
     rels = []
     for base in (OUTPUT, COLAB):
@@ -1462,6 +1579,9 @@ def _render_gallery():
             if rel.name.startswith("__static"):
                 continue
             rels.append(rel)
+
+    st.caption(f"Every committed PNG in output/ and colab_results/, grouped by phase \u2014 "
+               f"{len(rels)} figures. Use Ctrl+F in the browser to search captions.")
 
     groups: dict = {}
     for r in rels:
