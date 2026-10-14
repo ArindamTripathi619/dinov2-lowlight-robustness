@@ -285,6 +285,40 @@ Artifacts: `output/v9_lora/summary.csv` (9 rows) + `output/v9_lora/{uniform,drif
 
 Artifacts: `output/v9_ablation/summary.csv` (9 rows) + `output/v9_ablation/seed{42,43,44}/{btau,topk,invbeta}/` (per-arm logs, training curves, accuracy plots; adapter `.pt` recoverable from the kernel output — git-ignored by policy); kernel log `output/v9_ablation/kernel_log.txt`. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-abl -p <dir>`.
 
+### 6.7 SSR S1 on real ImageNet-val — the gate works, the repair doesn't (Track 4, 2026-10-14)
+
+The Track 4 S1 smoke (SSR_PLAN §7) ran `run_ssr.py` on the real `imagenet1kvalid` mount for one BN model (ResNet-50) and one LN model (ViT-S/16), each under low_light + jpeg at severities 1 and 5, seed 42, n_pool=128 (gate calibration + estimation), n_eval=512 disjoint eval images. Selection input was the Track 3 atlas severity-5 CSVs — **one measurement, two consumers, live**: ResNet's top-6/25 and ViT-S's top-10/38 came straight from `output/profiles/*/drift_profile_sev5_*.csv`. Arms: frozen · SSR top-k · SSR all · SSR gate-off · BN-stats (ResNet only) · TENT · AQR · CLAHE. Kernel `arindamtripathi/ssr-s1`, T4, 2,027 s, all 4 invocations rc=0 (METHODS §7.11).
+
+Top-1 (%), gate state in brackets — the full grid in `output/ssr/*/ssr_results.csv`:
+
+| model | corruption | sev | frozen | ssr_topk | ssr_all | tent | aqr | clahe |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| ResNet-50 | jpeg | 1 [closed] | 74.8 | 74.8 | 74.8 | 74.4 | 74.8 | 67.0 |
+| ResNet-50 | jpeg | 5 [open] | 61.7 | 9.4 | 0.0 | **62.5** | 26.0 | 56.8 |
+| ResNet-50 | low_light | 1 [open] | 72.9 | 64.1 | 0.2 | **73.0** | 68.2 | 67.0 |
+| ResNet-50 | low_light | 5 [open] | 33.0 | 0.2 | 0.4 | **31.3** | 0.4 | 13.7 |
+| ViT-S/16 | jpeg | 1 [closed] | 70.9 | 70.9 | 70.9 | 70.9 | 68.4 | 62.3 |
+| ViT-S/16 | jpeg | 5 [open] | 63.7 | 61.9 | 3.5 | **63.7** | 41.8 | 51.0 |
+| ViT-S/16 | low_light | 1 [open] | 73.6 | 72.1 | 1.8 | **73.6** | 59.2 | 60.7 |
+| ViT-S/16 | low_light | 5 [open] | 9.2 | 0.2 | 0.2 | 9.2 | 0.0 | **31.4** |
+
+**Pre-registered claims (SSR_PLAN §1): all four hold; the practical value claim does not.**
+
+- **C2 (identity gate) — confirmed, cleanly.** All four invocations report `bit_identical: true`, disarmed-hook max|Δlogit| = 0.0 on clean inputs. The gate also *discriminated* correctly: closed on jpeg sev1 for both families (shift distance 0.047 / 0.033, below τ = 0.106 / 0.082), open everywhere else, with the per-condition distance ordering the severities and corruptions exactly as the atlas CKA did (low_light > jpeg; sev5 > sev1; same order on both models). Detection is a solved problem here.
+- **C1 (selectivity) — confirmed as pre-registered (top-k vs all).** In every open-gate cell SSR-top-k ≥ SSR-all, usually by 50+ points (ViT-S jpeg sev5: 61.9 vs 3.5; ResNet low_light sev1: 64.1 vs 0.2). The pre-registered failure mode (§1: SSR-all ≥ SSR-top-k → selection inert) did not occur — the drift-ranked scope is doing enormous work.
+- **C3/C4 — confirmed mechanically.** Forward-only, label-free; both BN/conv and LN/token paths ran the full arm set with per-image SSR cost ≈ frozen (arm wall times 2.7–3.1 s vs frozen 2.6–3.0 s per condition).
+- **But: moment-matching repair is net-harmful at every open gate.** SSR-top-k loses 1.6–52.3 points vs frozen across all six open cells on both families. The §9 risk materialized in full: amplitude statistics can't *rank* structural drift (Track 1 NO-GO) and, on this evidence, can't *repair* it either — matching per-channel (μ, σ) at module outputs distorts the representation more than the corruption did at sev≥1. The fallback frame in §1 ("same result at lower cost") doesn't rescue it: there is no gain to reframe.
+
+**External calibration — the failure is family-wide, not SSR-specific.** The two strongest published backprop-free baselines also fail at these severities: AQR loses 2.5–35.7 points everywhere except a wash at ResNet jpeg sev1; Schneider-style BN-stat replacement collapses outright on ResNet (13.3% at jpeg sev1, ~0% at sev5 — and note the gate is *not* what stopped it: bn_stats applies regardless, modules_touched=0). Against that backdrop, **TENT is the only arm that never loses** (−1.8 to +0.8 across all 8 cells) — consistent with its literature standing as the practical default, with the caveat that its best gain here (+0.8) is inside the ~±2 pt binomial noise of n=512.
+
+**One large positive delta in the whole grid: CLAHE on ViT-S low_light sev5, 9.2 → 31.4 (+22.3).** Model-dependent and asymmetric — the same arm *loses* 19.3 points on ResNet-50 at the identical condition. Enhancement front-ends remain a per-backbone empirical question, not a free win (consistent with §6.2's ExDark finding that CLAHE buys nothing in real darkness).
+
+**Gate-off ablation (ResNet jpeg sev1: 74.8 → 75.4, +0.6).** Always-on recalibration at the mildest shift produced a +0.6 pt change — within noise, and against −8.8 at low_light sev1 — so the gate's conservative closed verdict at jpeg sev1 trades a noise-level possible gain for guaranteed identity; that is the correct trade for a safety property.
+
+**Verdict.** SSR's four claims survive; its mechanism does not. What the S1 run establishes for the framework paper: (a) the clean-calibrated shift gate gives exactly-identity on clean inputs *and* correct shift/no-shift discrimination on real data, cross-family; (b) drift-ranked selection from the shared atlas bounds the damage of a failing repair by 50+ points relative to adapt-all — the one-measurement-two-consumers selection signal demonstrably does real work; (c) on this roster the only label-free test-time recipe that never hurts is TENT, and the only large positive is CLAHE on one backbone. Whether the repair failure is mechanistic (second-moment matching itself) or an attachment-point artifact (SSR_PLAN §2's open question — post-norm outputs may be the wrong place) is the one question worth a cheap targeted follow-up before the mechanism is written off; that is the S2 decision (§10).
+
+Single-seed (42), n_eval=512: deltas within ±2 pts are not readable; every effect called significant above exceeds that band. Artifacts: `output/ssr/{resnet50,timm_vit_small_patch16_224}_{low_light,jpeg}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_marks.log`. Re-harvest: `kaggle kernels output arindamtripathi/ssr-s1 -p <dir>`.
+
 ---
 
 ## 7. The Findings in Plain Language

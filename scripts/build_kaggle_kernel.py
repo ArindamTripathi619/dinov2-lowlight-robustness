@@ -550,8 +550,9 @@ if not torch.cuda.is_available():
 print("gpu:", torch.cuda.get_device_name(0))
 
 r = subprocess.run(["bash", "ssr.sh"])
-invocations = ["resnet50_low_light", "resnet50_jpeg",
-               "vit_small_patch16_224_low_light", "vit_small_patch16_224_jpeg"]
+invocations = [f"{slug.replace(':', '_')}_{corr}"
+               for slug in ("resnet50", "timm:vit_small_patch16_224")
+               for corr in ("low_light", "jpeg")]
 present = {i: os.path.isfile(f"output/ssr/{i}/ssr_results.csv") for i in invocations}
 ident = {}
 import json as _json

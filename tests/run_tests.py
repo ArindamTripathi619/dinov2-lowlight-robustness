@@ -754,6 +754,34 @@ def test_agreement_report_dataset_label():
     assert "10 CIFAR-10 test, seed 42" in render({})
 
 
+def test_ssr_kernel_verifier_matches_driver_dir_names():
+    """The S1 kernel's exit verifier checks for per-invocation result dirs by
+    name. Bug of 2026-10-14: it hardcoded 'vit_small_patch16_224_*' while
+    scripts/kaggle/ssr.sh builds dirs from the model slug with ':' -> '_',
+    producing 'timm_vit_small_patch16_224_*' — the fully successful S1 run
+    (all 4 invocations rc=0, identity bit-identical) was misreported as
+    SSR_S1_FAILED. The verifier's names must be derived from the driver's
+    (slug, corruption) pairs, not restated."""
+    import re
+
+    sh = open("scripts/kaggle/ssr.sh").read()
+    slugs = re.findall(r'run_invocation "([^"]+)"', sh)
+    assert slugs, "no run_invocation calls found in ssr.sh"
+    m_corr = re.search(r"for corr in ([\w_ ]+); do", sh)
+    assert m_corr, "ssr.sh corruption loop not found"
+    corruptions = m_corr.group(1).split()
+    expected = {f"{s.replace(':', '_')}_{c}" for s in slugs for c in corruptions}
+
+    src = open("scripts/build_kaggle_kernel.py").read()
+    m_inv = re.search(r"invocations = \[(.*?)\]", src, re.S)
+    assert m_inv, "kernel verifier invocations list not found"
+    namespace = {}
+    exec("invocations = [" + m_inv.group(1) + "]", namespace)
+    got = set(namespace["invocations"])
+    assert got == expected, (
+        f"verifier checks {sorted(got)}; driver creates {sorted(expected)}")
+
+
 # ---------------------------------------------------------------------------
 def main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]

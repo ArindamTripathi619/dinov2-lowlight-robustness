@@ -110,6 +110,13 @@ output/v9_ablation/**/*.pt
 !output/atlas/
 !output/atlas/**
 !output/atlas_marks.log
+
+# Track 4 SSR S1 results of record (ssr-s1 kernel, 2026-10-14: 4 model×corr
+# dirs with results/meta/logs; marks log records the run incl. the
+# verifier-name-bug false FAILED line — see METHODS §7.11)
+!output/ssr/
+!output/ssr/**
+!output/ssr_marks.log
 __pycache__/
 *.pyc
 .vercel

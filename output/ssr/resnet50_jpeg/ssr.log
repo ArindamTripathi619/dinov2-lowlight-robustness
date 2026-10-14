@@ -1,0 +1,534 @@
+========================================================================
+SSR — model=resnet50, corruption=jpeg, arms=['frozen', 'ssr_topk', 'ssr_all', 'ssr_gate_off', 'bn_stats', 'tent', 'aqr', 'clahe']
+Device: cuda
+========================================================================
+Drift selection (top-6/25 (25%) by cka_unbiased_drop): ['layer3', 'layer3.4', 'layer3.5', 'layer4', 'layer4.2', 'avgpool']
+[+0.2s] ImageNet cache HIT: ssr_cache/imagenet_n640_seed42_050cc56e.pkl (640 images)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Model: torchvision resnet50 IMAGENET1K_V1 (76.130%)
+  forward pass: 1 images in 0.3s
+25 modules fire; channel axes: {'layer3': 1, 'layer3.4': 1, 'layer3.5': 1, 'layer4': 1, 'layer4.2': 1, 'avgpool': 1}
+  forward pass: 128 images in 13.1s
+[+13s] clean calibration moments on 128 images
+  forward pass: 32 images in 3.1s
+  forward pass: 32 images in 3.1s
+  forward pass: 32 images in 3.1s
+  forward pass: 32 images in 3.1s
+Gate tau=0.106021 (clean distances max=0.106021)
+  forward pass: 128 images in 4.0s
+AQR source percentiles fitted on 6 modules
+  forward pass: 128 images in 13.0s
+  forward pass: 128 images in 12.9s
+Identity check (clean inputs): d=0.000000 <= tau=0.106021 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7480 (d=0.047, gate=closed)
+  sev1 ssr_topk     top1=0.7480 (d=0.047, gate=closed)
+  sev1 ssr_all      top1=0.7480 (d=0.047, gate=closed)
+  sev1 ssr_gate_off top1=0.7539 (d=0.047, gate=closed)
+  sev1 bn_stats     top1=0.1328 (d=0.047, gate=closed)
+  sev1 tent         top1=0.7441 (d=0.047, gate=closed)
+  forward pass: 128 images in 1.1s
+  sev1 aqr          top1=0.7480 (d=0.047, gate=closed)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3002 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 637 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1828 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3648 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 56 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 780 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 328 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2483 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3388 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 7 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 80 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 529 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 7229 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 10 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 8 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 147 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 983 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 198 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1116 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 4244 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 37 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 6 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 16 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 11 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 902 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 104 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3298 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3743 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 360 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 32 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 281 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 343 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1603 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 14 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 10321 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 19 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 125 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 4188 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 57 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 127 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 23 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 169 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 12 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 8367 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 301 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 812 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 116 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 171 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 31 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 15 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 13 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 103 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1245 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1701 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 126 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 117 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2923 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 139 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 264 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 8383 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 340 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 52 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 269 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 49 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 141 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1532 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 17 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1479 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 6695 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 182 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1815 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 271 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 422 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 38 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 102 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 43 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 459 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 192 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 75 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 997 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3901 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 670 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1772 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2469 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 91 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 189 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 239 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 4309 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 158 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3874 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 765 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 567 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1412 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3113 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3560 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 66 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 319 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 333 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 76 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 5 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 6630 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 34 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 645 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 895 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 25 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 101 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 584 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 106 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 594 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1601 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 22 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 543 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 42 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 120 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 33 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 800 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 656 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 174 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 8427 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 411 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2234 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 86 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 22292 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 170 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 24 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1109 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 111 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1331 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 226 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 248 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 4 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 149 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 272 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1898 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 9 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 48 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 173 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 363 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 833 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1186 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1502 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 81 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2890 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1576 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 807 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 331 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 290 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 497 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 395 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 3866 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 308 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1407 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 434 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 458 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 74 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2991 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 63 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1152 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 621 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 759 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 6326 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 68 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 427 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+  sev1 clahe        top1=0.6699 (d=0.047, gate=closed)
+  forward pass: 128 images in 13.0s
+  sev5 frozen       top1=0.6172 (d=0.191, gate=open)
+  sev5 ssr_topk     top1=0.0938 (d=0.191, gate=open)
+  sev5 ssr_all      top1=0.0000 (d=0.191, gate=open)
+  sev5 ssr_gate_off top1=0.0938 (d=0.191, gate=open)
+  sev5 bn_stats     top1=0.0000 (d=0.191, gate=open)
+  sev5 tent         top1=0.6250 (d=0.191, gate=open)
+  forward pass: 128 images in 1.0s
+  sev5 aqr          top1=0.2598 (d=0.191, gate=open)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 278 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 519 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 240 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 77 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1244 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1088 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 89 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 36 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 231 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2261 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 263 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 720 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 154 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 135 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 573 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1072 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 41 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 59 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 450 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 5500 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 990 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1659 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 708 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 168 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 45 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 616 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 294 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 254 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 617 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 305 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 27 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 184 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 5646 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 164 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 208 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 98 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1057 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1276 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 78 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 167 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 661 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 700 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1353 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 452 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 145 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1868 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 54 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1859 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 747 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 21 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 443 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 608 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 73 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 477 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 220 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 191 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 648 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 4711 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 88 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 270 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 15660 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 642 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 221 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 50 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 758 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 20 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 233 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1033 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 188 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 723 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 209 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 1311 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 309 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 664 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 2231 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 259 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 180 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 359 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+/kaggle/working/src/corruptions.py:147: UserWarning: Conversion from CIE-LAB, via XYZ to sRGB color space resulted in 29 negative Z values that have been clipped to zero
+  return (np.clip(skimage.color.lab2rgb(lab), 0, 1) * 255).astype(np.uint8)
+  sev5 clahe        top1=0.5684 (d=0.191, gate=open)
+  Saved output/ssr/resnet50_jpeg/ssr_results.csv
+  Saved output/ssr/resnet50_jpeg/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_all', 'ssr_gate_off', 'bn_stats', 'tent', 'aqr', 'clahe'] wall=424s

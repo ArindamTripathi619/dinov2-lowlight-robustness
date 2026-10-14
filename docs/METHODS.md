@@ -289,6 +289,24 @@ Track 3's profile atlas of record (RESEARCH §5.2, DPA_DESIGN §2). Same harness
 
 Note on the txt reports: the `images :` header line said "CIFAR-10 test" for the ImageNet legs in the v4-run output (hardcoded label, since fixed in `write_agreement_report` with a regression test); the JSON `meta.dataset` was correct (`"imagenet"`) throughout, and the six txt files were patched post-run to match. Numbers unaffected.
 
+### 7.11 SSR S1 smoke (`run_ssr.py`; kernel `ssr-s1`)
+
+Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Runner `run_ssr.py`; core math (`channel_stats`, `apply_affine`, shift distance, gate, top-k selector) is the torch-free `src/ssr.py` already covered by §CI tests (44/44).
+
+| Item | Value |
+|------|-------|
+| Models | torchvision ResNet-50 IMAGENET1K_V1 (BN arm, 8 arms); timm `vit_small_patch16_224` pretrained (LN arm, 7 arms — no bn_stats) — both frozen, eval mode, CUDA |
+| Data | `sautkin/imagenet1kvalid` mount (§7.10), one seeded draw of n_total = 640 images (`--n-est 128 --n-images 512`), prefix-split disjoint per SSR_PLAN §6: first 128 = clean gate calibration + estimation pool (B = 4 batches × 64, `--est-batches 4 --batch-size 64`), remaining 512 = eval; image-list cache `ssr_cache/imagenet_n640_seed42_*.pkl` holds the union; seed 42; matched-noise `rng 1000 + severity` (§7.3) |
+| Corruptions × severities | low_light, jpeg × {1, 5} (the S1 smoke grid; S2 would extend to the full 1–5 ladder) |
+| Selection input (of record) | Track 3 atlas severity-5 CSVs, `output/profiles/<model>/drift_profile_sev5_{corr}.csv`, ranked by `cka_unbiased_drop`, k = top 25% (ResNet-50: top-6/25; ViT-S: top-10/38) — the one-measurement-two-consumers link, live |
+| Gate | τ = max clean RMS standardized moment distance × margin 1.0 (n_pool = 128 clean images); per-invocation, model-specific (ResNet-50 τ=0.106, ViT-S τ=0.082); `d ≤ τ` → bypass (no module touched) |
+| Identity check (C2) | On clean inputs: gate must close and disarmed-hook max abs logit diff must be 0.0 → `bit_identical: true` in `ssr_meta.json`. All 4 invocations: bit-identical, max diff 0.0 |
+| Arms | frozen · ssr_topk · ssr_all · ssr_gate_off · bn_stats (ResNet-50 only) · tent (BN native / LN-affine translation, SSR_PLAN §0.3) · aqr · clahe — per-arm top-1, Δ vs frozen, shift distance, gate state, modules touched, wall time in `ssr_results.csv` |
+| Compute | Kaggle script kernel `arindamtripathi/ssr-s1`, Tesla T4, torch 2.11.0+cu128, **2,027 s (34 min)** total (4 invocations: 955/336/429/306 s); built via `scripts/build_kaggle_kernel.py --variant ssr_s1`, tail `scripts/kaggle/ssr.sh` |
+| Artifacts of record | `output/ssr/<model>_<corr>/`: `ssr_results.csv` (16 rows = 8 arms × 2 severities, or 14 for ViT-S), `ssr_meta.json` (selection, gate, identity, per-condition shift), `ssr.log`; run audit `output/ssr_marks.log` |
+
+Known incident (harness, not results): the kernel's exit verifier initially hardcoded `vit_small_patch16_224_*` dir names while `ssr.sh` sanitizes the timm slug to `timm_vit_small_patch16_224_*` (colon → underscore), so the completed run was misreported as `SSR_S1_FAILED` in `output/ssr_marks.log` despite all four legs rc=0 with valid artifacts. Verifier now derives names from the driver's slug list; regression test `test_ssr_kernel_verifier_matches_driver_dir_names` (44th test) locks the invariant.
+
 ---
 
 ## 8. Random Seed Registry

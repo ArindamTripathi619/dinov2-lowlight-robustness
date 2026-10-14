@@ -1,0 +1,11 @@
+SSR_MARK ts=2026-10-14T09:39:01+00:00 since_start_s=0 event=script_start leg=ssr_s1 root=/kaggle/input/datasets/sautkin/imagenet1kvalid
+SSR_MARK ts=2026-10-14T09:39:01+00:00 since_start_s=0 event=run_start model=resnet50 corruption=low_light dir=output/ssr/resnet50_low_light limit_s=3600
+SSR_MARK ts=2026-10-14T09:54:56+00:00 since_start_s=955 event=run_done model=resnet50 corruption=low_light duration_s=955 rc=0
+SSR_MARK ts=2026-10-14T09:54:56+00:00 since_start_s=955 event=run_start model=timm:vit_small_patch16_224 corruption=low_light dir=output/ssr/timm_vit_small_patch16_224_low_light limit_s=3600
+SSR_MARK ts=2026-10-14T10:00:32+00:00 since_start_s=1291 event=run_done model=timm:vit_small_patch16_224 corruption=low_light duration_s=336 rc=0
+SSR_MARK ts=2026-10-14T10:00:32+00:00 since_start_s=1291 event=run_start model=resnet50 corruption=jpeg dir=output/ssr/resnet50_jpeg limit_s=3600
+SSR_MARK ts=2026-10-14T10:07:41+00:00 since_start_s=1720 event=run_done model=resnet50 corruption=jpeg duration_s=429 rc=0
+SSR_MARK ts=2026-10-14T10:07:42+00:00 since_start_s=1721 event=run_start model=timm:vit_small_patch16_224 corruption=jpeg dir=output/ssr/timm_vit_small_patch16_224_jpeg limit_s=3600
+SSR_MARK ts=2026-10-14T10:12:48+00:00 since_start_s=2027 event=run_done model=timm:vit_small_patch16_224 corruption=jpeg duration_s=306 rc=0
+SSR_MARK ts=2026-10-14T10:12:48+00:00 since_start_s=2027 event=script_done fail=0
+SSR_MARK ts=2026-10-14T10:12:48+00:00 SSR_S1_FAILED

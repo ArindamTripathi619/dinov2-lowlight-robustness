@@ -297,10 +297,17 @@ Next up, in order:
    T4, 46 min, `fail=0`; artifacts `output/profiles/` + `output/atlas/`; verdict
    RESEARCH §5.2 / DPA_DESIGN §2). Harness stayed the shared model-agnostic pair
    (`run_drift_proxy.py` / `run_drift_profile.py`) — no new profiler code needed.
-7. [x] **Track 4 SSR runner** — `run_ssr.py` **landed 2026-10-14** (torch arms;
-   consumes the atlas CSVs per SSR_PLAN §8/§10; 8 arms incl. TENT/AQR/BN-stat/
-   CLAHE; per-run C2 identity check; CPU smoke green on both BN/conv and LN/token
-   paths, suite 43/43). Remaining: S1 T4 smoke (SSR_PLAN §7, ~1 h) → S2 full
-   grid → RESEARCH verdict.
+7. [x] **Track 4 SSR runner + S1 smoke** — `run_ssr.py` **landed 2026-10-14**
+   (torch arms; consumes the atlas CSVs per SSR_PLAN §8/§10; 8 arms incl.
+   TENT/AQR/BN-stat/CLAHE; per-run C2 identity check; CPU smoke green on both
+   BN/conv and LN/token paths). **S1 T4 smoke DONE 2026-10-14** (kernel
+   `arindamtripathi/ssr-s1`, ResNet-50 + ViT-S × low_light/jpeg × sev 1+5,
+   real ImageNet-val, 34 min, all legs rc=0, identity bit-identical both
+   families): C1–C4 hold (selectivity and gate both do real work) but the
+   moment-matching repair is net-harmful at every open gate — TENT is the
+   only arm that never loses, CLAHE is the one large positive (ViT-S
+   low_light sev5 +22.3). Verdict RESEARCH §6.7; artifacts `output/ssr/`.
+   Remaining: S2 decision (SSR_PLAN §8/§10 — full 6-model grid vs targeted
+   attachment-point probe).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.

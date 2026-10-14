@@ -155,8 +155,17 @@ new `scripts/kaggle/ssr.sh`.
   ablation) / clahe; per-run identity check (C2) prints gate-closed +
   bit-identical and lands in ssr_meta.json. CPU smoke verified on both
   roster paths (ResNet-50 BN/conv and ViT LN/token) — all 8 arms exit 0,
-  identity BIT-IDENTICAL on both. Real-data S1 T4 smoke (SSR_PLAN §7) is the
-  next GPU session.
+  identity BIT-IDENTICAL on both.
+- **S1 T4 smoke DONE 2026-10-14** (kernel `arindamtripathi/ssr-s1`,
+  ResNet-50 + ViT-S × low_light/jpeg × sev 1+5, real ImageNet-val, 34 min,
+  all invocations rc=0, identity bit-identical on both families).
+  **Verdict: C1–C4 all hold, but the moment-matching repair is net-harmful
+  at every open gate** (top-k loses 1.6–52.3 pts vs frozen; all-scope loses
+  up to 72); TENT never loses; AQR and BN-stat replacement also fail at
+  sev≥5; one large positive = CLAHE on ViT-S low_light sev5 (+22.3).
+  Full arms table + interpretation in RESEARCH §6.7; protocol in METHODS
+  §7.11. The open question this leaves — mechanistic failure vs
+  attachment-point artifact (§2) — is the S2 decision.
 - Profile consumer reuses the existing CSV schema
   (`layer,severity,module,cka,cka_unbiased,drop_from_clean,cka_unbiased_drop`)
   — no new format.
@@ -179,8 +188,12 @@ Track 3 kernel ✓ (2026-10-14, drift-atlas-v4, fail=0) → harvest ✓ (output/
         │
         ├── (done) src/ssr.py + tests → prior-art searches (3 rounds, §3)
         │
-        └── run_ssr.py (NOW UNBLOCKED — consumes output/profiles/*.csv per §8)
-                 → S1 smoke → S2 full grid → RESEARCH verdict
+        └── run_ssr.py ✓ (consumes output/profiles/*.csv per §8)
+                 → S1 smoke ✓ (2026-10-14, ssr-s1, T4, rc=0 all legs)
+                 → RESEARCH verdict ✓ (§6.7: C1–C4 hold, repair harmful)
+                 → S2 (decision open — see §8's attachment-point question;
+                       full 6-model grid is one option, a targeted
+                       attachment-point probe is the cheaper one)
 ```
 
 Selection inputs of record (§4, one measurement two consumers): per-model
