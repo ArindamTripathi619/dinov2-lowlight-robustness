@@ -8,6 +8,10 @@ scikit-learn>=1.3
 scipy>=1.10
 scikit-image>=0.21
 
+# Track 3 cross-family drift atlas (ConvNeXt/Swin/ViT/DeiT via timm; the
+# torch.hub DINOv2 and torchvision ResNet-50 loaders need no extra deps)
+timm>=1.0
+
 # Plotting / image I/O (PIL required by utils.py corruption pipeline)
 matplotlib>=3.7
 pillow>=11.0

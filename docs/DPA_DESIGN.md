@@ -187,9 +187,13 @@ backprop-free; selection is per (model, corruption family), i.e. drift-profiled.
 | TTN (Lim et al., ICLR 2023) | domain-shift-aware mixing of source/test stats | all BN, fixed ratio, post-training calibration | SSR's ratio is estimated from the unlabeled batches, modules are drift-selected, no post-training |
 | Nado et al. (2020) | prediction-time BN stats | all | same contrast as Schneider |
 | Channel-Selective Normalization (arXiv:2402.04958) | selects channels for label shift | channel-level, label-shift-specific | SSR selects modules for covariate-style corruption, label-free |
+| AQR (Mehrbod et al., arXiv:2511.03148, Nov 2025) | piecewise-linear quantile transform of norm-layer pre-activations onto stored source percentiles; BN/GN/LN-agnostic, backprop-free | static heuristic (all layers / top half, hand-tuned per model — never measured) | **closest mechanism neighbor**: same "store source stats once, recalibrate label-free at test time" design; differs in statistic (quantiles vs moments), has no drift-based selection and no clean gate; its own App. D shows *where* you recalibrate matters enormously (top-half 63.7 vs all-blocks 36.25, ViT-B/ImageNet) yet chooses by heuristic |
+
+| GALA, layer selection for TTA (Sahoo et al., AAAI 2025, arXiv:2404.03784) | gradient-aligned layer selection for *parameter* updates, plugged into existing TTA losses | per-sample gradient alignment (needs backprop + a TTA loss) | second published "where you adapt decides the outcome" evidence (with AQR App. D); selects by gradients at adaptation time, not by a forward-only measured drift profile, and adapts parameters instead of recalibrating statistics; no clean gate |
 
 **No prior work found that selects which modules to recalibrate from a measured
-drift profile, or that guarantees identity on clean inputs.** SSR's ablations from
+drift profile, or that guarantees identity on clean inputs** (closest selection
+neighbor: GALA — gradient-based, loss-coupled, per-sample). SSR's ablations from
 ROADMAP Track 4 update accordingly: top-k vs all and gate on/off stay; the
 "proxy-vs-CKA profiler" ablation is resolved by the §1.2 gate (CKA profiler).
 Baselines stay: TENT, BN-adapt (Schneider-style adapt-all), enhancement front-ends
@@ -238,3 +242,88 @@ All searches 2026-10-03, run before writing §1/§4 claims per ROADMAP §6.
 **Verdict:** the §1.3 and §4 novelty statements hold as written (narrow forms).
 At manuscript assembly, fold IFCLoRA + Surgical fine-tuning into PAPER_RELATED_WORK
 §2.4, and TTN/Nado/Buffer-layers into the SSR baseline paragraph.
+
+**Second round — SSR/Track-4 searches (2026-10-13, run before writing
+`SSR_PLAN.md` claims per this log's convention):**
+
+*Moment/statistic recalibration adjacency:*
+- AdaBN (Li et al., Pattern Recognition 2018; arXiv:1603.04779) — offline domain
+  adaptation by BN-stat replacement; adapt-all, BN-only. The mechanism family's
+  origin; Schneider/TTN already carry its TTA version.
+- **AQR (arXiv:2511.03148, full text read 2026-10-13) — closest neighbor found.**
+  Stores source percentiles once (setup phase), applies a per-channel piecewise-
+  linear quantile transform at test time, backprop-free, label-free, works on
+  BN/GN/LN — i.e. it already delivered the "no BatchNorm needed" property.
+  Differences that preserve §4 as written: (a) selection = static heuristic
+  (all / top-half layers, hand-tuned per architecture), never a measured profile;
+  (b) always applies — no clean-input identity gate; (c) quantile transport, not
+  moment matching. Its App. D (top-half 63.7 vs all-blocks 36.25 on ViT-B/ImageNet)
+  is published evidence that *where* to recalibrate is the decisive choice —
+  motivating SSR's C1 from a result we did not have to produce ourselves.
+- DPTA / "Unraveling Batch Normalization" (AAAI 2024, arXiv:2312.09486) —
+  inexact mini-batch BN statistics at TTA; adapt-all, BN-only.
+- ESBN (IJCAI 2025) — BN shift estimation for source-free DA; adapt-all, BN-only.
+- Neuron editing (Amodio et al., NeurIPS 2019) — percentile-based activation
+  transforms, but a data-editing method, not TTA (surfaced via AQR's lineage).
+- Also screened: SAR (norm-agnostic but entropy + backprop), MEMO (augmentation
+  + per-sample backprop — the "augmentation-only" family's TTA form).
+
+*Shift-detection / when-to-adapt gating adjacency:*
+- Confidence-driven adaptation (Mummadi et al., arXiv:2106.14999) — confidence
+  signals steer adaptation, but always-on; not a clean-calibrated distance gate.
+- Test-Time Selective Adaptation (ICML 2025) — selection at *modality* level
+  under multi-modal shift; not module-level, no identity guarantee.
+- TTA surveys (Liang et al., IJCV 2025; Wang et al. 2023) — no mechanism found
+  that gates adaptation on a clean-calibrated statistical distance with an
+  exactly-identity guarantee on clean inputs.
+
+*Allocation side (DPA §1.3 family; logged for completeness):*
+- LS-LoRA (arXiv:2610.11620, Oct 2026) — layer-selective LoRA placement by
+  input–output similarity (capability retention). Similarity, not degradation-
+  induced drift; training-side. RepSAM-adjacent; does not touch §1.3 but belongs
+  in PAPER_RELATED_WORK §2.4 at assembly.
+
+**Verdict (2026-10-13):** §4 holds as written — AQR, the closest neighbor,
+selects by static heuristic (never by measured drift) and applies always (no
+gate). One narrowing: cross-norm-architecture applicability is no longer novel
+per se (AQR demonstrated it) — that aspect becomes a *demonstration requirement*
+for SSR (C4), not a claim. Track-4 consequences: (a) **AQR joins the baseline
+list** (strongest published backprop-free TTA; also supplies the published
+motivation for measured selection); (b) moment-vs-quantile becomes a mechanism
+ablation candidate.
+
+**Third round — SSR_PLAN §10 parallel searches (2026-10-14, run while the
+Track 3 v4 kernel executed):**
+
+*C1 adjacency (layer/module selection for TTA):*
+- **GALA — "A Layer Selection Approach to Test Time Adaptation" (Sahoo et al.,
+  AAAI 2025, arXiv:2404.03784).** Selects which layers to update per sample by
+  *gradient alignment* (filters noisy-gradient samples; plugs into existing TTA
+  losses). Needs backprop + a loss; adapts parameters, not statistics; never
+  measures representational drift. Consequence: C1's motivation now has two
+  published supports (AQR App. D + GALA), while §4's novelty line survives —
+  selection by a forward-only measured drift profile remains unclaimed. Fold
+  into PAPER_RELATED_WORK at assembly (with IFCLoRA / Surgical fine-tuning).
+- Also screened: "Layerwise early stopping for TTA" (surfaced via the
+  awesome-tta index); Activation-Guided Layer Selection for LoRA (Information
+  2026) — training-side, activation-similarity heuristic, §1.3-family.
+
+*Backprop-free TTA mechanism refresh:*
+- **ADAPT — "Backpropagation-Free Test-Time Adaptation via Probabilistic
+  Gaussian Alignment" (Zhang et al., NeurIPS 2025).** Closed-form class-conditional
+  Gaussian inference over features (class means + shared covariance), CLIP priors
+  + history bank. Prediction-level likelihood correction — not module-output
+  recalibration; screened, not a baseline (CLIP dependency + different
+  intervention point). Buffer layers (NeurIPS 2025) already screened in round 1.
+- TENT re-confirmed (arXiv:2006.10726): "estimates normalization statistics and
+  optimizes channel-wise affine transformations" — the wording SSR_PLAN §0.3's
+  TENT-LN labeling leans on (same mechanism, applied to the norm the model has).
+
+*C2 gate re-check (fresh vocabulary: trigger / bypass / open-world / when-to-*
+*adapt):* Mummadi confidence-driven (already screened), Zhou et al. open-world
+TTA (ICLR 2023), Shift-ACT class-wise thresholds (Neurocomputing 2026), TTA
+surveys — still no clean-calibrated statistical-distance gate with an
+exactly-identity guarantee.
+
+**Verdict (2026-10-14):** §4 holds as written — no narrowing, no claim edits;
+GALA and ADAPT enter the log (GALA also enters the §4 adjacency table).

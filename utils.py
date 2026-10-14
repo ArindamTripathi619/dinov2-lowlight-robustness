@@ -521,3 +521,49 @@ def load_cifar10_subset(n_images=1000, train=False, seed=42, data_root="./data")
     print(f"Loaded {len(images)} images from CIFAR-10 ({'train' if train else 'test'}), "
           f"classes: {np.unique(labels).tolist()}")
     return images, labels
+
+
+def load_imagenet_subset(n_images=2000, seed=42, data_root="./data/imagenet-val"):
+    """Load a seeded subset of an ImageNet-validation extract (class folders).
+
+    Track 3 (cross-family drift atlas) data source of record: the Kaggle
+    dataset ``sautkin/imagenet1kvalid`` — ILSVRC2012 validation JPEGs laid out
+    as ``<data_root>/<wnid>/*.jpg`` (1000 class folders × 50 images). Profiling
+    is label-free: labels are read only so the loader's return shape matches
+    load_cifar10_subset; nothing downstream consumes them.
+
+    Sampling: every file is enumerated in sorted (wnid, filename) order, then
+    drawn with default_rng(seed) without replacement — the same deterministic
+    subset convention as CIFAR-10, so two machines with the same n/seed get the
+    identical image list (identity via the sorted enumeration, not filesystem
+    order).
+
+    Returns:
+        (images: list of np.ndarray (H, W, 3) uint8, labels: np.ndarray)
+    """
+    import glob
+    from PIL import Image
+
+    patterns = ("*.jpg", "*.jpeg", "*.JPG", "*.JPEG", "*.png")
+    files = []
+    for pat in patterns:
+        files.extend(glob.glob(os.path.join(data_root, "*", pat)))
+    files = sorted(set(files))
+    if not files:
+        raise FileNotFoundError(
+            f"No images found under {data_root!r} (expected <root>/<wnid>/*.jpg). "
+            "Attach the Kaggle imagenet1kvalid dataset or pass --data-root.")
+    class_dirs = sorted({os.path.basename(os.path.dirname(f)) for f in files})
+    wnid_to_label = {w: i for i, w in enumerate(class_dirs)}
+
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(len(files), size=min(n_images, len(files)), replace=False)
+    images, labels = [], []
+    for i in idx:
+        f = files[i]
+        images.append(np.array(Image.open(f).convert("RGB")))
+        labels.append(wnid_to_label[os.path.basename(os.path.dirname(f))])
+    labels = np.array(labels)
+    print(f"Loaded {len(images)} images from ImageNet-val extract at {data_root!r} "
+          f"({len(class_dirs)} class folders), seed={seed}")
+    return images, labels

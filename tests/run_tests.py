@@ -15,10 +15,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.analysis import (benjamini_hochberg, bootstrap_accuracy_ci, curve_permutation_test,
                           linear_cka_unbiased, paired_permutation_test, participation_ratio)
+from tools.build_atlas import late_half_mass, normalize_depth, read_profile_csv
 from src.corruptions import (BRIGHTNESS_FACTORS, clahe_enhance, gamma_correct, high_pass,
                              low_light, low_light_stage1, low_pass, quantization_gap_truth,
                              simple_gain)
 from src.probes import NTrainableProbe, stratified_split
+from src.aqr import apply_aqr, apply_quantile_map, fit_channel_quantiles
+from src.ssr import (apply_affine, channel_stats, fit_gate, gate_open, moment_affine,
+                     moment_distance, pool_stats, recalibrate, select_topk)
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +431,238 @@ def test_exp_cross_dataset_end_to_end_stubbed():
             summary = _json.load(f)
         assert summary["n_stl10_used"] == 9, summary
         assert summary["n_skipped_monkey"] == 2, summary
+
+
+# ---------------------------------------------------------------------------
+# Track 3 atlas tooling (pure-math invariants the Fig. 1 claims rest on)
+# ---------------------------------------------------------------------------
+
+def test_normalize_depth_rank_axis():
+    """Normalized depth must span [0, 1] inclusive, be strictly increasing,
+    and stay well-defined for degenerate module counts."""
+    d4 = normalize_depth(4)
+    assert d4[0] == 0.0 and d4[-1] == 1.0, d4
+    assert np.all(np.diff(d4) > 0), d4
+    assert np.isclose(d4[1] - d4[0], d4[-1] - d4[-2]), d4
+    assert normalize_depth(1).tolist() == [0.0]
+    try:
+        normalize_depth(0)
+        assert False, "n_modules=0 must raise"
+    except ValueError:
+        pass
+
+
+def test_late_half_mass_directionality():
+    """The atlas' headline statistic must rank profiles the way its name
+    claims: late-heavy > uniform > early-heavy, and NaN on a zero profile."""
+    late = late_half_mass([0.01, 0.01, 0.1, 0.4])     # mass in deep half
+    flat = late_half_mass([0.1, 0.1, 0.1, 0.1])
+    early = late_half_mass([0.4, 0.1, 0.01, 0.01])
+    assert late > flat > early, (late, flat, early)
+    assert np.isclose(flat, 0.5), flat
+    # odd n: the late half is the ceil(n/2) deepest modules
+    assert np.isclose(late_half_mass([0.0, 1.0, 1.0]), 1.0)
+    assert np.isnan(late_half_mass([0.0, 0.0])), "zero-drift profile has no 'where'"
+
+
+def test_read_profile_csv_roundtrip(tmp_path=None):
+    """The atlas reader must consume the exact schema write_drift_profile_csvs
+    emits (layer,severity,module,cka,cka_unbiased,drop_from_clean,
+    cka_unbiased_drop), preserving forward order."""
+    import csv as _csv
+    import tempfile
+    schema = ["layer", "severity", "module", "cka", "cka_unbiased",
+              "drop_from_clean", "cka_unbiased_drop"]
+    rows_in = [
+        {"layer": 0, "severity": 5, "module": "blocks.0", "cka": 0.9,
+         "cka_unbiased": 0.89, "drop_from_clean": 0.1, "cka_unbiased_drop": 0.11},
+        {"layer": 1, "severity": 5, "module": "blocks.1", "cka": 0.3,
+         "cka_unbiased": 0.28, "drop_from_clean": 0.7, "cka_unbiased_drop": 0.72},
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        path = os.path.join(td, "drift_profile_sev5_low_light.csv")
+        with open(path, "w", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=schema)
+            w.writeheader()
+            w.writerows(rows_in)
+        rows = read_profile_csv(path)
+    assert [r["module"] for r in rows] == ["blocks.0", "blocks.1"], rows
+    assert rows[1]["drop_from_clean"] == 0.7, rows
+    assert rows[0]["layer"] == 0 and rows[1]["severity"] == 5, rows
+
+
+# ---------------------------------------------------------------------------
+# Track 4 SSR core (pure-math invariants the C1/C2 claims rest on)
+# ---------------------------------------------------------------------------
+
+def test_ssr_channel_stats_and_pooling():
+    """Per-channel stats must reduce over all non-channel axes, and pooling
+    batch stats must equal stats of the concatenated stream (population var)."""
+    rng = np.random.default_rng(0)
+    a = rng.normal(2.0, 3.0, (4, 5, 6))
+    b = rng.normal(-1.0, 1.5, (7, 5, 6))
+    m, s = channel_stats(a, channel_axis=1)
+    assert m.shape == s.shape == (5,), (m.shape, s.shape)
+    assert np.allclose(m, a.mean(axis=(0, 2)))
+    pairs_a, pairs_b = channel_stats(a), channel_stats(b)
+    pm, ps = pool_stats([pairs_a, pairs_b], weights=[len(a), len(b)])
+    allx = np.concatenate([a, b], axis=0)
+    am, as_ = channel_stats(allx)
+    assert np.allclose(pm, am) and np.allclose(ps, as_, atol=1e-9), (pm, am)
+    try:
+        pool_stats([])
+        assert False, "empty pool must raise"
+    except ValueError:
+        pass
+
+
+def test_ssr_moment_affine_maps_test_onto_clean():
+    """C3 core: the closed-form affine must exactly transport test moments
+    onto clean moments (for scale shifts inside the clip range)."""
+    rng = np.random.default_rng(1)
+    clean = rng.normal(0.5, 2.0, (32, 8, 4, 4))
+    shift = rng.uniform(-2.0, 2.0, 8)
+    scale = rng.uniform(0.5, 2.0, 8)
+    test = clean * scale[None, :, None, None] + shift[None, :, None, None]
+    clean_stats = channel_stats(clean, channel_axis=1)
+    test_stats = channel_stats(test, channel_axis=1)
+    a, b = moment_affine(clean_stats, test_stats)
+    out = apply_affine(test, a, b, channel_axis=1)
+    om, os_ = channel_stats(out, channel_axis=1)
+    assert np.allclose(om, clean_stats[0], atol=1e-9), (om, clean_stats[0])
+    assert np.allclose(os_, clean_stats[1], atol=1e-9), (os_, clean_stats[1])
+    assert out.dtype == test.dtype, "affine must preserve activation dtype"
+
+
+def test_ssr_moment_affine_clips_extreme_scale():
+    """Guard against division blow-up: scale ratio is clamped to [1/clip, clip]."""
+    clean = (np.zeros(4), np.ones(4))
+    test = (np.zeros(4), np.full(4, 100.0))
+    a, b = moment_affine(clean, test, clip=4.0)
+    assert np.all(a == 0.25), a
+    a2, _ = moment_affine((np.zeros(4), np.full(4, 100.0)),
+                           (np.zeros(4), np.full(4, 10.0)), clip=4.0)
+    assert np.all(a2 == 4.0), a2
+
+
+def test_ssr_gate_identity_on_clean():
+    """C2 core: gate closes on clean-calibrated distances, and a closed gate
+    returns the *same array object* — bit-identity by construction."""
+    rng = np.random.default_rng(2)
+    clean_pairs = [channel_stats(rng.normal(0, 1, (16, 6, 3, 3))) for _ in range(5)]
+    clean_mean, clean_std = pool_stats(clean_pairs)
+    dists = [moment_distance((clean_mean, clean_std), p) for p in clean_pairs]
+    thr = fit_gate(dists, quantile=1.0)
+    assert thr > 0
+    fresh = channel_stats(rng.normal(0, 1, (16, 6, 3, 3)))
+    assert not gate_open(moment_distance((clean_mean, clean_std), fresh), thr), \
+        "clean input must stay under the max-clean threshold"
+    a, b = moment_affine((clean_mean, clean_std), fresh)
+    x = rng.normal(0, 1, (4, 6, 3, 3)).astype(np.float32)
+    out = recalibrate(x, a, b, open_gate=False)
+    assert out is x, "closed gate must return the input object untouched"
+    out2 = recalibrate(x, a, b, open_gate=True)
+    assert out2 is not x and out2.dtype == np.float32
+
+
+def test_ssr_gate_opens_on_shifted():
+    """C3 core: a scale/shift shift far outside clean calibration must exceed
+    the threshold."""
+    rng = np.random.default_rng(3)
+    clean_pairs = [channel_stats(rng.normal(0, 1, (16, 6, 4, 4))) for _ in range(5)]
+    clean_mean, clean_std = pool_stats(clean_pairs)
+    thr = fit_gate([moment_distance((clean_mean, clean_std), p) for p in clean_pairs])
+    shifted = channel_stats(0.25 * rng.normal(0, 1, (16, 6, 4, 4)) - 3.0)
+    d = moment_distance((clean_mean, clean_std), shifted)
+    assert gate_open(d, thr), (d, thr)
+    try:
+        fit_gate([])
+        assert False, "empty calibration must raise"
+    except ValueError:
+        pass
+
+
+def test_ssr_select_topk_membership_and_order():
+    """C1 core: selection picks the k largest drift rows, ties break to the
+    earlier module, output keeps forward order, k clamps at the row count."""
+    rows = [
+        {"module": "blocks.0", "cka_unbiased_drop": 0.10},
+        {"module": "blocks.1", "cka_unbiased_drop": 0.55},
+        {"module": "blocks.2", "cka_unbiased_drop": 0.55},
+        {"module": "blocks.3", "cka_unbiased_drop": 0.90},
+        {"module": "blocks.4", "cka_unbiased_drop": 0.30},
+    ]
+    sel = select_topk(rows, 2)
+    assert [r["module"] for r in sel] == ["blocks.1", "blocks.3"], sel
+    sel1 = select_topk(rows, 1)
+    assert [r["module"] for r in sel1] == ["blocks.3"]
+    assert [r["module"] for r in select_topk(rows, 99)] == [r["module"] for r in rows]
+    assert select_topk(rows, 0) == []
+    for r in select_topk(rows, 3):
+        assert r in rows
+    try:
+        select_topk(rows, -1)
+        assert False, "negative k must raise"
+    except ValueError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# AQR baseline (quantile-transport invariants; SSR_PLAN §3/§6)
+# ---------------------------------------------------------------------------
+
+def test_aqr_fit_quantiles_shape_and_order():
+    """Quantiles must come back (101, C), non-decreasing along q=0..100 for
+    every channel, over all non-channel axes."""
+    rng = np.random.default_rng(4)
+    x = rng.normal(0, 1, (5, 7, 3, 3))
+    q = fit_channel_quantiles(x, channel_axis=1)
+    assert q.shape == (101, 7), q.shape
+    assert np.all(np.diff(q, axis=0) >= 0), "quantiles must be non-decreasing"
+    q2 = fit_channel_quantiles(rng.normal(0, 1, (6, 4)), channel_axis=-1)
+    assert q2.shape == (101, 4) and np.all(np.diff(q2, axis=0) >= 0)
+
+
+def test_aqr_identity_when_distributions_match():
+    """When test quantiles equal source quantiles the transport must be the
+    identity (within float round-off) — the baseline must not distort clean
+    batches it was fit on."""
+    rng = np.random.default_rng(5)
+    x = rng.normal(0, 1, (16, 6, 4, 4))
+    q = fit_channel_quantiles(x, channel_axis=1)
+    out = apply_aqr(x, q, q, channel_axis=1)
+    assert np.allclose(out, x, atol=1e-9), float(np.max(np.abs(out - x)))
+    assert out.shape == x.shape and out.dtype == x.dtype
+
+
+def test_aqr_maps_test_quantiles_to_source():
+    """The map must send each target quantile node to its source counterpart:
+    quantile alignment is the method's defining property."""
+    rng = np.random.default_rng(6)
+    source = rng.normal(0.0, 1.0, (64, 5))
+    target = rng.normal(4.0, 3.0, (64, 5))
+    s_q = fit_channel_quantiles(source, channel_axis=1)
+    t_q = fit_channel_quantiles(target, channel_axis=1)
+    out = apply_quantile_map(t_q, s_q, t_q)
+    assert np.allclose(out, s_q, atol=1e-6), float(np.max(np.abs(out - s_q)))
+
+
+def test_aqr_clamps_out_of_range_and_validates_shapes():
+    """Values beyond the target range clamp to the source tails; mismatched
+    quantile shapes or channel counts raise."""
+    s_q = np.tile(np.linspace(0.0, 1.0, 101)[:, None], (1, 2))
+    t_q = np.tile(np.linspace(0.0, 10.0, 101)[:, None], (1, 2))
+    x = np.array([[-5.0, 0.5], [15.0, 9.5]])
+    out = apply_quantile_map(x, s_q, t_q)
+    assert np.allclose(out[:, 0], [0.0, 1.0]), out
+    assert np.allclose(out[:, 1], [0.05, 0.95]), out
+    for bad in (lambda: apply_quantile_map(x, s_q, t_q[:-1]),
+                lambda: apply_quantile_map(x[:, :1], s_q, t_q)):
+        try:
+            bad()
+            assert False, "shape mismatch must raise"
+        except ValueError:
+            pass
 
 
 # ---------------------------------------------------------------------------

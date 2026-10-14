@@ -87,17 +87,33 @@ PREPROCESS = RESNET_PREPROCESS
 
 
 def load_model(model_name, device):
-    """Load a pretrained model by name. Extend here for Track 3 (timm)."""
+    """Load a pretrained model by name.
+
+    Supported: dinov2_* (torch.hub), resnet50 (torchvision), timm:<name>
+    (any timm architecture; Track 3's atlas roster is convnext_tiny,
+    vit_small_patch16_224, swin_tiny_patch4_window7_224,
+    deit_small_patch16_224).
+    """
     if model_name.startswith("dinov2"):
         model, _ = load_dinov2(model_name=model_name)
         return model, f"torch.hub {model_name}"
     if model_name == "resnet50":
         import torchvision.models as tvm
         model = tvm.resnet50(weights=tvm.ResNet50_Weights.IMAGENET1K_V1)
-        return model, "torchvision resnet50 IMAGENET1K_V1 (76.130%)"
+        # eval + device like load_dinov2: torchvision's weights= load leaves
+        # the model in train mode AND on CPU, which on a GPU session crashes
+        # the first forward (cuda input vs cpu weight) and would run BN on
+        # batch stats instead of the pretrained running stats.
+        return model.eval().to(device), "torchvision resnet50 IMAGENET1K_V1 (76.130%)"
+    if model_name.startswith("timm:"):
+        import timm
+        timm_name = model_name.split(":", 1)[1]
+        model = timm.create_model(timm_name, pretrained=True)
+        n_params = sum(p.numel() for p in model.parameters())
+        return (model.eval().to(device),
+                f"timm {timm_name} ({n_params / 1e6:.1f}M params, pretrained=True)")
     raise ValueError(
-        f"Unknown model {model_name!r}; supported: resnet50, dinov2_*. "
-        "timm-backed models land with Track 3."
+        f"Unknown model {model_name!r}; supported: resnet50, dinov2_*, timm:<name>."
     )
 
 
@@ -212,6 +228,13 @@ def forward_pass(model, images, modules, batch_size, device, token_mode="cls",
 # Proxy candidates (drift score; higher = drifted more) + report order.
 PROXY_KEYS = ["energy_drop", "mean_shift", "cov_shift", "cos_drop"]
 
+# cov_shift is computed in this dtype (v4): the d x d covariance is the
+# costliest proxy (O(n * d^2), up to 2048 x 2048 for ResNet layer4), and the
+# reported quantity is a dimensionless ratio where float32's ~1e-6 relative
+# precision is far below the CSV's 4-decimal resolution. Recorded in the
+# run_drift_profile agreement_report meta for provenance.
+COV_DTYPE = "float32"
+
 
 def module_proxies(act_clean, act_deg):
     """Forward-only drift proxies + CKA reference for one module.
@@ -230,8 +253,11 @@ def module_proxies(act_clean, act_deg):
     # --- proxy 2: feature-statistics shift (mean, then covariance) ---
     mu_c, mu_d = Ac.mean(0), Ad.mean(0)
     mean_shift = float(np.linalg.norm(mu_d - mu_c)) / (float(np.linalg.norm(mu_c)) + 1e-12)
-    Sig_c = (Ac - mu_c).T @ (Ac - mu_c) / (n - 1)
-    Sig_d = (Ad - mu_d).T @ (Ad - mu_d) / (n - 1)
+    A32c = act_clean.astype(np.float32, copy=False)
+    A32d = act_deg.astype(np.float32, copy=False)
+    mu32_c, mu32_d = A32c.mean(0), A32d.mean(0)
+    Sig_c = (A32c - mu32_c).T @ (A32c - mu32_c) / np.float32(n - 1)
+    Sig_d = (A32d - mu32_d).T @ (A32d - mu32_d) / np.float32(n - 1)
     cov_shift = (float(np.linalg.norm(Sig_d - Sig_c, "fro"))
                  / (float(np.linalg.norm(Sig_c, "fro")) + 1e-12))
 
