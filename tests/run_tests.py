@@ -21,8 +21,10 @@ from src.corruptions import (BRIGHTNESS_FACTORS, clahe_enhance, gamma_correct, h
                              simple_gain)
 from src.probes import NTrainableProbe, stratified_split
 from src.aqr import apply_aqr, apply_quantile_map, fit_channel_quantiles
-from src.ssr import (apply_affine, channel_stats, fit_gate, gate_open, moment_affine,
-                     moment_distance, pool_stats, recalibrate, select_topk)
+from src.ssr import (aggregate_distances, apply_affine, channel_axis_for, channel_stats,
+                     fit_gate, gate_open, looks_channels_last, moment_affine,
+                     moment_distance, pool_stats, recalibrate, select_topk,
+                     select_topk_fraction)
 
 
 # ---------------------------------------------------------------------------
@@ -663,6 +665,57 @@ def test_aqr_clamps_out_of_range_and_validates_shapes():
             assert False, "shape mismatch must raise"
         except ValueError:
             pass
+
+
+def test_channel_axis_resolution():
+    """The SSR affine must act on the channel axis of every roster layout:
+    channels-first conv (B,C,H,W), channels-last Swin (B,H,W,C), token
+    sequences (B,S,D) and pooled vectors (B,D) — the four shapes the 2026-10-14
+    probe observed across the six atlas families."""
+    assert channel_axis_for((2, 256, 56, 56), channels_last=False) == 1
+    assert channel_axis_for((2, 56, 56, 96), channels_last=True) == 3
+    assert channel_axis_for((2, 197, 384)) == 2
+    assert channel_axis_for((2, 384)) == 1
+    try:
+        channel_axis_for((2,))
+        assert False, "rank-1 must raise"
+    except ValueError:
+        pass
+    # disambiguation: H==W in both layouts; the odd dim is the channel dim
+    assert looks_channels_last((2, 96, 56, 56)) is False   # ConvNeXt stem
+    assert looks_channels_last((2, 56, 56, 96)) is True    # Swin patch_embed
+    assert looks_channels_last((2, 7, 7, 768)) is True     # Swin deep stage
+    assert looks_channels_last((2, 2048, 7, 7)) is False   # ResNet layer4
+
+
+def test_aggregate_distances_is_rms_over_modules():
+    """The gate's shift statistic must be the RMS over per-module distances
+    (SSR_PLAN §5), not max/mean — ordering-preserving and scale-faithful."""
+    assert np.isclose(aggregate_distances([3.0, 4.0]), 5.0 / np.sqrt(2))
+    assert np.isclose(aggregate_distances([0.5]), 0.5)
+    try:
+        aggregate_distances([])
+        assert False, "empty module set must raise"
+    except ValueError:
+        pass
+
+
+def test_select_topk_fraction_policy():
+    """Primary SSR selection policy: k = max(1, round(25% * n)), membership by
+    drift rank, forward order preserved in the output."""
+    rows = [{"module": f"m{i}", "cka_unbiased_drop": d}
+            for i, d in enumerate([0.01, 0.9, 0.2, 0.8, 0.7, 0.05, 0.6, 0.5])]
+    sel = select_topk_fraction(rows, 0.25)
+    assert [r["module"] for r in sel] == ["m1", "m3"], sel
+    sel1 = select_topk_fraction(rows[:3], 0.25)   # n=3 -> k=1
+    assert [r["module"] for r in sel1] == ["m1"], sel1
+    sel_all = select_topk_fraction(rows[:2], 1.0)
+    assert len(sel_all) == 2
+    try:
+        select_topk_fraction(rows, 0.0)
+        assert False, "fraction=0 must raise"
+    except ValueError:
+        pass
 
 
 def test_agreement_report_dataset_label():

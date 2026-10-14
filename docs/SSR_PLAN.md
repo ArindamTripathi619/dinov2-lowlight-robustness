@@ -147,8 +147,16 @@ new `scripts/kaggle/ssr.sh`.
   moments, moment-matching affine, shift distance, gate, drift-ranked top-k
   selector. Importable in CI (torch-optional convention, AGENTS environment
   notes).
-- `run_ssr.py` — torch runner; CLI mirrors `run_drift_proxy.py`. Lands after
-  Track 3 harvest (it consumes atlas CSVs).
+- `run_ssr.py` — torch runner; CLI mirrors `run_drift_proxy.py`. **Landed
+  2026-10-14** (after the Track 3 harvest, as planned): consumes the atlas
+  severity-5 CSVs for drift-ranked top-k selection; arms frozen / ssr_topk /
+  ssr_all / ssr_gate_off / bn_stats (ResNet-50, all|topk scopes) / tent (BN
+  native, LN translation per §0.3) / aqr (moment-vs-quantile mechanism
+  ablation) / clahe; per-run identity check (C2) prints gate-closed +
+  bit-identical and lands in ssr_meta.json. CPU smoke verified on both
+  roster paths (ResNet-50 BN/conv and ViT LN/token) — all 8 arms exit 0,
+  identity BIT-IDENTICAL on both. Real-data S1 T4 smoke (SSR_PLAN §7) is the
+  next GPU session.
 - Profile consumer reuses the existing CSV schema
   (`layer,severity,module,cka,cka_unbiased,drop_from_clean,cka_unbiased_drop`)
   — no new format.

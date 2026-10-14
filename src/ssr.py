@@ -100,6 +100,63 @@ def gate_open(distance, threshold):
     return bool(distance > threshold)
 
 
+def channel_axis_for(shape, channels_last=False):
+    """Channel axis of a module output given its shape.
+
+    Observed roster layouts (2026-10-14 shape probe): torchvision ResNet and
+    timm ConvNeXt emit channels-first 4D (B, C, H, W); timm Swin emits
+    channels-last 4D (B, H, W, C); ViT-family modules emit token sequences
+    (B, S, D) — channels last; heads/pooled readouts are (B, D).
+    ``channels_last`` is resolved once per module from its first output shape
+    and then passed explicitly; ambiguous shapes default to channels-first.
+    """
+    nd = len(shape)
+    if nd == 2:
+        return 1
+    if nd == 3:
+        return 2
+    if nd == 4:
+        return 3 if channels_last else 1
+    raise ValueError(f"unsupported module output rank {nd}: {tuple(shape)}")
+
+
+def looks_channels_last(shape):
+    """Disambiguate (B, H, W, C) from (B, C, H, W) on a first-seen shape.
+
+    Spatial dims are equal in both layouts; the channel dim differs. When the
+    shape cannot decide (C == H == W) the channels-first convention wins —
+    the ResNet/ConvNeXt case — and the caller may still override explicitly.
+    """
+    if len(shape) != 4:
+        raise ValueError(f"only 4D shapes are ambiguous, got {tuple(shape)}")
+    _, d1, d2, d3 = shape
+    if d2 == d3 and d1 != d2:
+        return False
+    if d1 == d2 and d2 != d3:
+        return True
+    return False
+
+
+def aggregate_distances(distances):
+    """Aggregate per-module moment distances into the gate's single shift
+    statistic: RMS over candidate modules (SSR_PLAN §5)."""
+    d = np.asarray(distances, dtype=np.float64)
+    if d.size == 0:
+        raise ValueError("aggregate_distances needs at least one module distance")
+    return float(np.sqrt(np.mean(d ** 2)))
+
+
+def select_topk_fraction(rows, fraction=0.25, key="cka_unbiased_drop"):
+    """Top-k by drift where k = round(fraction * n_modules), at least 1 —
+    the SSR_PLAN §4 primary policy (k = top 25%)."""
+    if not 0.0 < fraction <= 1.0:
+        raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+    if not rows:
+        raise ValueError("select_topk_fraction needs at least one row")
+    k = max(1, int(round(fraction * len(rows))))
+    return select_topk(rows, min(k, len(rows)), key=key)
+
+
 def select_topk(rows, k, key="cka_unbiased_drop"):
     """Drift-ranked top-k module selection from profile-CSV rows.
 

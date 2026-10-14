@@ -297,8 +297,10 @@ Next up, in order:
    T4, 46 min, `fail=0`; artifacts `output/profiles/` + `output/atlas/`; verdict
    RESEARCH §5.2 / DPA_DESIGN §2). Harness stayed the shared model-agnostic pair
    (`run_drift_proxy.py` / `run_drift_profile.py`) — no new profiler code needed.
-7. **Track 4 SSR runner** — `run_ssr.py` (torch arms; consumes the atlas CSVs per
-   SSR_PLAN §8/§10; `src/ssr.py` core + tests already landed) → S1 T4 smoke →
-   S2 full grid → RESEARCH verdict.
+7. [x] **Track 4 SSR runner** — `run_ssr.py` **landed 2026-10-14** (torch arms;
+   consumes the atlas CSVs per SSR_PLAN §8/§10; 8 arms incl. TENT/AQR/BN-stat/
+   CLAHE; per-run C2 identity check; CPU smoke green on both BN/conv and LN/token
+   paths, suite 43/43). Remaining: S1 T4 smoke (SSR_PLAN §7, ~1 h) → S2 full
+   grid → RESEARCH verdict.
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.
