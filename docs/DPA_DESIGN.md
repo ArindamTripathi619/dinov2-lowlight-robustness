@@ -2,8 +2,9 @@
 
 *Design doc for the methods paper (docs/ROADMAP.md §1 decision). Created 2026-10-03.*
 *§1 is complete: profiler selection is settled by the Track 1 gate run (commit 5e7afe4)
-and the prior-art searches (§1.3, log in §6). §2–§5 are scoped stubs pending Tracks 3–4
-(Track 2 closed 2026-10-11 apart from the sublayer-resolved extension).
+and the prior-art searches (§1.3, log in §6). §2 records the Track 3 atlas run
+(2026-10-14). §3–§5 remain scoped stubs pending the SSR arms (Track 4) and the
+atlas-family allocation runs (Track 2 closed 2026-10-11 apart from the sublayer-resolved extension).
 Claims in this doc are deliberately narrow — see PAPER_RELATED_WORK.md §2.7.*
 
 ---
@@ -139,14 +140,55 @@ shift-conditioned, model-conditioned, measured direction + the shared-profile de
 
 ---
 
-## 2. Cross-family drift atlas (Track 3 — pending)
+## 2. Cross-family drift atlas (Track 3 — RUN 2026-10-14)
 
-Planned: per-stage/per-block β profiles for ResNet-50, ConvNeXt-T, ViT-S/16, Swin-T,
-DeiT-S (+ ViT-B/14 from Track 2) on a shared ImageNet-val subset under low_light +
-jpeg severity pairs. Harness = §1.4 (`run_drift_proxy.py` parameterized by model;
-timm-backed loaders land with this track). Output: `output/profiles/<model>_<corr>.csv`
-+ the paper's Fig. 1. The gate outcome (§1.2) fixes the measurement: CKA profiles,
-not proxies. ResNet-50 late-heavy rows already exist (§1.2) as the first atlas entry.
+**Run.** Kernel `arindamtripathi/drift-atlas-v4` (T4, 46 min wall, `fail=0`,
+`ATLAS_COMPLETE`): ResNet-50, ConvNeXt-T, ViT-S/16, Swin-T, DeiT-S, DINOv2 ViT-B/14
+on a shared ImageNet-val subset (n = 2,000, seed 42, `sautkin/imagenet1kvalid`),
+low_light + jpeg × severities 1–5, forward-only CKA (the §1.2 gate verdict fixed the
+profiler before this run). Plus a CIFAR-10 consistency leg (ResNet-50, ConvNeXt-T,
+n = 1,000, sev 1/5) anchoring the atlas rows to the Track 1/2 image axis.
+Artifacts: `output/profiles/<model>/` (10 CSVs + agreement reports per model),
+atlas aggregation `output/atlas/atlas_summary.csv` + Fig. 1 candidate
+`output/atlas/atlas_fig1.png` (`tools/build_atlas.py`).
+
+**Headline statistic — late-half drift mass @ sev 5** (0.5 = uniform;
+>0.5 = drift concentrated in the deeper half of profiled modules):
+
+| model | family | low_light | jpeg | worst module (low_light) |
+|---|---|---|---|---|
+| Swin-T | hybrid | 0.664 | **0.823** | layers.1.downsample |
+| ViT-S/16 | ViT | 0.615 | 0.762 | blocks.10.mlp (drop 0.98) |
+| ResNet-50 | CNN | 0.536 | 0.725 | layer4 |
+| DeiT-S | ViT | 0.519 | 0.621 | blocks.7.mlp (mid-depth) |
+| ConvNeXt-T | CNN | 0.587 | 0.489 | head / stages.1 |
+| DINOv2 ViT-B/14 | ViT (self-sup.) | **0.380** | **0.429** | blocks.1.mlp (drop 0.82) |
+
+**The cross-architecture answer.** "Do CNNs drift early and ViTs late?" — as posed,
+**no**: late-heavy drift is the *majority pattern across all three families* (5/6
+models ≥ 0.52 on low_light), and Swin-T (the hybrid) is the *most* late-heavy, not
+in-between. The discriminating axis is not the architecture family but something
+closer to the **pretraining objective**: the one model that flips — early-heavy under
+both corruptions, patch_embed drop 0.38, blocks.0 drop 0.54, worst at blocks.1.mlp —
+is the self-supervised DINOv2, whose supervised ViT cousins (ViT-S, DeiT-S) both sit
+late. This also means Track 2's late-only conclusions and the §1.2 ResNet-50 profile
+are *not* universal defaults: allocation and recalibration scopes must read the atlas
+per model, which is exactly what DPA/SSR design (§1.4, §4) already prescribes.
+
+**Severity monotonicity** holds on all 6 × 2 (model × corruption) series — mean CKA
+drop rises strictly with severity (e.g. ResNet-50 low_light 0.013 → 0.32); the
+atlas is not a noise artifact of n = 2,000.
+
+**Gate re-check (free bonus).** The §1.2 proxy NO-GO replicates on all 6: best
+low_light ρ = 0.693 (DINOv2 cov_shift), jpeg ρ reaches 0.91 (Swin cov_shift) — the
+familiar jpeg-correlates / low_light-doesn't signature, now spanning six
+architectures. The fallback (full CKA profiler) stands with six more data points.
+
+**Limitations of this atlas (stated, not hidden):** n = 2,000 not 10k (cost control;
+rank stability at n = 1k was already established in Track 2); no state-space/Mamba
+row (timm ≥ 1.0.3 ships no vmamba without the separate `ssm` package — parked);
+single-seed. Dataset axis matters — ResNet-50's CIFAR leg (0.718) is later than its
+ImageNet leg (0.536) — so cross-dataset profile comparisons are qualitative.
 
 ---
 

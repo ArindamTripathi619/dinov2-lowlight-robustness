@@ -271,6 +271,24 @@ Third-architecture replication of the drift profile (RESEARCH §5.1) plus the Tr
 
 Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness only; ExDark images are used exclusively for evaluation; the probe split (`random_state=42`) is identical across all passes, so raw-vs-adapted deltas are computed on the same test indices.
 
+### 7.10 Cross-family drift atlas (`run_drift_profile.py --dataset imagenet`; kernel `drift-atlas-v4`)
+
+Track 3's profile atlas of record (RESEARCH §5.2, DPA_DESIGN §2). Same harness as §7.8, extended by the `--dataset imagenet` mode: `utils.load_imagenet_subset` enumerates the ImageNet-val extract in sorted (wnid, filename) order and draws a seeded subset without replacement — the §7.8 determinism convention transplanted to class-folder JPEGs. `--cache-dir` persists the decoded image list once per session (keyed by n/seed/data-root hash), so the six per-model invocations read one FUSE glob+decode instead of six.
+
+| Item | Value |
+|------|-------|
+| Models (6 ImageNet legs) | torchvision ResNet-50 IMAGENET1K_V1; timm convnext_tiny (28.6M), vit_small_patch16_224 (22.1M), swin_tiny_patch4_window7_224 (28.3M), deit_small_patch16_224 (22.1M); torch.hub dinov2_vitb14 — all frozen, eval mode, `.eval().to(device)` at load (the torchvision weights= loader leaves train/CPU; fixed in `run_drift_proxy.load_model`) |
+| Consistency legs (2) | ResNet-50 + ConvNeXt-T on CIFAR-10 test n = 1,000, sev 1/5 — the §7.8 image axis, anchoring atlas rows to Track 1/2 artifacts |
+| Data (ImageNet legs) | `sautkin/imagenet1kvalid` (ILSVRC2012 val, 1000 folders × 50), n = 2,000, seed 42, resolved at `/kaggle/input/datasets/sautkin/imagenet1kvalid` |
+| Modules profiled | 25 (ResNet-50), 15 (ConvNeXt-T), 15 (Swin-T), 38 (ViT-S/16), 38 (DeiT-S), 37 (DINOv2 ViT-B/14) — forward hooks, no backprop |
+| Corruptions × severities | low_light, jpeg × sev 1–5 (§3 tables); matched-noise rng `1000 + severity` (§7.3) |
+| Metrics | energy/mean/cov/cos proxies + biased & unbiased CKA; profile of record `cka_unbiased_drop`; cov_shift computed in float32 (documented in `COV_DTYPE`) |
+| Harness guards (v4) | `PYTHONUNBUFFERED=1`; per-model `timeout --kill-after` (4,500 s ImageNet / 2,400 s CIFAR); 8.5 h deadline guard before starting a model; `ATLAS_MARK` audit lines mirrored to `output/atlas_marks.log` |
+| Compute | Kaggle script kernel `arindamtripathi/drift-atlas-v4`, Tesla T4, torch 2.11.0+cu128, **2,768 s (46 min)** total; per-model 365–707 s (ImageNet), 51 s (CIFAR legs); built via `scripts/build_kaggle_kernel.py` (atlas v4 variant) |
+| Artifacts of record | `output/profiles/<model>/`: `drift_profile_sev{1..5}_{low_light,jpeg}.csv`, `agreement_report.{txt,json}`, `proxy_profiles.csv`, heatmap + per-condition PNGs, `profile.log`; atlas roll-up `output/atlas/atlas_summary.csv` + `output/atlas/atlas_fig1.png` (`tools/build_atlas.py`); run audit `output/atlas_marks.log` |
+
+Note on the txt reports: the `images :` header line said "CIFAR-10 test" for the ImageNet legs in the v4-run output (hardcoded label, since fixed in `write_agreement_report` with a regression test); the JSON `meta.dataset` was correct (`"imagenet"`) throughout, and the six txt files were patched post-run to match. Numbers unaffected.
+
 ---
 
 ## 8. Random Seed Registry
@@ -291,6 +309,7 @@ Transfer-test protocol notes: adapters were trained on synthetic CIFAR darkness 
 | ViT-B drift-profile sweep (v8) | 42 | n = 1,000 test draw (`load_cifar10_subset`); eval corruption rng `1000 + severity` per §7.3; harness `run_drift_profile.py`, kernel `vitb-drift-profile` v1 |
 | Blur adapter re-evaluation | 42 | test draw + eval corruption (`1000 + severity`), identical to §7.3; adapters from sessionE (seed 42) |
 | Track 2 v9 LoRA arms + allocation-shape ablations | 42/43/44 | per-arm test draw, init, shuffling; identical across arms within a seed for paired comparisons; kernels `vitb-lora-v9`, `vitb-lora-abl` — protocol + results in RESEARCH §6.5/§6.6 |
+| Track 3 cross-family atlas | 42 | n = 2,000 ImageNet-val draw (`load_imagenet_subset`), identical across all 6 model legs (shared-image comparison); eval corruption rng `1000 + severity` per §7.3; kernel `drift-atlas-v4` — protocol §7.10, results RESEARCH §5.2 |
 
 ---
 

@@ -5,7 +5,15 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-12: upstream PR #4 (allocation-shape ablations) MERGED (`0ad0ef5`) —
+*Last updated 2026-10-14: **Track 3 atlas DONE** (kernel `drift-atlas-v4`, T4, 46 min,
+`fail=0` — 6 ImageNet + 2 CIFAR profiles harvested, `output/profiles/` + aggregated
+`output/atlas/` with the Fig. 1 candidate; verdict RESEARCH §5.2 / DPA_DESIGN §2:
+late-heavy drift is the cross-family default, DINOv2 the early-heavy outlier — the
+"CNNs early vs ViTs late" cut is wrong; proxy-gate NO-GO replicated on all 6).
+Also 2026-10-14: SSR prior-art round 3 (no narrowing, DPA_DESIGN §6); commits
+`7561daf` (harness + SSR/AQR core + v4 hardening) and `93b53ca` (atlas artifacts).
+Track 4 (`run_ssr.py`) is now unblocked — it consumes the atlas CSVs (SSR_PLAN §10).
+Before that, 2026-10-12: upstream PR #4 (allocation-shape ablations) MERGED (`0ad0ef5`) —
 results of record now on upstream `main`, fork `main` synced; presentation ViT-B section
 extended with the v9 n=3 + ablation verdicts (RESEARCH §6.5/§6.6).
 Before that (10-11): v9 allocation-shape ablations DONE at n=3 (β^τ / top-k /
@@ -161,16 +169,27 @@ agreement-checked against CKA on a model with a different architecture (ResNet-5
   cross-architecture profile pair (ViT-S vs ViT-B).
 - Fold into RESEARCH §6 + the future framework paper as the ViT data point.
 
-### Track 3 — Cross-family drift profiles (the centerpiece; ~5–10 GPU-hours)
-**Models (timm, all ≤ 90M):** ResNet-50, ConvNeXt-Tiny, ViT-S/16, Swin-Tiny, DeiT-S
-(+ ViT-B/14 from Track 2; + one state-space/Mamba vision model if accessible).
-**Protocol:** same ImageNet-val 10k subset (cached fp16 features), synthetic
-low_light/jpeg severity pairs, per-stage/per-block CKA + proxy profiles.
-- **The finding reviewers cannot get elsewhere:** do CNNs drift early and ViTs late?
-  Hybrid/state-space in between? This is the cross-architecture claim.
-- Output: the profile atlas (`output/profiles/<model>_<corruption>.csv`) +
-  `docs/DPA_DESIGN.md` §2 + the paper's Fig. 1.
-- Cost control: forward-only, cached features, one Kaggle session per 2 models.
+### Track 3 — Cross-family drift profiles (the centerpiece) — **DONE 2026-10-14**
+**Roster run (timm, all ≤ 90M):** ResNet-50, ConvNeXt-Tiny, ViT-S/16, Swin-Tiny,
+DeiT-S, DINOv2 ViT-B/14 (Track 2) — 6/6 ImageNet legs + 2 CIFAR consistency legs in
+one T4 session (kernel `drift-atlas-v4`, 46 min wall, `fail=0`, `ATLAS_COMPLETE`;
+protocol METHODS §7.10). State-space/Mamba row skipped: timm ships no vmamba without
+the separate `ssm` package — recorded, not hidden. n = 2,000 not 10k (cost control;
+rank stability at n ≥ 1k already established in Track 2).
+- **The finding reviewers cannot get elsewhere (RESEARCH §5.2 / DPA_DESIGN §2):**
+  the "CNNs early vs ViTs late" hypothesis is **wrong as posed** — late-heavy drift
+  is the cross-family default (5/6 models late-heavy on low_light, CNNs included);
+  the hybrid Swin-T is the *most* late-heavy; the one early-heavy model is the
+  self-supervised DINOv2 (blocks.1.mlp worst, 0.82) — pretraining objective looks
+  like the discriminating axis, not conv-vs-attention. Proxy-gate NO-GO replicated
+  on all 6 (full CKA stays the profiler).
+- Output: `output/profiles/<model>/` (10 CSVs + agreement reports each) +
+  aggregated `output/atlas/atlas_summary.csv` + Fig. 1 candidate
+  `output/atlas/atlas_fig1.png` (`tools/build_atlas.py`) + DPA_DESIGN §2.
+- Re-harvest: `kaggle kernels output arindamtripathi/drift-atlas-v4 -p <dir>`.
+- Open follow-up (feeds Track 4's scope + the paper's generality claim): run the
+  allocation/SSR arms on the atlas families — the profiles exist, the *fix* is
+  still verified only on ViT-S/ViT-B.
 
 ### Track 4 — SSR: selective statistic recalibration (label-free; ~5–8 GPU-hours)
 - Store clean per-module channel statistics (μ, σ) once per model.
@@ -274,7 +293,12 @@ Next up, in order:
    RESEARCH §6.5. Re-harvest: `kaggle kernels output arindamtripathi/vitb-lora-v9 -p <dir>`.
    Open follow-ups: sublayer-resolved ranks only (§1.4 shape ablations closed
    2026-10-11 — kernel `vitb-lora-abl`, RESEARCH §6.6).
-6. **Track 3** — cross-family atlas; the harness is now shared and model-agnostic
-   (`run_drift_proxy.py` / `run_drift_profile.py`).
+6. [x] **Track 3** — cross-family atlas **DONE 2026-10-14** (kernel `drift-atlas-v4`,
+   T4, 46 min, `fail=0`; artifacts `output/profiles/` + `output/atlas/`; verdict
+   RESEARCH §5.2 / DPA_DESIGN §2). Harness stayed the shared model-agnostic pair
+   (`run_drift_proxy.py` / `run_drift_profile.py`) — no new profiler code needed.
+7. **Track 4 SSR runner** — `run_ssr.py` (torch arms; consumes the atlas CSVs per
+   SSR_PLAN §8/§10; `src/ssr.py` core + tests already landed) → S1 T4 smoke →
+   S2 full grid → RESEARCH verdict.
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.

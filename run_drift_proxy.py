@@ -412,6 +412,9 @@ def write_drift_profile_csvs(rows_by_key, out_dir, severity=None):
         print(f"  Saved {path}")
 
 
+DATASET_LABELS = {"cifar10": "CIFAR-10 test", "imagenet": "ImageNet-val extract"}
+
+
 def _fmt(v):
     return "nan" if v != v else f"{v:.4f}"
 
@@ -425,7 +428,9 @@ def write_agreement_report(rows_by_corruption, agreement_by_corruption, gate,
         "=" * 72,
         f"model        : {meta['model_desc']}",
         f"device       : {meta['device']} | torch {meta['torch_version']}",
-        f"images       : {meta['n_images']} CIFAR-10 test, seed {meta['seed']}",
+        f"images       : {meta['n_images']} "
+        f"{DATASET_LABELS.get(meta.get('dataset', 'cifar10'), meta.get('dataset'))}, "
+        f"seed {meta['seed']}",
         f"degradation  : severity {meta['severity']} | corruptions: {', '.join(meta['corruptions'])}",
         f"modules      : {meta['n_modules']} profiled (forward-only, no backprop)",
         "",

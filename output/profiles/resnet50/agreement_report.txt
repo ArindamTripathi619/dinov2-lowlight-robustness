@@ -3,7 +3,7 @@ DRIFT-PROXY FEASIBILITY REPORT (Track 1 gate, docs/ROADMAP.md section 2)
 ========================================================================
 model        : torchvision resnet50 IMAGENET1K_V1 (76.130%)
 device       : cuda | torch 2.11.0+cu128
-images       : 2000 CIFAR-10 test, seed 42
+images       : 2000 ImageNet-val extract, seed 42
 degradation  : severity 1,2,3,4,5 | corruptions: low_light, jpeg
 modules      : 25 profiled (forward-only, no backprop)
 

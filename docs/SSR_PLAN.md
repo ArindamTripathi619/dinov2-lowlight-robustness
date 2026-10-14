@@ -166,8 +166,19 @@ applicability — with honest numbers either way.
 ## 10. Sequence
 
 ```
-Track 3 kernel (running) → harvest → atlas → PR #5 closes Track 3
+Track 3 kernel ✓ (2026-10-14, drift-atlas-v4, fail=0) → harvest ✓ (output/profiles/)
+        → atlas ✓ (output/atlas/) → committed (7561daf + 93b53ca)
         │
-        └── (parallel, this plan) src/ssr.py + tests → prior-art searches
-                 → run_ssr.py → S1 smoke → S2 full grid → RESEARCH verdict
+        ├── (done) src/ssr.py + tests → prior-art searches (3 rounds, §3)
+        │
+        └── run_ssr.py (NOW UNBLOCKED — consumes output/profiles/*.csv per §8)
+                 → S1 smoke → S2 full grid → RESEARCH verdict
 ```
+
+Selection inputs of record (§4, one measurement two consumers): per-model
+severity-5 rows in `output/profiles/<model>/drift_profile_sev5_{low_light,jpeg}.csv`
+— note the ImageNet legs key `layer` by profiled-module row (15–38 rows incl.
+`blocks.k.attn/mlp` sublayers and CNN stages); `tools/build_atlas.py`'s
+`normalize_depth`-style rank mapping handles cross-family depth alignment, and the
+DINOv2 row is the first early-heavy profile in the roster (RESEARCH §5.2) — top-k
+selection there will pick *early* modules, a built-in falsification test for C1.

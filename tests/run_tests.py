@@ -665,6 +665,42 @@ def test_aqr_clamps_out_of_range_and_validates_shapes():
             pass
 
 
+def test_agreement_report_dataset_label():
+    """The report header must name the dataset actually profiled (bug of
+    2026-10-14: the txt line hardcoded 'CIFAR-10 test', mislabeling the six
+    Track-3 ImageNet agreement reports; the JSON meta was always right)."""
+    import tempfile
+    import run_drift_proxy as rdp
+
+    rows = [{"layer": i, "severity": 5, "module": f"m{i}",
+             "energy_drop": 0.1, "mean_shift": 0.1, "cov_shift": 0.1,
+             "cos_drop": 0.1, "cka_unbiased": 0.9, "cka_unbiased_drop": 0.1}
+            for i in range(2)]
+    agreement = {k: {"spearman_rho": 0.5, "spearman_p": 0.1,
+                     "topk_containment": {1: 1.0}} for k in rdp.PROXY_KEYS}
+    gate = {"gate_criterion": "rho >= 0.8 on >= 2 corruptions",
+            "per_proxy": {k: {"rho": {"c": 0.5}, "containment_at_k": {"c": 1.0},
+                              "k": 1} for k in rdp.PROXY_KEYS},
+            "best_proxy": "cos_drop", "verdict": "NO-GO"}
+    base_meta = {"model": "x", "model_desc": "x", "device": "cpu",
+                 "torch_version": "0", "n_images": 10, "seed": 42,
+                 "severity": "5", "corruptions": ["c"], "n_modules": 2}
+
+    def render(meta_extra):
+        meta = dict(base_meta, **meta_extra)
+        with tempfile.TemporaryDirectory() as td:
+            rdp.write_agreement_report({"c@sev5": rows},
+                                       {"c@sev5": agreement}, gate, meta, td)
+            with open(os.path.join(td, "agreement_report.txt")) as f:
+                return f.read()
+
+    txt_imagenet = render({"dataset": "imagenet"})
+    assert "10 ImageNet-val extract, seed 42" in txt_imagenet, txt_imagenet
+    assert "CIFAR-10" not in txt_imagenet
+    # default (proxy runner has no --dataset flag) keeps the legacy CIFAR label
+    assert "10 CIFAR-10 test, seed 42" in render({})
+
+
 # ---------------------------------------------------------------------------
 def main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
