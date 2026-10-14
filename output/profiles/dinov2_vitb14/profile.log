@@ -1,0 +1,99 @@
+========================================================================
+Drift-profile sweep — model=dinov2_vitb14, n=2000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+[+0.8s] ImageNet cache HIT: atlas_cache/imagenet_n2000_seed42_050cc56e.pkl (2000 images)
+[+1s] images ready (2000); loading model
+Downloading: "https://github.com/facebookresearch/dinov2/zipball/main" to /root/.cache/torch/hub/main.zip
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+Downloading: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth" to /root/.cache/torch/hub/checkpoints/dinov2_vitb14_pretrain.pth
+  0%|          | 0.00/330M [00:00<?, ?B/s]  9%|▉         | 30.9M/330M [00:00<00:01, 312MB/s] 26%|██▋       | 87.2M/330M [00:00<00:00, 470MB/s] 42%|████▏     | 137M/330M [00:00<00:00, 494MB/s]  58%|█████▊    | 193M/330M [00:00<00:00, 529MB/s] 74%|███████▎  | 244M/330M [00:00<00:00, 523MB/s] 89%|████████▉ | 295M/330M [00:00<00:00, 529MB/s]100%|██████████| 330M/330M [00:00<00:00, 512MB/s]
+[+4s] model ready: torch.hub dinov2_vitb14
+Profiling 38 modules: ['patch_embed', 'blocks', 'blocks.0', 'blocks.0.attn', 'blocks.0.mlp', 'blocks.1', 'blocks.1.attn', 'blocks.1.mlp', 'blocks.2', 'blocks.2.attn', 'blocks.2.mlp', 'blocks.3', 'blocks.3.attn', 'blocks.3.mlp', 'blocks.4', 'blocks.4.attn', 'blocks.4.mlp', 'blocks.5', 'blocks.5.attn', 'blocks.5.mlp', 'blocks.6', 'blocks.6.attn', 'blocks.6.mlp', 'blocks.7', 'blocks.7.attn', 'blocks.7.mlp', 'blocks.8', 'blocks.8.attn', 'blocks.8.mlp', 'blocks.9', 'blocks.9.attn', 'blocks.9.mlp', 'blocks.10', 'blocks.10.attn', 'blocks.10.mlp', 'blocks.11', 'blocks.11.attn', 'blocks.11.mlp']
+
+[+4s] >>> clean pass (severity 0)
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 40.4s
+
+[+45s] >>> low_light@sev1
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 39.6s
+
+[+121s] >>> low_light@sev2
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.8s
+
+[+196s] >>> low_light@sev3
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.1s
+
+[+270s] >>> low_light@sev4
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.9s
+
+[+344s] >>> low_light@sev5
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.4s
+
+[+419s] >>> jpeg@sev1
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.8s
+
+[+474s] >>> jpeg@sev2
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.8s
+
+[+528s] >>> jpeg@sev3
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.9s
+
+[+583s] >>> jpeg@sev4
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 39.1s
+
+[+637s] >>> jpeg@sev5
+  WARNING: module 'blocks' never fired; excluded from profile
+  forward pass: 2000 images in 38.9s
+
+sweep passes done in 647s (wall +692s)
+
+>>> outputs
+  Saved output/profiles/dinov2_vitb14/proxy_profiles.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev1_low_light.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev2_low_light.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev3_low_light.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev4_low_light.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev5_low_light.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev2_jpeg.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev3_jpeg.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev4_jpeg.csv
+  Saved output/profiles/dinov2_vitb14/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/dinov2_vitb14/agreement_report.txt
+  Saved output/profiles/dinov2_vitb14/agreement_report.json
+
+>>> plots
+  Saved output/profiles/dinov2_vitb14/profiles_low_light@sev1.png
+  Saved output/profiles/dinov2_vitb14/profiles_low_light@sev2.png
+  Saved output/profiles/dinov2_vitb14/profiles_low_light@sev3.png
+  Saved output/profiles/dinov2_vitb14/profiles_low_light@sev4.png
+  Saved output/profiles/dinov2_vitb14/profiles_low_light@sev5.png
+  Saved output/profiles/dinov2_vitb14/profiles_jpeg@sev1.png
+  Saved output/profiles/dinov2_vitb14/profiles_jpeg@sev2.png
+  Saved output/profiles/dinov2_vitb14/profiles_jpeg@sev3.png
+  Saved output/profiles/dinov2_vitb14/profiles_jpeg@sev4.png
+  Saved output/profiles/dinov2_vitb14/profiles_jpeg@sev5.png
+  Saved output/profiles/dinov2_vitb14/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: cov_shift)
+  energy_drop  rho: low_light@sev5=0.106, jpeg@sev5=0.554
+  mean_shift   rho: low_light@sev5=0.354, jpeg@sev5=0.773
+  cov_shift    rho: low_light@sev5=0.693, jpeg@sev5=0.903
+  cos_drop     rho: low_light@sev5=0.078, jpeg@sev5=0.544
+========================================================================

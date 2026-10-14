@@ -1,0 +1,267 @@
+========================================================================
+DRIFT-PROXY FEASIBILITY REPORT (Track 1 gate, docs/ROADMAP.md section 2)
+========================================================================
+model        : timm swin_tiny_patch4_window7_224 (28.3M params, pretrained=True)
+device       : cuda | torch 2.11.0+cu128
+images       : 2000 CIFAR-10 test, seed 42
+degradation  : severity 1,2,3,4,5 | corruptions: low_light, jpeg
+modules      : 15 profiled (forward-only, no backprop)
+
+--- low_light@sev1 (severity 1) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.2861   1.2554   0.2969   0.1868   0.9895    0.0105
+layers                   0.0253   0.0521   0.0772   0.0154   0.9458    0.0542
+layers.0                 0.3942   5.4289   0.3639   0.3056   0.9978    0.0022
+layers.0.blocks          0.3942   5.4289   0.3639   0.3056   0.9978    0.0022
+layers.1                 0.0654   0.6240   0.0083   0.0590   0.9918    0.0082
+layers.1.downsample      0.0196   0.3770   0.0503   0.0120   0.9892    0.0108
+layers.1.blocks          0.0654   0.6240   0.0083   0.0590   0.9918    0.0082
+layers.2                 0.0123   0.0299   0.1473   0.0055   0.9557    0.0443
+layers.2.downsample      0.0274   0.1248   0.0784   0.0131   0.9517    0.0483
+layers.2.blocks          0.0123   0.0299   0.1473   0.0055   0.9557    0.0443
+layers.3                 0.0253   0.0521   0.0772   0.0154   0.9458    0.0542
+layers.3.downsample      0.0614   0.1623   0.0870   0.0380   0.9625    0.0375
+layers.3.blocks          0.0253   0.0521   0.0772   0.0154   0.9458    0.0542
+head                     0.1190   0.4935   0.2403   0.0592   0.8058    0.1942
+head.global_pool         0.0836   0.3856   0.2762   0.0406   0.9278    0.0722
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=-0.3671 (p=0.1783)  top3=0.00  top5=0.40
+    mean_shift   rho=-0.6094 (p=0.0159)  top3=0.00  top5=0.00
+    cov_shift    rho=-0.0814 (p=0.7731)  top3=0.00  top5=0.40
+    cos_drop     rho=-0.4213 (p=0.1178)  top3=0.00  top5=0.20
+
+--- low_light@sev2 (severity 2) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              1.1340   2.4815   0.5968   0.4220   0.9687    0.0313
+layers                   0.0502   0.0886   0.1725   0.0268   0.8815    0.1185
+layers.0                 1.3833  10.1730   0.6152   0.6545   0.9926    0.0074
+layers.0.blocks          1.3833  10.1730   0.6152   0.6545   0.9926    0.0074
+layers.1                 0.1899   1.0745   0.1880   0.1963   0.9873    0.0127
+layers.1.downsample      0.0584   0.3667   0.3254   0.0289   0.9721    0.0279
+layers.1.blocks          0.1899   1.0745   0.1880   0.1963   0.9873    0.0127
+layers.2                 0.0343   0.1285   0.2369   0.0163   0.9201    0.0799
+layers.2.downsample      0.0773   0.2692   0.1634   0.0372   0.9291    0.0709
+layers.2.blocks          0.0343   0.1285   0.2369   0.0163   0.9201    0.0799
+layers.3                 0.0502   0.0886   0.1725   0.0268   0.8815    0.1185
+layers.3.downsample      0.1208   0.3031   0.1385   0.0755   0.9254    0.0746
+layers.3.blocks          0.0502   0.0886   0.1725   0.0268   0.8815    0.1185
+head                     0.2361   0.8368   0.3615   0.1162   0.6833    0.3167
+head.global_pool         0.1879   0.6807   0.4512   0.0889   0.8459    0.1541
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=-0.5190 (p=0.0474)  top3=0.00  top5=0.20
+    mean_shift   rho=-0.6745 (p=0.0058)  top3=0.00  top5=0.00
+    cov_shift    rho=-0.2984 (p=0.2801)  top3=0.00  top5=0.40
+    cos_drop     rho=-0.6022 (p=0.0175)  top3=0.00  top5=0.00
+
+--- low_light@sev3 (severity 3) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              2.4420   3.6187   0.8251   0.5398   0.9524    0.0476
+layers                   0.0671   0.1015   0.2123   0.0344   0.8387    0.1613
+layers.0                 2.8607  14.6220   0.7983   0.8188   0.9865    0.0135
+layers.0.blocks          2.8607  14.6220   0.7983   0.8188   0.9865    0.0135
+layers.1                 0.3574   1.3854   0.4416   0.3697   0.9682    0.0318
+layers.1.downsample      0.1732   0.4134   0.5903   0.0534   0.9235    0.0765
+layers.1.blocks          0.3574   1.3854   0.4416   0.3697   0.9682    0.0318
+layers.2                 0.0570   0.1862   0.3015   0.0260   0.8932    0.1068
+layers.2.downsample      0.1397   0.3773   0.2877   0.0676   0.9079    0.0921
+layers.2.blocks          0.0570   0.1862   0.3015   0.0260   0.8932    0.1068
+layers.3                 0.0671   0.1015   0.2123   0.0344   0.8387    0.1613
+layers.3.downsample      0.1644   0.3713   0.1440   0.1036   0.9036    0.0964
+layers.3.blocks          0.0671   0.1015   0.2123   0.0344   0.8387    0.1613
+head                     0.3203   1.0069   0.4107   0.1573   0.6153    0.3847
+head.global_pool         0.2667   0.8221   0.5169   0.1261   0.7863    0.2137
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=-0.6383 (p=0.0104)  top3=0.00  top5=0.00
+    mean_shift   rho=-0.6962 (p=0.0039)  top3=0.00  top5=0.00
+    cov_shift    rho=-0.5696 (p=0.0266)  top3=0.00  top5=0.20
+    cos_drop     rho=-0.6275 (p=0.0123)  top3=0.00  top5=0.00
+
+--- low_light@sev4 (severity 4) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              3.7231   4.4477   0.9387   0.5857   0.9475    0.0525
+layers                   0.0895   0.0938   0.1495   0.0425   0.7503    0.2497
+layers.0                 4.4257  18.1784   0.9041   0.8757   0.9843    0.0157
+layers.0.blocks          4.4257  18.1784   0.9041   0.8757   0.9843    0.0157
+layers.1                 0.5649   1.5704   0.6884   0.5538   0.9173    0.0827
+layers.1.downsample      0.4130   0.7321   0.8151   0.1095   0.7945    0.2055
+layers.1.blocks          0.5649   1.5704   0.6884   0.5538   0.9173    0.0827
+layers.2                 0.0742   0.1984   0.3559   0.0327   0.8404    0.1596
+layers.2.downsample      0.2207   0.4505   0.4685   0.1079   0.8263    0.1737
+layers.2.blocks          0.0742   0.1984   0.3559   0.0327   0.8404    0.1596
+layers.3                 0.0895   0.0938   0.1495   0.0425   0.7503    0.2497
+layers.3.downsample      0.2215   0.3880   0.1139   0.1375   0.8610    0.1390
+layers.3.blocks          0.0895   0.0938   0.1495   0.0425   0.7503    0.2497
+head                     0.4434   1.1481   0.4891   0.2006   0.5790    0.4210
+head.global_pool         0.4009   0.9735   0.6127   0.1783   0.7097    0.2903
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=-0.5769 (p=0.0244)  top3=0.00  top5=0.00
+    mean_shift   rho=-0.6492 (p=0.0088)  top3=0.00  top5=0.00
+    cov_shift    rho=-0.5588 (p=0.0304)  top3=0.00  top5=0.00
+    cos_drop     rho=-0.5769 (p=0.0244)  top3=0.00  top5=0.00
+
+--- low_light@sev5 (severity 5) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              4.7101   4.9817   0.9842   0.6098   0.9432    0.0568
+layers                   0.1601   0.0685   0.2937   0.0749   0.4879    0.5121
+layers.0                 5.8562  20.8485   0.9650   0.9091   0.9733    0.0267
+layers.0.blocks          5.8562  20.8485   0.9650   0.9091   0.9733    0.0267
+layers.1                 0.9240   1.8607   0.8734   0.7177   0.7893    0.2107
+layers.1.downsample      0.7865   1.2972   0.9367   0.5255   0.4000    0.6000
+layers.1.blocks          0.9240   1.8607   0.8734   0.7177   0.7893    0.2107
+layers.2                 0.1365   0.2772   0.4616   0.0554   0.7064    0.2936
+layers.2.downsample      0.3127   0.4834   0.6763   0.1566   0.6598    0.3402
+layers.2.blocks          0.1365   0.2772   0.4616   0.0554   0.7064    0.2936
+layers.3                 0.1601   0.0685   0.2937   0.0749   0.4879    0.5121
+layers.3.downsample      0.3153   0.2182   0.1799   0.1895   0.7338    0.2662
+layers.3.blocks          0.1601   0.0685   0.2937   0.0749   0.4879    0.5121
+head                     0.8707   1.7715   0.8233   0.3605   0.3760    0.6240
+head.global_pool         0.7971   1.4610   0.9182   0.3497   0.4718    0.5282
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=-0.5226 (p=0.0456)  top3=0.00  top5=0.00
+    mean_shift   rho=-0.5769 (p=0.0244)  top3=0.00  top5=0.00
+    cov_shift    rho=-0.3888 (p=0.1521)  top3=0.00  top5=0.40
+    cos_drop     rho=-0.5118 (p=0.0512)  top3=0.00  top5=0.00
+
+--- jpeg@sev1 (severity 1) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.0001   0.0038   0.0043   0.0001   1.0000    0.0000
+layers                   0.0142   0.0349   0.0241   0.0085   0.9708    0.0292
+layers.0                 0.0001   0.0578   0.0078   0.0001   1.0000    0.0000
+layers.0.blocks          0.0001   0.0578   0.0078   0.0001   1.0000    0.0000
+layers.1                 0.0092   0.1976   0.0723   0.0071   0.9973    0.0027
+layers.1.downsample      0.0203   0.4800   0.0928   0.0164   0.9958    0.0042
+layers.1.blocks          0.0092   0.1976   0.0723   0.0071   0.9973    0.0027
+layers.2                 0.0057   0.0096   0.0713   0.0029   0.9852    0.0148
+layers.2.downsample      0.0061   0.0195   0.0562   0.0030   0.9926    0.0074
+layers.2.blocks          0.0057   0.0096   0.0713   0.0029   0.9852    0.0148
+layers.3                 0.0142   0.0349   0.0241   0.0085   0.9708    0.0292
+layers.3.downsample      0.0407   0.1375   0.0310   0.0255   0.9788    0.0212
+layers.3.blocks          0.0142   0.0349   0.0241   0.0085   0.9708    0.0292
+head                     0.0654   0.2671   0.1878   0.0320   0.8962    0.1038
+head.global_pool         0.0469   0.2024   0.1774   0.0222   0.9622    0.0378
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.8047 (p=0.0003)  top3=0.67  top5=0.60
+    mean_shift   rho=0.2007 (p=0.4732)  top3=0.67  top5=0.40
+    cov_shift    rho=0.4467 (p=0.0951)  top3=0.67  top5=0.40
+    cos_drop     rho=0.7794 (p=0.0006)  top3=0.67  top5=0.60
+
+--- jpeg@sev2 (severity 2) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.0001   0.0044   0.0012   0.0001   1.0000    0.0000
+layers                   0.0260   0.0323   0.0580   0.0167   0.9402    0.0598
+layers.0                 0.0001   0.0074   0.0015   0.0001   1.0000    0.0000
+layers.0.blocks          0.0001   0.0074   0.0015   0.0001   1.0000    0.0000
+layers.1                 0.0037   0.0466   0.0224   0.0033   0.9972    0.0028
+layers.1.downsample      0.0092   0.2049   0.0191   0.0082   0.9935    0.0065
+layers.1.blocks          0.0037   0.0466   0.0224   0.0033   0.9972    0.0028
+layers.2                 0.0113   0.0265   0.0482   0.0058   0.9739    0.0261
+layers.2.downsample      0.0218   0.0987   0.0550   0.0112   0.9772    0.0228
+layers.2.blocks          0.0113   0.0265   0.0482   0.0058   0.9739    0.0261
+layers.3                 0.0260   0.0323   0.0580   0.0167   0.9402    0.0598
+layers.3.downsample      0.0691   0.0786   0.0756   0.0451   0.9590    0.0410
+layers.3.blocks          0.0260   0.0323   0.0580   0.0167   0.9402    0.0598
+head                     0.1175   0.3229   0.1915   0.0570   0.8301    0.1699
+head.global_pool         0.0864   0.2664   0.2365   0.0410   0.9299    0.0701
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.9566 (p=0.0000)  top3=0.67  top5=0.80
+    mean_shift   rho=0.5805 (p=0.0233)  top3=0.67  top5=0.40
+    cov_shift    rho=0.9530 (p=0.0000)  top3=0.67  top5=0.80
+    cos_drop     rho=0.9241 (p=0.0000)  top3=0.67  top5=0.80
+
+--- jpeg@sev3 (severity 3) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.0002   0.0054   0.0011   0.0003   1.0000    0.0000
+layers                   0.0378   0.0366   0.0555   0.0236   0.9080    0.0920
+layers.0                 0.0001   0.0325   0.0014   0.0001   1.0000    0.0000
+layers.0.blocks          0.0001   0.0325   0.0014   0.0001   1.0000    0.0000
+layers.1                 0.0189   0.2730   0.0850   0.0148   0.9942    0.0058
+layers.1.downsample      0.0098   0.1717   0.0482   0.0078   0.9930    0.0070
+layers.1.blocks          0.0189   0.2730   0.0850   0.0148   0.9942    0.0058
+layers.2                 0.0186   0.0463   0.0777   0.0094   0.9532    0.0468
+layers.2.downsample      0.0395   0.1414   0.1016   0.0207   0.9568    0.0432
+layers.2.blocks          0.0186   0.0463   0.0777   0.0094   0.9532    0.0468
+layers.3                 0.0378   0.0366   0.0555   0.0236   0.9080    0.0920
+layers.3.downsample      0.0979   0.0790   0.0858   0.0633   0.9362    0.0638
+layers.3.blocks          0.0378   0.0366   0.0555   0.0236   0.9080    0.0920
+head                     0.1721   0.4626   0.2801   0.0819   0.7777    0.2223
+head.global_pool         0.1353   0.3832   0.3339   0.0617   0.8956    0.1044
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.8336 (p=0.0001)  top3=0.67  top5=0.60
+    mean_shift   rho=0.4358 (p=0.1044)  top3=0.67  top5=0.40
+    cov_shift    rho=0.5913 (p=0.0203)  top3=0.67  top5=0.40
+    cos_drop     rho=0.8734 (p=0.0000)  top3=0.67  top5=0.80
+
+--- jpeg@sev4 (severity 4) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.0004   0.0079   0.0040   0.0005   0.9999    0.0001
+layers                   0.0602   0.0539   0.0837   0.0355   0.8343    0.1657
+layers.0                 0.0002   0.0181   0.0036   0.0002   0.9999    0.0001
+layers.0.blocks          0.0002   0.0181   0.0036   0.0002   0.9999    0.0001
+layers.1                 0.0200   0.1884   0.0703   0.0145   0.9873    0.0127
+layers.1.downsample      0.0252   0.2017   0.0396   0.0192   0.9791    0.0209
+layers.1.blocks          0.0200   0.1884   0.0703   0.0145   0.9873    0.0127
+layers.2                 0.0308   0.0634   0.0883   0.0153   0.9195    0.0805
+layers.2.downsample      0.0896   0.2428   0.1390   0.0459   0.8997    0.1003
+layers.2.blocks          0.0308   0.0634   0.0883   0.0153   0.9195    0.0805
+layers.3                 0.0602   0.0539   0.0837   0.0355   0.8343    0.1657
+layers.3.downsample      0.1429   0.1167   0.1060   0.0857   0.8975    0.1025
+layers.3.blocks          0.0602   0.0539   0.0837   0.0355   0.8343    0.1657
+head                     0.2736   0.6231   0.3597   0.1228   0.6987    0.3013
+head.global_pool         0.2292   0.5228   0.4492   0.1003   0.8319    0.1681
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.9349 (p=0.0000)  top3=0.67  top5=0.60
+    mean_shift   rho=0.5081 (p=0.0531)  top3=0.67  top5=0.40
+    cov_shift    rho=0.8192 (p=0.0002)  top3=0.67  top5=0.40
+    cos_drop     rho=0.9241 (p=0.0000)  top3=0.67  top5=0.60
+
+--- jpeg@sev5 (severity 5) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+patch_embed              0.0011   0.0127   0.0119   0.0012   0.9996    0.0004
+layers                   0.1125   0.1132   0.1599   0.0609   0.6756    0.3244
+layers.0                 0.0006   0.0220   0.0067   0.0005   0.9997    0.0003
+layers.0.blocks          0.0006   0.0220   0.0067   0.0005   0.9997    0.0003
+layers.1                 0.0390   0.2045   0.0596   0.0291   0.9708    0.0292
+layers.1.downsample      0.0551   0.3448   0.0401   0.0432   0.9596    0.0404
+layers.1.blocks          0.0390   0.2045   0.0596   0.0291   0.9708    0.0292
+layers.2                 0.0486   0.0679   0.1466   0.0246   0.8697    0.1303
+layers.2.downsample      0.2125   0.4128   0.2207   0.1039   0.7737    0.2263
+layers.2.blocks          0.0486   0.0679   0.1466   0.0246   0.8697    0.1303
+layers.3                 0.1125   0.1132   0.1599   0.0609   0.6756    0.3244
+layers.3.downsample      0.2332   0.1911   0.0667   0.1294   0.8293    0.1707
+layers.3.blocks          0.1125   0.1132   0.1599   0.0609   0.6756    0.3244
+head                     0.5140   0.9497   0.5759   0.2084   0.5586    0.4414
+head.global_pool         0.4492   0.7714   0.6627   0.1881   0.6989    0.3011
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.8879 (p=0.0000)  top3=0.33  top5=0.60
+    mean_shift   rho=0.5335 (p=0.0406)  top3=0.33  top5=0.40
+    cov_shift    rho=0.9096 (p=0.0000)  top3=0.33  top5=0.80
+    cos_drop     rho=0.8445 (p=0.0001)  top3=0.33  top5=0.60
+
+------------------------------------------------------------------------
+GATE (roadmap: Spearman rho >= 0.8 on >= 2 corruptions AND full containment at k=5)
+------------------------------------------------------------------------
+  energy_drop  rho: low_light@sev5=-0.5226, jpeg@sev5=0.8879
+               top5 containment: low_light@sev5=0.0000, jpeg@sev5=0.6000
+  mean_shift   rho: low_light@sev5=-0.5769, jpeg@sev5=0.5335
+               top5 containment: low_light@sev5=0.0000, jpeg@sev5=0.4000
+  cov_shift    rho: low_light@sev5=-0.3888, jpeg@sev5=0.9096
+               top5 containment: low_light@sev5=0.4000, jpeg@sev5=0.8000
+  cos_drop     rho: low_light@sev5=-0.5118, jpeg@sev5=0.8445
+               top5 containment: low_light@sev5=0.0000, jpeg@sev5=0.6000
+
+  best proxy: cov_shift
+  VERDICT: NO-GO
+
+  Fallback per roadmap: keep full CKA as the profiler (it is
+  forward-only and already proven); claim weakens to 'single cheap
+  profiling pass' — the paper does not die here.

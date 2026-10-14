@@ -1,0 +1,263 @@
+{
+  "meta": {
+    "model": "resnet50",
+    "model_desc": "torchvision resnet50 IMAGENET1K_V1 (76.130%)",
+    "torch_version": "2.11.0+cu128",
+    "device": "cuda",
+    "dataset": "cifar10",
+    "data_root": null,
+    "n_images": 1000,
+    "seed": 42,
+    "severity": "1,5",
+    "corruptions": [
+      "low_light",
+      "jpeg"
+    ],
+    "n_modules": 25,
+    "modules": [
+      "layer1",
+      "layer1.0",
+      "layer1.0.downsample",
+      "layer1.1",
+      "layer1.2",
+      "layer2",
+      "layer2.0",
+      "layer2.0.downsample",
+      "layer2.1",
+      "layer2.2",
+      "layer2.3",
+      "layer3",
+      "layer3.0",
+      "layer3.0.downsample",
+      "layer3.1",
+      "layer3.2",
+      "layer3.3",
+      "layer3.4",
+      "layer3.5",
+      "layer4",
+      "layer4.0",
+      "layer4.0.downsample",
+      "layer4.1",
+      "layer4.2",
+      "avgpool"
+    ],
+    "vit_token": "cls",
+    "max_depth": 2,
+    "gate_severity": 5,
+    "cache_dir": null,
+    "cov_precision": "float32"
+  },
+  "gate": {
+    "verdict": "NO-GO",
+    "best_proxy": "cos_drop",
+    "per_proxy": {
+      "energy_drop": {
+        "rho": {
+          "low_light@sev5": 0.4492865406864636,
+          "jpeg@sev5": 0.9706903200925571
+        },
+        "containment_at_k": {
+          "low_light@sev5": 0.2,
+          "jpeg@sev5": 0.8
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [
+          "jpeg@sev5"
+        ],
+        "strict_pass": false
+      },
+      "mean_shift": {
+        "rho": {
+          "low_light@sev5": 0.4492865406864636,
+          "jpeg@sev5": 0.9020439645198614
+        },
+        "containment_at_k": {
+          "low_light@sev5": 0.2,
+          "jpeg@sev5": 0.4
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [
+          "jpeg@sev5"
+        ],
+        "strict_pass": false
+      },
+      "cov_shift": {
+        "rho": {
+          "low_light@sev5": 0.35981488623216357,
+          "jpeg@sev5": 0.9560354801388354
+        },
+        "containment_at_k": {
+          "low_light@sev5": 0.8,
+          "jpeg@sev5": 0.6
+        },
+        "k": 5,
+        "corruptions_passing_strict": [],
+        "corruptions_passing_rho": [
+          "jpeg@sev5"
+        ],
+        "strict_pass": false
+      },
+      "cos_drop": {
+        "rho": {
+          "low_light@sev5": 0.5919784033937525,
+          "jpeg@sev5": 0.9760894716544545
+        },
+        "containment_at_k": {
+          "low_light@sev5": 0.8,
+          "jpeg@sev5": 1.0
+        },
+        "k": 5,
+        "corruptions_passing_strict": [
+          "jpeg@sev5"
+        ],
+        "corruptions_passing_rho": [
+          "jpeg@sev5"
+        ],
+        "strict_pass": false
+      }
+    },
+    "rho_threshold": 0.8,
+    "topk": 5,
+    "gate_criterion": "Spearman rho >= 0.8 on >= 2 corruptions AND full containment at k=5"
+  },
+  "agreement_by_corruption": {
+    "low_light@sev1": {
+      "energy_drop": {
+        "spearman_rho": 0.2225221750867721,
+        "spearman_p": 0.28501280135736334,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": -0.0775163902815272,
+        "spearman_p": 0.7126539228552945,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.0
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": -0.1747011183956807,
+        "spearman_p": 0.40358442515274495,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.21326648669494794,
+        "spearman_p": 0.30603507740419017,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2
+        }
+      }
+    },
+    "low_light@sev5": {
+      "energy_drop": {
+        "spearman_rho": 0.4492865406864636,
+        "spearman_p": 0.02425334901831708,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.4492865406864636,
+        "spearman_p": 0.02425334901831708,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.2
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.35981488623216357,
+        "spearman_p": 0.0772808419110843,
+        "topk_containment": {
+          "3": 1.0,
+          "5": 0.8
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.5919784033937525,
+        "spearman_p": 0.0018247984356029757,
+        "topk_containment": {
+          "3": 0.6666666666666666,
+          "5": 0.8
+        }
+      }
+    },
+    "jpeg@sev1": {
+      "energy_drop": {
+        "spearman_rho": 0.9699190127265717,
+        "spearman_p": 1.303313213094877e-15,
+        "topk_containment": {
+          "3": 1.0,
+          "5": 0.8
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.9020439645198614,
+        "spearman_p": 7.330382737215928e-10,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.4
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.9552641727728501,
+        "spearman_p": 1.1640810348372938e-13,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.6
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.9722329348245277,
+        "spearman_p": 5.250487932647949e-16,
+        "topk_containment": {
+          "3": 1.0,
+          "5": 1.0
+        }
+      }
+    },
+    "jpeg@sev5": {
+      "energy_drop": {
+        "spearman_rho": 0.9706903200925571,
+        "spearman_p": 9.704118526745295e-16,
+        "topk_containment": {
+          "3": 1.0,
+          "5": 0.8
+        }
+      },
+      "mean_shift": {
+        "spearman_rho": 0.9020439645198614,
+        "spearman_p": 7.330382737215928e-10,
+        "topk_containment": {
+          "3": 0.0,
+          "5": 0.4
+        }
+      },
+      "cov_shift": {
+        "spearman_rho": 0.9560354801388354,
+        "spearman_p": 9.566907552124838e-14,
+        "topk_containment": {
+          "3": 0.3333333333333333,
+          "5": 0.6
+        }
+      },
+      "cos_drop": {
+        "spearman_rho": 0.9760894716544545,
+        "spearman_p": 9.584317505539211e-17,
+        "topk_containment": {
+          "3": 1.0,
+          "5": 1.0
+        }
+      }
+    }
+  }
+}

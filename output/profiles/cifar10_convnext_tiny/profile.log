@@ -1,0 +1,50 @@
+========================================================================
+Drift-profile sweep — model=timm:convnext_tiny, n=1000, severities=[1, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+Loaded 1000 images from CIFAR-10 (test), classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+[+1s] images ready (1000); loading model
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[+3s] model ready: timm convnext_tiny (28.6M params, pretrained=True)
+Profiling 15 modules: ['stem', 'stages', 'stages.0', 'stages.0.blocks', 'stages.1', 'stages.1.downsample', 'stages.1.blocks', 'stages.2', 'stages.2.downsample', 'stages.2.blocks', 'stages.3', 'stages.3.downsample', 'stages.3.blocks', 'head', 'head.global_pool']
+
+[+3s] >>> clean pass (severity 0)
+  forward pass: 1000 images in 9.9s
+
+[+13s] >>> low_light@sev1
+  forward pass: 1000 images in 6.2s
+
+[+20s] >>> low_light@sev5
+  forward pass: 1000 images in 6.4s
+
+[+28s] >>> jpeg@sev1
+  forward pass: 1000 images in 6.1s
+
+[+35s] >>> jpeg@sev5
+  forward pass: 1000 images in 5.9s
+
+sweep passes done in 29s (wall +42s)
+
+>>> outputs
+  Saved output/profiles/cifar10_convnext_tiny/proxy_profiles.csv
+  Saved output/profiles/cifar10_convnext_tiny/drift_profile_sev1_low_light.csv
+  Saved output/profiles/cifar10_convnext_tiny/drift_profile_sev5_low_light.csv
+  Saved output/profiles/cifar10_convnext_tiny/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/cifar10_convnext_tiny/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/cifar10_convnext_tiny/agreement_report.txt
+  Saved output/profiles/cifar10_convnext_tiny/agreement_report.json
+
+>>> plots
+  Saved output/profiles/cifar10_convnext_tiny/profiles_low_light@sev1.png
+  Saved output/profiles/cifar10_convnext_tiny/profiles_low_light@sev5.png
+  Saved output/profiles/cifar10_convnext_tiny/profiles_jpeg@sev1.png
+  Saved output/profiles/cifar10_convnext_tiny/profiles_jpeg@sev5.png
+  Saved output/profiles/cifar10_convnext_tiny/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: energy_drop)
+  energy_drop  rho: low_light@sev5=-0.239, jpeg@sev5=0.704
+  mean_shift   rho: low_light@sev5=-0.386, jpeg@sev5=0.766
+  cov_shift    rho: low_light@sev5=-0.331, jpeg@sev5=0.612
+  cos_drop     rho: low_light@sev5=-0.503, jpeg@sev5=0.367
+========================================================================

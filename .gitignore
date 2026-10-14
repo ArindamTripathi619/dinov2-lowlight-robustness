@@ -101,6 +101,15 @@ output/v9_lora/**/*.pt
 !output/v9_ablation/
 !output/v9_ablation/**
 output/v9_ablation/**/*.pt
+
+# Track 3 cross-family drift-atlas results of record (drift-atlas-v4 kernel,
+# 2026-10-14: 6 ImageNet + 2 CIFAR profile dirs, agreement reports, plots;
+# atlas_cache pickles stay out — regenerated locally by --cache-dir)
+!output/profiles/
+!output/profiles/**
+!output/atlas/
+!output/atlas/**
+!output/atlas_marks.log
 __pycache__/
 *.pyc
 .vercel

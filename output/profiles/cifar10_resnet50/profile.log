@@ -1,0 +1,49 @@
+========================================================================
+Drift-profile sweep — model=resnet50, n=1000, severities=[1, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+Loaded 1000 images from CIFAR-10 (test), classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+[+1s] images ready (1000); loading model
+[+2s] model ready: torchvision resnet50 IMAGENET1K_V1 (76.130%)
+Profiling 25 modules: ['layer1', 'layer1.0', 'layer1.0.downsample', 'layer1.1', 'layer1.2', 'layer2', 'layer2.0', 'layer2.0.downsample', 'layer2.1', 'layer2.2', 'layer2.3', 'layer3', 'layer3.0', 'layer3.0.downsample', 'layer3.1', 'layer3.2', 'layer3.3', 'layer3.4', 'layer3.5', 'layer4', 'layer4.0', 'layer4.0.downsample', 'layer4.1', 'layer4.2', 'avgpool']
+
+[+2s] >>> clean pass (severity 0)
+  forward pass: 1000 images in 4.8s
+
+[+6s] >>> low_light@sev1
+  forward pass: 1000 images in 4.6s
+
+[+15s] >>> low_light@sev5
+  forward pass: 1000 images in 4.6s
+
+[+24s] >>> jpeg@sev1
+  forward pass: 1000 images in 4.6s
+
+[+32s] >>> jpeg@sev5
+  forward pass: 1000 images in 4.6s
+
+sweep passes done in 35s (wall +41s)
+
+>>> outputs
+  Saved output/profiles/cifar10_resnet50/proxy_profiles.csv
+  Saved output/profiles/cifar10_resnet50/drift_profile_sev1_low_light.csv
+  Saved output/profiles/cifar10_resnet50/drift_profile_sev5_low_light.csv
+  Saved output/profiles/cifar10_resnet50/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/cifar10_resnet50/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/cifar10_resnet50/agreement_report.txt
+  Saved output/profiles/cifar10_resnet50/agreement_report.json
+
+>>> plots
+  Saved output/profiles/cifar10_resnet50/profiles_low_light@sev1.png
+  Saved output/profiles/cifar10_resnet50/profiles_low_light@sev5.png
+  Saved output/profiles/cifar10_resnet50/profiles_jpeg@sev1.png
+  Saved output/profiles/cifar10_resnet50/profiles_jpeg@sev5.png
+  Saved output/profiles/cifar10_resnet50/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: cos_drop)
+  energy_drop  rho: low_light@sev5=0.449, jpeg@sev5=0.971
+  mean_shift   rho: low_light@sev5=0.449, jpeg@sev5=0.902
+  cov_shift    rho: low_light@sev5=0.360, jpeg@sev5=0.956
+  cos_drop     rho: low_light@sev5=0.592, jpeg@sev5=0.976
+========================================================================

@@ -1,0 +1,80 @@
+========================================================================
+Drift-profile sweep — model=timm:swin_tiny_patch4_window7_224, n=2000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+[+0.9s] ImageNet cache HIT: atlas_cache/imagenet_n2000_seed42_050cc56e.pkl (2000 images)
+[+1s] images ready (2000); loading model
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[+4s] model ready: timm swin_tiny_patch4_window7_224 (28.3M params, pretrained=True)
+Profiling 15 modules: ['patch_embed', 'layers', 'layers.0', 'layers.0.blocks', 'layers.1', 'layers.1.downsample', 'layers.1.blocks', 'layers.2', 'layers.2.downsample', 'layers.2.blocks', 'layers.3', 'layers.3.downsample', 'layers.3.blocks', 'head', 'head.global_pool']
+
+[+4s] >>> clean pass (severity 0)
+  forward pass: 2000 images in 16.8s
+
+[+21s] >>> low_light@sev1
+  forward pass: 2000 images in 17.1s
+
+[+68s] >>> low_light@sev2
+  forward pass: 2000 images in 15.1s
+
+[+113s] >>> low_light@sev3
+  forward pass: 2000 images in 16.0s
+
+[+158s] >>> low_light@sev4
+  forward pass: 2000 images in 15.5s
+
+[+202s] >>> low_light@sev5
+  forward pass: 2000 images in 16.0s
+
+[+247s] >>> jpeg@sev1
+  forward pass: 2000 images in 16.3s
+
+[+271s] >>> jpeg@sev2
+  forward pass: 2000 images in 15.6s
+
+[+294s] >>> jpeg@sev3
+  forward pass: 2000 images in 16.1s
+
+[+318s] >>> jpeg@sev4
+  forward pass: 2000 images in 16.0s
+
+[+341s] >>> jpeg@sev5
+  forward pass: 2000 images in 16.2s
+
+sweep passes done in 343s (wall +364s)
+
+>>> outputs
+  Saved output/profiles/swin_tiny_patch4_window7_224/proxy_profiles.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev1_low_light.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev2_low_light.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev3_low_light.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev4_low_light.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev5_low_light.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev2_jpeg.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev3_jpeg.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev4_jpeg.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/swin_tiny_patch4_window7_224/agreement_report.txt
+  Saved output/profiles/swin_tiny_patch4_window7_224/agreement_report.json
+
+>>> plots
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_low_light@sev1.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_low_light@sev2.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_low_light@sev3.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_low_light@sev4.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_low_light@sev5.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_jpeg@sev1.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_jpeg@sev2.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_jpeg@sev3.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_jpeg@sev4.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profiles_jpeg@sev5.png
+  Saved output/profiles/swin_tiny_patch4_window7_224/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: cov_shift)
+  energy_drop  rho: low_light@sev5=-0.523, jpeg@sev5=0.888
+  mean_shift   rho: low_light@sev5=-0.577, jpeg@sev5=0.533
+  cov_shift    rho: low_light@sev5=-0.389, jpeg@sev5=0.910
+  cos_drop     rho: low_light@sev5=-0.512, jpeg@sev5=0.844
+========================================================================

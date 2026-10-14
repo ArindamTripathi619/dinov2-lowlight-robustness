@@ -1,0 +1,80 @@
+========================================================================
+Drift-profile sweep — model=timm:convnext_tiny, n=2000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+[+0.8s] ImageNet cache HIT: atlas_cache/imagenet_n2000_seed42_050cc56e.pkl (2000 images)
+[+1s] images ready (2000); loading model
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[+7s] model ready: timm convnext_tiny (28.6M params, pretrained=True)
+Profiling 15 modules: ['stem', 'stages', 'stages.0', 'stages.0.blocks', 'stages.1', 'stages.1.downsample', 'stages.1.blocks', 'stages.2', 'stages.2.downsample', 'stages.2.blocks', 'stages.3', 'stages.3.downsample', 'stages.3.blocks', 'head', 'head.global_pool']
+
+[+7s] >>> clean pass (severity 0)
+  forward pass: 2000 images in 19.4s
+
+[+26s] >>> low_light@sev1
+  forward pass: 2000 images in 15.4s
+
+[+71s] >>> low_light@sev2
+  forward pass: 2000 images in 13.6s
+
+[+113s] >>> low_light@sev3
+  forward pass: 2000 images in 13.9s
+
+[+154s] >>> low_light@sev4
+  forward pass: 2000 images in 13.7s
+
+[+196s] >>> low_light@sev5
+  forward pass: 2000 images in 14.5s
+
+[+238s] >>> jpeg@sev1
+  forward pass: 2000 images in 14.7s
+
+[+262s] >>> jpeg@sev2
+  forward pass: 2000 images in 14.3s
+
+[+284s] >>> jpeg@sev3
+  forward pass: 2000 images in 14.6s
+
+[+307s] >>> jpeg@sev4
+  forward pass: 2000 images in 14.7s
+
+[+329s] >>> jpeg@sev5
+  forward pass: 2000 images in 14.6s
+
+sweep passes done in 325s (wall +351s)
+
+>>> outputs
+  Saved output/profiles/convnext_tiny/proxy_profiles.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev1_low_light.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev2_low_light.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev3_low_light.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev4_low_light.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev5_low_light.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev2_jpeg.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev3_jpeg.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev4_jpeg.csv
+  Saved output/profiles/convnext_tiny/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/convnext_tiny/agreement_report.txt
+  Saved output/profiles/convnext_tiny/agreement_report.json
+
+>>> plots
+  Saved output/profiles/convnext_tiny/profiles_low_light@sev1.png
+  Saved output/profiles/convnext_tiny/profiles_low_light@sev2.png
+  Saved output/profiles/convnext_tiny/profiles_low_light@sev3.png
+  Saved output/profiles/convnext_tiny/profiles_low_light@sev4.png
+  Saved output/profiles/convnext_tiny/profiles_low_light@sev5.png
+  Saved output/profiles/convnext_tiny/profiles_jpeg@sev1.png
+  Saved output/profiles/convnext_tiny/profiles_jpeg@sev2.png
+  Saved output/profiles/convnext_tiny/profiles_jpeg@sev3.png
+  Saved output/profiles/convnext_tiny/profiles_jpeg@sev4.png
+  Saved output/profiles/convnext_tiny/profiles_jpeg@sev5.png
+  Saved output/profiles/convnext_tiny/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: energy_drop)
+  energy_drop  rho: low_light@sev5=0.221, jpeg@sev5=0.609
+  mean_shift   rho: low_light@sev5=0.133, jpeg@sev5=0.473
+  cov_shift    rho: low_light@sev5=-0.185, jpeg@sev5=0.382
+  cos_drop     rho: low_light@sev5=0.221, jpeg@sev5=0.254
+========================================================================

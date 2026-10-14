@@ -1,0 +1,82 @@
+========================================================================
+Drift-profile sweep — model=resnet50, n=2000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+Loaded 2000 images from ImageNet-val extract at '/kaggle/input/datasets/sautkin/imagenet1kvalid' (1000 class folders), seed=42
+[+24.6s] ImageNet cache MISS -> wrote atlas_cache/imagenet_n2000_seed42_050cc56e.pkl (1366 MB)
+[+25s] images ready (2000); loading model
+Downloading: "https://download.pytorch.org/models/resnet50-0676ba61.pth" to /root/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+  0%|          | 0.00/97.8M [00:00<?, ?B/s] 21%|██        | 20.8M/97.8M [00:00<00:00, 217MB/s] 47%|████▋     | 46.0M/97.8M [00:00<00:00, 245MB/s] 71%|███████   | 69.4M/97.8M [00:00<00:00, 241MB/s] 97%|█████████▋| 94.6M/97.8M [00:00<00:00, 250MB/s]100%|██████████| 97.8M/97.8M [00:00<00:00, 246MB/s]
+[+26s] model ready: torchvision resnet50 IMAGENET1K_V1 (76.130%)
+Profiling 25 modules: ['layer1', 'layer1.0', 'layer1.0.downsample', 'layer1.1', 'layer1.2', 'layer2', 'layer2.0', 'layer2.0.downsample', 'layer2.1', 'layer2.2', 'layer2.3', 'layer3', 'layer3.0', 'layer3.0.downsample', 'layer3.1', 'layer3.2', 'layer3.3', 'layer3.4', 'layer3.5', 'layer4', 'layer4.0', 'layer4.0.downsample', 'layer4.1', 'layer4.2', 'avgpool']
+
+[+26s] >>> clean pass (severity 0)
+  forward pass: 2000 images in 12.0s
+
+[+38s] >>> low_light@sev1
+  forward pass: 2000 images in 11.8s
+
+[+86s] >>> low_light@sev2
+  forward pass: 2000 images in 10.8s
+
+[+131s] >>> low_light@sev3
+  forward pass: 2000 images in 10.4s
+
+[+175s] >>> low_light@sev4
+  forward pass: 2000 images in 11.3s
+
+[+220s] >>> low_light@sev5
+  forward pass: 2000 images in 11.4s
+
+[+265s] >>> jpeg@sev1
+  forward pass: 2000 images in 11.9s
+
+[+292s] >>> jpeg@sev2
+  forward pass: 2000 images in 12.0s
+
+[+319s] >>> jpeg@sev3
+  forward pass: 2000 images in 12.5s
+
+[+346s] >>> jpeg@sev4
+  forward pass: 2000 images in 12.4s
+
+[+373s] >>> jpeg@sev5
+  forward pass: 2000 images in 12.2s
+
+sweep passes done in 361s (wall +399s)
+
+>>> outputs
+  Saved output/profiles/resnet50/proxy_profiles.csv
+  Saved output/profiles/resnet50/drift_profile_sev1_low_light.csv
+  Saved output/profiles/resnet50/drift_profile_sev2_low_light.csv
+  Saved output/profiles/resnet50/drift_profile_sev3_low_light.csv
+  Saved output/profiles/resnet50/drift_profile_sev4_low_light.csv
+  Saved output/profiles/resnet50/drift_profile_sev5_low_light.csv
+  Saved output/profiles/resnet50/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/resnet50/drift_profile_sev2_jpeg.csv
+  Saved output/profiles/resnet50/drift_profile_sev3_jpeg.csv
+  Saved output/profiles/resnet50/drift_profile_sev4_jpeg.csv
+  Saved output/profiles/resnet50/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/resnet50/agreement_report.txt
+  Saved output/profiles/resnet50/agreement_report.json
+
+>>> plots
+  Saved output/profiles/resnet50/profiles_low_light@sev1.png
+  Saved output/profiles/resnet50/profiles_low_light@sev2.png
+  Saved output/profiles/resnet50/profiles_low_light@sev3.png
+  Saved output/profiles/resnet50/profiles_low_light@sev4.png
+  Saved output/profiles/resnet50/profiles_low_light@sev5.png
+  Saved output/profiles/resnet50/profiles_jpeg@sev1.png
+  Saved output/profiles/resnet50/profiles_jpeg@sev2.png
+  Saved output/profiles/resnet50/profiles_jpeg@sev3.png
+  Saved output/profiles/resnet50/profiles_jpeg@sev4.png
+  Saved output/profiles/resnet50/profiles_jpeg@sev5.png
+  Saved output/profiles/resnet50/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: energy_drop)
+  energy_drop  rho: low_light@sev5=0.013, jpeg@sev5=0.754
+  mean_shift   rho: low_light@sev5=-0.148, jpeg@sev5=0.532
+  cov_shift    rho: low_light@sev5=-0.167, jpeg@sev5=0.768
+  cos_drop     rho: low_light@sev5=-0.018, jpeg@sev5=0.733
+========================================================================

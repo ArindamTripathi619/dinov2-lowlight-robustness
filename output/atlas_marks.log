@@ -1,0 +1,20 @@
+ATLAS_MARK ts=2026-10-14T03:46:54+00:00 since_start_s=0 event=script_start leg=imagenet root=/kaggle/input/datasets/sautkin/imagenet1kvalid
+ATLAS_MARK ts=2026-10-14T03:46:54+00:00 since_start_s=0 event=model_start model_dir=output/profiles/resnet50 limit_s=4500
+ATLAS_MARK ts=2026-10-14T03:53:55+00:00 since_start_s=421 event=model_done model_dir=output/profiles/resnet50 duration_s=421 rc=0
+ATLAS_MARK ts=2026-10-14T03:53:55+00:00 since_start_s=421 event=model_start model_dir=output/profiles/convnext_tiny limit_s=4500
+ATLAS_MARK ts=2026-10-14T04:00:00+00:00 since_start_s=786 event=model_done model_dir=output/profiles/convnext_tiny duration_s=365 rc=0
+ATLAS_MARK ts=2026-10-14T04:00:00+00:00 since_start_s=786 event=model_start model_dir=output/profiles/vit_small_patch16_224 limit_s=4500
+ATLAS_MARK ts=2026-10-14T04:06:41+00:00 since_start_s=1187 event=model_done model_dir=output/profiles/vit_small_patch16_224 duration_s=401 rc=0
+ATLAS_MARK ts=2026-10-14T04:06:41+00:00 since_start_s=1187 event=model_start model_dir=output/profiles/swin_tiny_patch4_window7_224 limit_s=4500
+ATLAS_MARK ts=2026-10-14T04:13:01+00:00 since_start_s=1567 event=model_done model_dir=output/profiles/swin_tiny_patch4_window7_224 duration_s=380 rc=0
+ATLAS_MARK ts=2026-10-14T04:13:01+00:00 since_start_s=1567 event=model_start model_dir=output/profiles/deit_small_patch16_224 limit_s=4500
+ATLAS_MARK ts=2026-10-14T04:19:33+00:00 since_start_s=1959 event=model_done model_dir=output/profiles/deit_small_patch16_224 duration_s=392 rc=0
+ATLAS_MARK ts=2026-10-14T04:19:33+00:00 since_start_s=1959 event=model_start model_dir=output/profiles/dinov2_vitb14 limit_s=4500
+ATLAS_MARK ts=2026-10-14T04:31:20+00:00 since_start_s=2666 event=model_done model_dir=output/profiles/dinov2_vitb14 duration_s=707 rc=0
+ATLAS_MARK ts=2026-10-14T04:31:20+00:00 since_start_s=2666 event=leg_start leg=cifar10
+ATLAS_MARK ts=2026-10-14T04:31:20+00:00 since_start_s=2666 event=model_start model_dir=output/profiles/cifar10_resnet50 limit_s=2400
+ATLAS_MARK ts=2026-10-14T04:32:11+00:00 since_start_s=2717 event=model_done model_dir=output/profiles/cifar10_resnet50 duration_s=51 rc=0
+ATLAS_MARK ts=2026-10-14T04:32:11+00:00 since_start_s=2717 event=model_start model_dir=output/profiles/cifar10_convnext_tiny limit_s=2400
+ATLAS_MARK ts=2026-10-14T04:33:02+00:00 since_start_s=2768 event=model_done model_dir=output/profiles/cifar10_convnext_tiny duration_s=51 rc=0
+ATLAS_MARK ts=2026-10-14T04:33:02+00:00 since_start_s=2768 event=script_done fail=0
+ATLAS_MARK ts=2026-10-14T04:33:02+00:00 ATLAS_COMPLETE

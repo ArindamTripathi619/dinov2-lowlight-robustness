@@ -1,0 +1,79 @@
+========================================================================
+Drift-profile sweep — model=timm:deit_small_patch16_224, n=2000, severities=[1, 2, 3, 4, 5], corruptions=['low_light', 'jpeg']
+Device: cuda
+========================================================================
+[+0.9s] ImageNet cache HIT: atlas_cache/imagenet_n2000_seed42_050cc56e.pkl (2000 images)
+[+1s] images ready (2000); loading model
+[+4s] model ready: timm deit_small_patch16_224 (22.1M params, pretrained=True)
+Profiling 38 modules: ['patch_embed', 'blocks', 'blocks.0', 'blocks.0.attn', 'blocks.0.mlp', 'blocks.1', 'blocks.1.attn', 'blocks.1.mlp', 'blocks.2', 'blocks.2.attn', 'blocks.2.mlp', 'blocks.3', 'blocks.3.attn', 'blocks.3.mlp', 'blocks.4', 'blocks.4.attn', 'blocks.4.mlp', 'blocks.5', 'blocks.5.attn', 'blocks.5.mlp', 'blocks.6', 'blocks.6.attn', 'blocks.6.mlp', 'blocks.7', 'blocks.7.attn', 'blocks.7.mlp', 'blocks.8', 'blocks.8.attn', 'blocks.8.mlp', 'blocks.9', 'blocks.9.attn', 'blocks.9.mlp', 'blocks.10', 'blocks.10.attn', 'blocks.10.mlp', 'blocks.11', 'blocks.11.attn', 'blocks.11.mlp']
+
+[+4s] >>> clean pass (severity 0)
+  forward pass: 2000 images in 13.6s
+
+[+18s] >>> low_light@sev1
+  forward pass: 2000 images in 13.8s
+
+[+66s] >>> low_light@sev2
+  forward pass: 2000 images in 12.7s
+
+[+113s] >>> low_light@sev3
+  forward pass: 2000 images in 12.1s
+
+[+157s] >>> low_light@sev4
+  forward pass: 2000 images in 12.5s
+
+[+202s] >>> low_light@sev5
+  forward pass: 2000 images in 12.7s
+
+[+248s] >>> jpeg@sev1
+  forward pass: 2000 images in 13.1s
+
+[+274s] >>> jpeg@sev2
+  forward pass: 2000 images in 12.9s
+
+[+300s] >>> jpeg@sev3
+  forward pass: 2000 images in 13.0s
+
+[+325s] >>> jpeg@sev4
+  forward pass: 2000 images in 13.0s
+
+[+351s] >>> jpeg@sev5
+  forward pass: 2000 images in 13.1s
+
+sweep passes done in 357s (wall +375s)
+
+>>> outputs
+  Saved output/profiles/deit_small_patch16_224/proxy_profiles.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev1_low_light.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev2_low_light.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev3_low_light.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev4_low_light.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev5_low_light.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev1_jpeg.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev2_jpeg.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev3_jpeg.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev4_jpeg.csv
+  Saved output/profiles/deit_small_patch16_224/drift_profile_sev5_jpeg.csv
+  Saved output/profiles/deit_small_patch16_224/agreement_report.txt
+  Saved output/profiles/deit_small_patch16_224/agreement_report.json
+
+>>> plots
+  Saved output/profiles/deit_small_patch16_224/profiles_low_light@sev1.png
+  Saved output/profiles/deit_small_patch16_224/profiles_low_light@sev2.png
+  Saved output/profiles/deit_small_patch16_224/profiles_low_light@sev3.png
+  Saved output/profiles/deit_small_patch16_224/profiles_low_light@sev4.png
+  Saved output/profiles/deit_small_patch16_224/profiles_low_light@sev5.png
+  Saved output/profiles/deit_small_patch16_224/profiles_jpeg@sev1.png
+  Saved output/profiles/deit_small_patch16_224/profiles_jpeg@sev2.png
+  Saved output/profiles/deit_small_patch16_224/profiles_jpeg@sev3.png
+  Saved output/profiles/deit_small_patch16_224/profiles_jpeg@sev4.png
+  Saved output/profiles/deit_small_patch16_224/profiles_jpeg@sev5.png
+  Saved output/profiles/deit_small_patch16_224/profile_heatmap.png
+
+========================================================================
+GATE at severity 5: NO-GO (best proxy: mean_shift)
+  energy_drop  rho: low_light@sev5=0.288, jpeg@sev5=0.765
+  mean_shift   rho: low_light@sev5=0.302, jpeg@sev5=0.817
+  cov_shift    rho: low_light@sev5=0.172, jpeg@sev5=0.490
+  cos_drop     rho: low_light@sev5=0.274, jpeg@sev5=0.777
+========================================================================
