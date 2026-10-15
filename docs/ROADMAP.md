@@ -200,8 +200,11 @@ rank stability at n ≥ 1k already established in Track 2).
   augmentation-only FT. Ablations: proxy-vs-CKA profiler, top-k vs all, gate on/off.
 - This is the cheapest method arm and the one that makes the framework "label-free".
 - Status: S1 smoke done 2026-10-14 (gate + selection hold, repair harmful —
-  RESEARCH §6.7); S2 = attachment-point probe (SSR_PLAN §7.2), harness landed
-  2026-10-15, T4 run pending; full 6-model grid deferred to S3, probe-gated.
+  RESEARCH §6.7); S2 attachment-point probe run 2026-10-15 (SSR_PLAN §7.2):
+  scope flips the outcome (ResNet stream **+4.3** sev5, ViT sublayer −1.4) —
+  artifact confirmed substantially, mechanism stands (RESEARCH §6.8).
+  Next: S3 replication (seeds × jpeg × ladder + k-matched/dedup ablations),
+  then the 6-model grid.
 
 ### Track 5 — Real-darkness dense eval (the credibility arm; ~3–5 GPU-hours)
 - ACDC night + Dark Zurich (segmentation, eval-only with a frozen SegFormer/DeepLab
@@ -313,7 +316,7 @@ Next up, in order:
    Decision → item 8 (attachment-point probe, not the full grid).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.
-8. [~] **Track 4 S2 attachment-point probe** — decision taken 2026-10-15:
+8. [x] **Track 4 S2 attachment-point probe** — decided + run 2026-10-15:
    probe *where* the repair attaches (SSR_PLAN §7.2) before writing off the
    mechanism; full 6-model grid deferred to S3, probe-gated. **Harness landed
    2026-10-15**: `--attach {profiled,stream,sublayer,norm}` on `run_ssr.py`
@@ -325,8 +328,12 @@ Next up, in order:
    `output/ssr_s2/`), kernel variant `ssr_s2` (`arindamtripathi/ssr-s2`,
    verifier-naming regression test mirrored). 47/47 tests; CPU smoke green
    on all 6 scope legs (identity bit-identical each).
-   **Next:** `python3 scripts/build_kaggle_kernel.py --variant ssr_s2 --pkg <fresh-dir>`
-   → `kaggle kernels push -p .` with `--accelerator nvidiaTeslaT4` →
-   `kaggle kernels output arindamtripathi/ssr-s2 -p <harvest-dir>` →
-   verdict → RESEARCH §6.8 (pre-norm scope wins → S3 grid; all lose →
-   ship gate + selection).
+   **Run DONE 2026-10-15** (kernel `arindamtripathi/ssr-s2` v1, T4, 601 s,
+   `SSR_S2_COMPLETE`, 7/7 rc=0, identity 7/7, artifacts `output/ssr_s2/` +
+   `output/ssr_s2_marks.log`): scope flips the outcome — ResNet `stream`
+   (k=1, `layer4`) **+4.3 sev5** vs profiled −32.8; ViT `sublayer` −1.4 vs
+   profiled −9.0; profiled legs reproduce S1 bit-close (cross-session
+   parity). **Verdict: attachment-point artifact confirmed substantially —
+   mechanism not written off** (RESEARCH §6.8, METHODS §7.12). Next: S3
+   replication (seeds × jpeg × severity ladder + k-matched and
+   deduplicated-profiled ablations), then the 6-model grid.

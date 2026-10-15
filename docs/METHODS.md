@@ -307,6 +307,24 @@ Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Run
 
 Known incident (harness, not results): the kernel's exit verifier initially hardcoded `vit_small_patch16_224_*` dir names while `ssr.sh` sanitizes the timm slug to `timm_vit_small_patch16_224_*` (colon → underscore), so the completed run was misreported as `SSR_S1_FAILED` in `output/ssr_marks.log` despite all four legs rc=0 with valid artifacts. Verifier now derives names from the driver's slug list; regression test `test_ssr_kernel_verifier_matches_driver_dir_names` (44th test) locks the invariant.
 
+### 7.12 SSR S2 attachment-point probe (`run_ssr.py --attach`; kernel `ssr-s2`)
+
+Track 4's S2 probe (SSR_PLAN §7.2; verdict RESEARCH §6.8). Protocol = §7.11 byte-for-byte with `--attach` as the only design variable; scope logic in the torch-free `src/ssr.py` (`module_in_scope`, `map_scope_rows`), driver `scripts/kaggle/ssr_s2.sh`, builder variant `ssr_s2`.
+
+| Item | Value |
+|------|-------|
+| Models | the same two: torchvision ResNet-50 IMAGENET1K_V1 (BN) and timm `vit_small_patch16_224` pretrained (LN), frozen, eval mode, CUDA |
+| Data | identical draw and split to §7.11: `sautkin/imagenet1kvalid` mount, n_total = 640 (`--n-est 128 --n-images 512`), first 128 = calibration/estimation pool (B = 4 × 64), remaining 512 = eval, seed 42, matched-noise `rng 1000 + severity` (§7.3), same cached image list `ssr_cache/imagenet_n640_seed42_*.pkl` |
+| Corruptions × severities | **low_light × {1, 5} only** — S1's maximal-harm family and the §2 luminance family; jpeg deferred to S3 |
+| Legs (`--attach`) | 7: ResNet-50 {profiled, sublayer, stream} + ViT-S {profiled, sublayer, stream, norm}; output dir `output/ssr_s2/<slug>_<scope>_low_light/` |
+| Selection (of record) | k = top 25% of the **scope's rows** of the same severity-5 atlas CSVs: profiled top-6/25 / top-10/38 (S1 parity), sublayer top-4/16 / top-6/24, stream top-1/4 / top-3/12, norm top-6/24 (norm rows borrow their sublayer's drift rank: norm1 ← attn, norm2 ← mlp — the atlas does not hook norms). Exact module lists in each `ssr_meta.json.selected_modules` (e.g. ResNet stream = [`layer4`]; ViT stream = [`blocks.7`, `blocks.8`, `blocks.11`]) |
+| Gate | τ per leg (each scope forms its own moment set): ResNet 0.106 / 0.112 / 0.091 (profiled / stream / sublayer); ViT 0.082 / 0.088 / 0.068 / 0.064 (profiled / sublayer / stream / norm). Open at sev 1 and 5 on all 7 legs; closed on clean ×7 |
+| Identity check (C2) | 7/7 legs `bit_identical: true`, disarmed-hook max abs logit diff 0.0 |
+| Arms | frozen · ssr_topk · ssr_gate_off · tent (adaptation-only control, unaffected by attachment) — `ssr_gate_off` ≡ `ssr_topk` in every cell because the gate was open in every shifted evaluation |
+| Compute | kernel `arindamtripathi/ssr-s2` v1, Tesla T4, **601 s (10 min)** — legs 162 / 95 / 65 / 80 / 69 / 63 / 67 s in driver order (ResNet profiled/sublayer/stream, then ViT profiled/sublayer/stream/norm); built via `scripts/build_kaggle_kernel.py --variant ssr_s2`, tail `scripts/kaggle/ssr_s2.sh`; exit marker `SSR_S2_COMPLETE` (verifier derives dir names from the driver's legs — `test_ssr_s2_kernel_verifier_matches_driver_dir_names`) |
+| Artifacts of record | `output/ssr_s2/<slug>_<scope>_low_light/`: `ssr_results.csv` (8 rows = 4 arms × 2 severities), `ssr_meta.json` (`attach`, `selection`, `selected_modules`, `gate`, `identity`), `ssr.log`; run audit `output/ssr_s2_marks.log` |
+| Known harness notes | (1) `profiled` selections contain same-tensor container/child pairs (ViT `blocks` + `blocks.11`; ResNet `layer1` + `layer1.2` and `layer4` + `layer4.2` — verified identical tensor object, so those affines compose twice); the duplication exists in S1's run as well (hence the exact profiled parity), and the non-profiled scopes are duplicate-free (containers excluded by `module_in_scope`). (2) `ssr_meta.json.per_condition_shift` keys both severities as `low_light@sev5` (leaked severity loop variable overwrites the sev1 entry) — the per-row `shift_distance` in `ssr_results.csv` is correct; meta-only defect, both noted for S3. |
+
 ---
 
 ## 8. Random Seed Registry

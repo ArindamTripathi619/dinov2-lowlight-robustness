@@ -166,6 +166,18 @@ moment matching. The full 6-model grid is deferred to **S3, probe-gated**
   mechanism is written off honestly and SSR ships as **gate + selection**
   (both validated in S1); if a pre-norm scope wins, the label-free repair
   claim is unblocked and S3 runs.
+- **RUN 2026-10-15 — verdict RESEARCH §6.8:** `SSR_S2_COMPLETE`, 7/7 legs
+  rc=0 in 601 s, identity 7/7. Scope flipped the outcome: ResNet `stream`
+  (k=1, `layer4`) **+4.3 at sev5** (profiled control −32.8); ViT `sublayer`
+  −1.4 (control −9.0). The artifact explanation wins substantially —
+  mechanism not written off; S3 becomes replication (seeds × jpeg × ladder
+  + k-matched and deduplicated-profiled ablations).
+- **RUN 2026-10-15 — verdict RESEARCH §6.8:** `SSR_S2_COMPLETE`, 7/7 legs
+  rc=0 in 601 s, identity 7/7. Scope flipped the outcome: ResNet `stream`
+  (k=1, `layer4`) **+4.3 at sev5** (profiled control −32.8); ViT `sublayer`
+  −1.4 (control −9.0). The artifact explanation wins substantially —
+  mechanism not written off; S3 becomes replication (seeds × jpeg × ladder
+  + k-matched and deduplicated-profiled ablations).
 
 Kernel reuses the `scripts/build_kaggle_kernel.py` base64-packaging pattern;
 new `scripts/kaggle/ssr.sh` (S1) and `scripts/kaggle/ssr_s2.sh` (S2).
@@ -196,7 +208,8 @@ new `scripts/kaggle/ssr.sh` (S1) and `scripts/kaggle/ssr_s2.sh` (S2).
   §7.11. The open question this leaves — mechanistic failure vs
   attachment-point artifact (§2) — was resolved as a decision on
   2026-10-15: run the §7.2 probe.
-- **S2 probe harness LANDED 2026-10-15** (run pending): `--attach
+- **S2 probe harness LANDED + RUN 2026-10-15** (verdict RESEARCH §6.8):
+  `--attach
   {profiled,stream,sublayer,norm}` on `run_ssr.py`, backed by torch-free
   `module_in_scope` / `map_scope_rows` in `src/ssr.py` — the scope owns both
   the hook-module set and the selection rows (so k = 25% counts scope rows;
@@ -238,9 +251,12 @@ Track 3 kernel ✓ (2026-10-14, drift-atlas-v4, fail=0) → harvest ✓ (output/
                        (§7.2; full 6-model grid deferred to S3, probe-gated)
                  → S2 harness ✓ (2026-10-15: --attach scopes, ssr_s2.sh,
                        kernel ssr_s2, 47/47 tests, CPU smoke green)
-                 → ssr-s2 T4 run (pending) → verdict → RESEARCH §6.8
-                       (pre-norm scope wins → S3 grid; all scopes lose →
-                        write off moment matching, ship gate + selection)
+                 → ssr-s2 T4 run ✓ (2026-10-15: 7/7 rc=0, 601 s,
+                       SSR_S2_COMPLETE, identity 7/7, profiled = S1 parity)
+                 → verdict ✓ RESEARCH §6.8: scope flips the outcome
+                       (ResNet stream +4.3 sev5, ViT sublayer −1.4) →
+                       mechanism NOT written off → S3 = replication
+                       (seeds × jpeg × ladder + k-matched/dedup ablations)
 ```
 
 Selection inputs of record (§4, one measurement two consumers): per-model

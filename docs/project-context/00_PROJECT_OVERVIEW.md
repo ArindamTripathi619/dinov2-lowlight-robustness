@@ -100,10 +100,12 @@ dataset (CIFAR-10-derived), a synthetic axis.
   inert at ~0.4% params, coverage discriminates (RESEARCH §6.6).
 - Track 3 cross-family atlas done 2026-10-14 (kernel `drift-atlas-v4`; artifacts
   `output/profiles/` + `output/atlas/`; RESEARCH §5.2).
-- Track 4 SSR S1 smoke done 2026-10-14 (kernel `ssr-s1`): gate + drift-ranked
-  selection hold, moment-matching repair net-harmful (RESEARCH §6.7); S2
-  attachment-point probe harness landed 2026-10-15 (SSR_PLAN §7.2), T4 run pending.
-- Open: Track 4 S2 probe run; Track 5 real-dark dense eval; Track 6 manuscript;
+- Track 4 SSR: S1 smoke 2026-10-14 (gate + drift-ranked selection hold,
+  repair net-harmful — RESEARCH §6.7); S2 attachment-point probe 2026-10-15
+  (SSR_PLAN §7.2, RESEARCH §6.8): scope flips the outcome — ResNet stream
+  **+4.3** sev5, ViT sublayer −1.4 — artifact confirmed, mechanism stands.
+- Open: Track 4 S3 replication (seeds × jpeg × ladder + k-matched/dedup
+  ablations); Track 5 real-dark dense eval; Track 6 manuscript;
   full-scale paper numbers (pilot-scale bars/macros currently in the text).
 
 ## Where to start reading
