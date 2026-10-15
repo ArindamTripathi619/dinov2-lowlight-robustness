@@ -667,6 +667,121 @@ except Exception as _e:
     print("marks append failed:", _e)
 '''
 
+# --- Track 4 variant: SSR S3 replication kernel (fresh slug; same runner +
+# harvested profile CSVs, driver scripts/kaggle/ssr_s3.sh: stream/sublayer
+# across seeds {42,43,44} x {low_light, jpeg} + k-matched controls).
+SSR_S3_SOURCES = dict(SSR_SOURCES)
+SSR_S3_SOURCES["ssr.sh"] = "scripts/kaggle/ssr_s3.sh"
+
+SSR_S3_METADATA_JSON = '''{
+  "id": "arindamtripathi/ssr-s3",
+  "title": "ssr-s3",
+  "code_file": "kaggle_ssr_s3.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["sautkin/imagenet1kvalid"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
+'''
+
+SSR_S3_TEMPLATE = '''"""Self-contained SSR S3 replication kernel (all package files embedded)."""
+import base64, os, subprocess
+os.environ.setdefault("PYTHONUNBUFFERED", "1")  # live SSR_MARK lines in the Kaggle log
+
+PKG_FILES = {
+__CHUNKS__
+}
+
+CWD = os.getcwd()
+print("CWD:", CWD)
+for name, b64 in PKG_FILES.items():
+    path = os.path.join(CWD, name)
+    os.makedirs(os.path.dirname(path) or CWD, exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(base64.b64decode(b64))
+    print("staged", name)
+
+# --- ImageNet-val sanity (SSR eval images of record; layouts differ between
+# /kaggle/input/<slug> and /kaggle/input/datasets/<owner>/<slug>) ---
+im_roots = []
+for root, dirs, files in os.walk("/kaggle/input"):
+    if "imagenet1kvalid" in dirs:
+        im_roots.append(os.path.join(root, "imagenet1kvalid"))
+        dirs.remove("imagenet1kvalid")  # don't descend into the 2GB tree
+print("imagenet mounts:", im_roots)
+if not im_roots:
+    raise RuntimeError("imagenet1kvalid mount missing - aborting before wasting the run")
+
+# --- GPU sanity ---
+import torch
+print("cuda:", torch.cuda.is_available())
+if not torch.cuda.is_available():
+    raise RuntimeError("no GPU attached - aborting before wasting the run")
+print("gpu:", torch.cuda.get_device_name(0))
+
+r = subprocess.run(["bash", "ssr.sh"])
+invocations = [("resnet50", "stream", "low_light", 42, 25),
+               ("resnet50", "sublayer", "low_light", 42, 25),
+               ("timm:vit_small_patch16_224", "stream", "low_light", 42, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "low_light", 42, 25),
+               ("resnet50", "stream", "jpeg", 42, 25),
+               ("resnet50", "sublayer", "jpeg", 42, 25),
+               ("timm:vit_small_patch16_224", "stream", "jpeg", 42, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "jpeg", 42, 25),
+               ("resnet50", "stream", "low_light", 43, 25),
+               ("resnet50", "sublayer", "low_light", 43, 25),
+               ("timm:vit_small_patch16_224", "stream", "low_light", 43, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "low_light", 43, 25),
+               ("resnet50", "stream", "jpeg", 43, 25),
+               ("resnet50", "sublayer", "jpeg", 43, 25),
+               ("timm:vit_small_patch16_224", "stream", "jpeg", 43, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "jpeg", 43, 25),
+               ("resnet50", "stream", "low_light", 44, 25),
+               ("resnet50", "sublayer", "low_light", 44, 25),
+               ("timm:vit_small_patch16_224", "stream", "low_light", 44, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "low_light", 44, 25),
+               ("resnet50", "stream", "jpeg", 44, 25),
+               ("resnet50", "sublayer", "jpeg", 44, 25),
+               ("timm:vit_small_patch16_224", "stream", "jpeg", 44, 25),
+               ("timm:vit_small_patch16_224", "sublayer", "jpeg", 44, 25),
+               ("resnet50", "stream", "low_light", 42, 1),
+               ("resnet50", "sublayer", "low_light", 42, 1),
+               ("timm:vit_small_patch16_224", "stream", "low_light", 42, 3),
+               ("timm:vit_small_patch16_224", "sublayer", "low_light", 42, 3),
+               ("resnet50", "stream", "jpeg", 42, 1),
+               ("resnet50", "sublayer", "jpeg", 42, 1),
+               ("timm:vit_small_patch16_224", "stream", "jpeg", 42, 3),
+               ("timm:vit_small_patch16_224", "sublayer", "jpeg", 42, 3)]
+dirs = ["%s_%s_k%d_%s_s%d" % (slug.replace(":", "_"), scope, k, corr, seed)
+        for slug, scope, corr, seed, k in invocations]
+present = {d: os.path.isfile("output/ssr_s3/%s/ssr_results.csv" % d) for d in dirs}
+ident = {}
+import json as _json
+for d in dirs:
+    meta = "output/ssr_s3/%s/ssr_meta.json" % d
+    if os.path.isfile(meta):
+        try:
+            ident[d] = bool(_json.load(open(meta))["identity"]["bit_identical"])
+        except Exception as e:
+            ident[d] = "unreadable: %s" % e
+print("ssr exit:", r.returncode, "| results:", present, "| identity:", ident)
+final = ("SSR_S3_COMPLETE" if (r.returncode == 0 and all(present.values())
+                              and all(v is True for v in ident.values()))
+         else "SSR_S3_FAILED")
+print(final)
+try:
+    import datetime as _dt
+    with open("output/ssr_s3_marks.log", "a") as _fh:
+        _fh.write("SSR_MARK ts=%s %s\\n"
+                  % (_dt.datetime.now().astimezone().isoformat(timespec="seconds"), final))
+except Exception as _e:
+    print("marks append failed:", _e)
+'''
+
 # Kernel driver template. Keep byte-compatible with the v5 build
 # (/tmp/kaggle_kernel/kaggle_corrgrid_tail.py from the successful v6 run).
 TEMPLATE = '''"""Self-contained corruption-grid kernel (all package files embedded)."""
@@ -743,7 +858,7 @@ print("GRID_COMPLETE" if r.returncode == 0 else "GRID_FAILED")
 
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    ap.add_argument("--variant", default="grid", choices=["grid", "vitb_profile", "vitb_lora_v9", "vitb_lora_abl", "atlas", "atlas_v4", "ssr_s1", "ssr_s2"],
+    ap.add_argument("--variant", default="grid", choices=["grid", "vitb_profile", "vitb_lora_v9", "vitb_lora_abl", "atlas", "atlas_v4", "ssr_s1", "ssr_s2", "ssr_s3"],
                     help="grid = corruption-grid kernel (corrgrid-tail, byte-identical v6); "
                          "vitb_profile = Track 2 v8 ViT-B drift-profile kernel; "
                          "vitb_lora_v9 = Track 2 v9 ViT-B LoRA arms kernel; "
@@ -754,7 +869,9 @@ def parse_args():
                          "ssr_s1 = Track 4 SSR S1 smoke kernel (run_ssr.py + "
                          "harvested selection CSVs; hardened ssr.sh driver); "
                          "ssr_s2 = Track 4 SSR S2 attachment-point probe kernel "
-                         "(scope legs --attach; hardened ssr_s2.sh driver)")
+                         "(scope legs --attach; hardened ssr_s2.sh driver); "
+                         "ssr_s3 = Track 4 SSR S3 replication kernel (stream/sublayer "
+                         "x seeds x jpeg + k-matched controls; hardened ssr_s3.sh driver)")
     ap.add_argument("--pkg", default="/tmp/kaggle_kernel",
                     help="staging dir receiving the kernel script (default: /tmp/kaggle_kernel)")
     ap.add_argument("--source", action="append", default=[], metavar="NAME=PATH",
@@ -787,6 +904,9 @@ def main():
     elif args.variant == "ssr_s2":
         base_sources, template = SSR_S2_SOURCES, SSR_S2_TEMPLATE
         metadata, out_name = SSR_S2_METADATA_JSON, "kaggle_ssr_s2.py"
+    elif args.variant == "ssr_s3":
+        base_sources, template = SSR_S3_SOURCES, SSR_S3_TEMPLATE
+        metadata, out_name = SSR_S3_METADATA_JSON, "kaggle_ssr_s3.py"
     else:
         base_sources, template = DEFAULT_SOURCES, TEMPLATE
         metadata, out_name = METADATA_JSON, "kaggle_corrgrid_tail.py"

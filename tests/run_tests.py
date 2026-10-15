@@ -888,6 +888,49 @@ def test_ssr_s2_kernel_verifier_matches_driver_dir_names():
         f"verifier checks {sorted(got)}; driver creates {sorted(expected)}")
 
 
+def test_ssr_s3_kernel_verifier_matches_driver_dir_names():
+    """S3 mirror of the S1/S2 naming-bug tests: the ssr_s3 kernel's exit
+    verifier must derive its result-dir names from the driver's LEGS
+    array (output/ssr_s3/<slug_safe>_<scope>_k<k>_<corr>_s<seed>/). Every
+    scope must be one run_ssr.py accepts (--attach choices), and the grid
+    must cover the replication axes S3-r1 claims: {stream, sublayer} x
+    {low_light, jpeg} x seeds {42,43,44} at k=25, plus k-matched controls."""
+    import re
+
+    sh = open("scripts/kaggle/ssr_s3.sh").read()
+    assert "--attach" in sh, "S3 driver must pass --attach to run_ssr.py"
+    m_legs = re.search(r"LEGS=\((.*?)\n\)", sh, re.S)
+    assert m_legs, "S3 driver LEGS array not found"
+    legs = re.findall(r'"(\S+) (\S+) (\S+) (\d+) (\d+)"', m_legs.group(1))
+    assert legs, "no legs parsed from ssr_s3.sh LEGS"
+    scopes = {sc for _, sc, _, _, _ in legs}
+    assert scopes <= set(SCOPE_CHOICES), (scopes, SCOPE_CHOICES)
+    expected = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+                for s, sc, c, sd, k in legs}
+    primary = {(s, sc, c, sd) for s, sc, c, sd, k in legs if k == "25"}
+    for corr in ("low_light", "jpeg"):
+        for sd in ("42", "43", "44"):
+            for s in ("resnet50", "timm:vit_small_patch16_224"):
+                for sc in ("stream", "sublayer"):
+                    assert (s, sc, corr, sd) in primary, \
+                        f"missing replication leg {s} {sc} {corr} seed {sd}"
+    assert any(k != "25" for _, _, _, _, k in legs), \
+        "no k-matched control legs in S3 grid"
+
+    src = open("scripts/build_kaggle_kernel.py").read()
+    m_blk = re.search(r"SSR_S3_TEMPLATE = '''(.*?)'''", src, re.S)
+    assert m_blk, "SSR_S3_TEMPLATE not found in the kernel builder"
+    m_inv = re.search(r"invocations = \[(.*?)\]", m_blk.group(1), re.S)
+    assert m_inv, "S3 verifier invocations list not found"
+    namespace = {}
+    exec("invocations = [" + m_inv.group(1) + "]", namespace)
+    got = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+           for s, sc, c, sd, k in namespace["invocations"]}
+    assert got == expected, (
+        f"verifier checks {len(got)} dirs; driver creates {len(expected)}; "
+        f"symmetric difference {sorted(got ^ expected)}")
+
+
 # ---------------------------------------------------------------------------
 def main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]

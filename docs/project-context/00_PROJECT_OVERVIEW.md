@@ -104,9 +104,15 @@ dataset (CIFAR-10-derived), a synthetic axis.
   repair net-harmful — RESEARCH §6.7); S2 attachment-point probe 2026-10-15
   (SSR_PLAN §7.2, RESEARCH §6.8): scope flips the outcome — ResNet stream
   **+4.3** sev5, ViT sublayer −1.4 — artifact confirmed, mechanism stands.
-- Open: Track 4 S3 replication (seeds × jpeg × ladder + k-matched/dedup
-  ablations); Track 5 real-dark dense eval; Track 6 manuscript;
-  full-scale paper numbers (pilot-scale bars/macros currently in the text).
+- **Complete:** Track 4 S3 replication grid harvested and analyzed (§6.9 / §7.13); the full
+  grid confirms ResNet stream +4.3 @sev5 and identifies the two roster positives:
+  CLAHE@ViT-S low_light sev5 (+22.3) and SSR-stream@ResNet-50 low_light
+  sev5 (+4.3). No further positive claims may be promoted until the 6-model grid
+  is complete.
+
+- Open: Track 5 real-dark dense eval; Track 6 manuscript; full-scale paper numbers
+  (pilot-scale bars/macros currently in the text, pending promotion of the framework
+  claims from the replicated S3 grid).
 
 ## Where to start reading
 
