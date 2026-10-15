@@ -577,6 +577,96 @@ except Exception as _e:
     print("marks append failed:", _e)
 '''
 
+# --- Track 4 variant: SSR S2 attachment-point probe kernel (fresh slug;
+# same runner + harvested profile CSVs as S1, different driver:
+# scripts/kaggle/ssr_s2.sh, scope legs under output/ssr_s2/).
+SSR_S2_SOURCES = dict(SSR_SOURCES)
+SSR_S2_SOURCES["ssr.sh"] = "scripts/kaggle/ssr_s2.sh"
+
+SSR_S2_METADATA_JSON = '''{
+  "id": "arindamtripathi/ssr-s2",
+  "title": "ssr-s2",
+  "code_file": "kaggle_ssr_s2.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["sautkin/imagenet1kvalid"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
+'''
+
+SSR_S2_TEMPLATE = '''"""Self-contained SSR S2 attachment-probe kernel (all package files embedded)."""
+import base64, os, subprocess
+os.environ.setdefault("PYTHONUNBUFFERED", "1")  # live SSR_MARK lines in the Kaggle log
+
+PKG_FILES = {
+__CHUNKS__
+}
+
+CWD = os.getcwd()
+print("CWD:", CWD)
+for name, b64 in PKG_FILES.items():
+    path = os.path.join(CWD, name)
+    os.makedirs(os.path.dirname(path) or CWD, exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(base64.b64decode(b64))
+    print("staged", name)
+
+# --- ImageNet-val sanity (SSR eval images of record; layouts differ between
+# /kaggle/input/<slug> and /kaggle/input/datasets/<owner>/<slug>) ---
+im_roots = []
+for root, dirs, files in os.walk("/kaggle/input"):
+    if "imagenet1kvalid" in dirs:
+        im_roots.append(os.path.join(root, "imagenet1kvalid"))
+        dirs.remove("imagenet1kvalid")  # don't descend into the 2GB tree
+print("imagenet mounts:", im_roots)
+if not im_roots:
+    raise RuntimeError("imagenet1kvalid mount missing - aborting before wasting the run")
+
+# --- GPU sanity ---
+import torch
+print("cuda:", torch.cuda.is_available())
+if not torch.cuda.is_available():
+    raise RuntimeError("no GPU attached - aborting before wasting the run")
+print("gpu:", torch.cuda.get_device_name(0))
+
+r = subprocess.run(["bash", "ssr.sh"])
+invocations = [("resnet50", "profiled"),
+               ("resnet50", "sublayer"),
+               ("resnet50", "stream"),
+               ("timm:vit_small_patch16_224", "profiled"),
+               ("timm:vit_small_patch16_224", "sublayer"),
+               ("timm:vit_small_patch16_224", "stream"),
+               ("timm:vit_small_patch16_224", "norm")]
+dirs = ["%s_%s_low_light" % (slug.replace(":", "_"), scope)
+        for slug, scope in invocations]
+present = {d: os.path.isfile("output/ssr_s2/%s/ssr_results.csv" % d) for d in dirs}
+ident = {}
+import json as _json
+for d in dirs:
+    meta = "output/ssr_s2/%s/ssr_meta.json" % d
+    if os.path.isfile(meta):
+        try:
+            ident[d] = bool(_json.load(open(meta))["identity"]["bit_identical"])
+        except Exception as e:
+            ident[d] = "unreadable: %s" % e
+print("ssr exit:", r.returncode, "| results:", present, "| identity:", ident)
+final = ("SSR_S2_COMPLETE" if (r.returncode == 0 and all(present.values())
+                              and all(v is True for v in ident.values()))
+         else "SSR_S2_FAILED")
+print(final)
+try:
+    import datetime as _dt
+    with open("output/ssr_s2_marks.log", "a") as _fh:
+        _fh.write("SSR_MARK ts=%s %s\\n"
+                  % (_dt.datetime.now().astimezone().isoformat(timespec="seconds"), final))
+except Exception as _e:
+    print("marks append failed:", _e)
+'''
+
 # Kernel driver template. Keep byte-compatible with the v5 build
 # (/tmp/kaggle_kernel/kaggle_corrgrid_tail.py from the successful v6 run).
 TEMPLATE = '''"""Self-contained corruption-grid kernel (all package files embedded)."""
@@ -653,7 +743,7 @@ print("GRID_COMPLETE" if r.returncode == 0 else "GRID_FAILED")
 
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    ap.add_argument("--variant", default="grid", choices=["grid", "vitb_profile", "vitb_lora_v9", "vitb_lora_abl", "atlas", "atlas_v4", "ssr_s1"],
+    ap.add_argument("--variant", default="grid", choices=["grid", "vitb_profile", "vitb_lora_v9", "vitb_lora_abl", "atlas", "atlas_v4", "ssr_s1", "ssr_s2"],
                     help="grid = corruption-grid kernel (corrgrid-tail, byte-identical v6); "
                          "vitb_profile = Track 2 v8 ViT-B drift-profile kernel; "
                          "vitb_lora_v9 = Track 2 v9 ViT-B LoRA arms kernel; "
@@ -662,7 +752,9 @@ def parse_args():
                          "atlas_v4 = atlas under the fresh drift-atlas-v4 slug "
                          "(same sources; hardened atlas.sh driver); "
                          "ssr_s1 = Track 4 SSR S1 smoke kernel (run_ssr.py + "
-                         "harvested selection CSVs; hardened ssr.sh driver)")
+                         "harvested selection CSVs; hardened ssr.sh driver); "
+                         "ssr_s2 = Track 4 SSR S2 attachment-point probe kernel "
+                         "(scope legs --attach; hardened ssr_s2.sh driver)")
     ap.add_argument("--pkg", default="/tmp/kaggle_kernel",
                     help="staging dir receiving the kernel script (default: /tmp/kaggle_kernel)")
     ap.add_argument("--source", action="append", default=[], metavar="NAME=PATH",
@@ -692,6 +784,9 @@ def main():
     elif args.variant == "ssr_s1":
         base_sources, template = SSR_SOURCES, SSR_TEMPLATE
         metadata, out_name = SSR_METADATA_JSON, "kaggle_ssr_s1.py"
+    elif args.variant == "ssr_s2":
+        base_sources, template = SSR_S2_SOURCES, SSR_S2_TEMPLATE
+        metadata, out_name = SSR_S2_METADATA_JSON, "kaggle_ssr_s2.py"
     else:
         base_sources, template = DEFAULT_SOURCES, TEMPLATE
         metadata, out_name = METADATA_JSON, "kaggle_corrgrid_tail.py"

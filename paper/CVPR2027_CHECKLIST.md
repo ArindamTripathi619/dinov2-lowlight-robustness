@@ -45,7 +45,7 @@ are released). Status legend: ✅ present · 🟡 partial/weak · ❌ missing.
 | Code runs end-to-end from repo | ✅ | `python run_experiments.py --experiment all` (GPU) or Colab runner |
 | Config as single source of truth | ✅ | configs/*.yaml; config hash embedded in manifests |
 | Seeds + n-runs stated | ✅ | all configs; seed sensitivity experiment quantifies run-to-run variance |
-| Unit tests for the analysis math | ✅ | tests/run_tests.py — 26 tests green (CI via GitHub Actions) |
+| Unit tests for the analysis math | ✅ | tests/run_tests.py — 47 tests green (CI via GitHub Actions) |
 | Manifests: every number traceable | ✅ | results/manifests/ (config SHA, seeds, subset indices, env) |
 | Hardware stated | 🟡 | Colab T4 (GPU runs), CPU pilot — add exact GPU model to paper when full runs complete |
 

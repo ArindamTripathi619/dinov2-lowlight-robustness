@@ -91,15 +91,20 @@ dataset (CIFAR-10-derived), a synthetic axis.
 
 - PRs #1–#4 merged upstream (2026-10-01 → 2026-10-12; latest merge `0ad0ef5`);
   upstream and fork share one lineage; both content sets preserved.
-- 26/26 unit tests pass; static site published to Vercel at HEAD.
+- 47/47 unit tests pass; static site published to Vercel at HEAD.
 - Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
   ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
   closed (DIVERGENCE_REPORT §8.5).
 - v9 allocation-shape ablations done at n=3 (2026-10-11, `output/v9_ablation/`): β^τ,
   top-k and inverted-β all tie uniform/drift at budget-matched Σr — allocation shape
   inert at ~0.4% params, coverage discriminates (RESEARCH §6.6).
-- Open: Track 3 cross-family atlas; sublayer-resolved allocation; full-scale paper
-  numbers (pilot-scale bars/macros currently in the text).
+- Track 3 cross-family atlas done 2026-10-14 (kernel `drift-atlas-v4`; artifacts
+  `output/profiles/` + `output/atlas/`; RESEARCH §5.2).
+- Track 4 SSR S1 smoke done 2026-10-14 (kernel `ssr-s1`): gate + drift-ranked
+  selection hold, moment-matching repair net-harmful (RESEARCH §6.7); S2
+  attachment-point probe harness landed 2026-10-15 (SSR_PLAN §7.2), T4 run pending.
+- Open: Track 4 S2 probe run; Track 5 real-dark dense eval; Track 6 manuscript;
+  full-scale paper numbers (pilot-scale bars/macros currently in the text).
 
 ## Where to start reading
 

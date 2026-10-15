@@ -139,6 +139,7 @@ Legacy/shared image + plotting utilities, **duplicating** parts of `src/`:
 | `run_readout_repair.py` | Readout-staleness repair | hardened paired-perm + Wilson CI |
 | `run_exdark_baseline.py` | Real-dark baseline + CLAHE | uses opencv `clahe_enhance` |
 | `run_vitb_generality.py` | ViT-B/14 replication | — |
+| `run_ssr.py` | Track 4 SSR runner; `--attach {profiled,stream,sublayer,norm}` scope legs (S2 probe) | arms chain in `main()`; identity check per run |
 | `analyze_seeds.py` | Seed-sensitivity analysis | `None`-guard bug at 97,99 |
 | `make_paper_tables.py` / `make_paper_figures.py` | `results_pilot/` → `paper/` | — |
 | `analyze_seeds.py`, `cka_recompute.py`, `cka_unbiased_recompute.py` | post-hoc analysis | — |

@@ -199,6 +199,9 @@ rank stability at n ≥ 1k already established in Track 2).
 - Baselines: TENT, BN-adapt (adapt-all), enhancement front-ends (ZeroDCE/CLAHE),
   augmentation-only FT. Ablations: proxy-vs-CKA profiler, top-k vs all, gate on/off.
 - This is the cheapest method arm and the one that makes the framework "label-free".
+- Status: S1 smoke done 2026-10-14 (gate + selection hold, repair harmful —
+  RESEARCH §6.7); S2 = attachment-point probe (SSR_PLAN §7.2), harness landed
+  2026-10-15, T4 run pending; full 6-model grid deferred to S3, probe-gated.
 
 ### Track 5 — Real-darkness dense eval (the credibility arm; ~3–5 GPU-hours)
 - ACDC night + Dark Zurich (segmentation, eval-only with a frozen SegFormer/DeepLab
@@ -307,7 +310,23 @@ Next up, in order:
    moment-matching repair is net-harmful at every open gate — TENT is the
    only arm that never loses, CLAHE is the one large positive (ViT-S
    low_light sev5 +22.3). Verdict RESEARCH §6.7; artifacts `output/ssr/`.
-   Remaining: S2 decision (SSR_PLAN §8/§10 — full 6-model grid vs targeted
-   attachment-point probe).
+   Decision → item 8 (attachment-point probe, not the full grid).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.
+8. [~] **Track 4 S2 attachment-point probe** — decision taken 2026-10-15:
+   probe *where* the repair attaches (SSR_PLAN §7.2) before writing off the
+   mechanism; full 6-model grid deferred to S3, probe-gated. **Harness landed
+   2026-10-15**: `--attach {profiled,stream,sublayer,norm}` on `run_ssr.py`
+   (torch-free scope logic in `src/ssr.py` — scope owns hook modules +
+   selection rows; norm rows borrow their sublayer's drift rank; `blocks`
+   container excluded from `stream` to prevent a double affine), driver
+   `scripts/kaggle/ssr_s2.sh` (7 legs: ResNet-50 {profiled,sublayer,stream} +
+   ViT-S {profiled,sublayer,stream,norm}, low_light, 4 arms →
+   `output/ssr_s2/`), kernel variant `ssr_s2` (`arindamtripathi/ssr-s2`,
+   verifier-naming regression test mirrored). 47/47 tests; CPU smoke green
+   on all 6 scope legs (identity bit-identical each).
+   **Next:** `python3 scripts/build_kaggle_kernel.py --variant ssr_s2 --pkg <fresh-dir>`
+   → `kaggle kernels push -p .` with `--accelerator nvidiaTeslaT4` →
+   `kaggle kernels output arindamtripathi/ssr-s2 -p <harvest-dir>` →
+   verdict → RESEARCH §6.8 (pre-norm scope wins → S3 grid; all lose →
+   ship gate + selection).

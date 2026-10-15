@@ -291,7 +291,7 @@ Note on the txt reports: the `images :` header line said "CIFAR-10 test" for the
 
 ### 7.11 SSR S1 smoke (`run_ssr.py`; kernel `ssr-s1`)
 
-Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Runner `run_ssr.py`; core math (`channel_stats`, `apply_affine`, shift distance, gate, top-k selector) is the torch-free `src/ssr.py` already covered by §CI tests (44/44).
+Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Runner `run_ssr.py`; core math (`channel_stats`, `apply_affine`, shift distance, gate, top-k selector) is the torch-free `src/ssr.py` already covered by §CI tests (47/47 at the S2 harness landing, 2026-10-15).
 
 | Item | Value |
 |------|-------|

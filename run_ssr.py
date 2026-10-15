@@ -46,6 +46,11 @@ Usage (S1 smoke, SSR_PLAN §7):
       --corruption low_light --n-images 512 --output output/ssr/resnet50
   python3 run_ssr.py --model timm:vit_small_patch16_224 \
       --arms frozen,ssr_topk,tent,aqr --profile-csv .../vit_small_patch16_224/...csv
+
+Usage (S2 attachment-point probe, SSR_PLAN §7.2): same flags plus --attach:
+  python3 run_ssr.py --attach sublayer --arms frozen,ssr_topk,ssr_gate_off,tent \
+      --model timm:vit_small_patch16_224 --profile-csv .../drift_profile_sev5_low_light.csv \
+      --corruption low_light --output output/ssr_s2/timm_vit_small_patch16_224_sublayer_low_light
 """
 
 import argparse
@@ -64,9 +69,10 @@ from utils import DEVICE, get_corruption, load_imagenet_subset
 import run_drift_profile as rdp_main
 import run_drift_proxy as rdp
 from src.aqr import apply_aqr, fit_channel_quantiles
-from src.ssr import (aggregate_distances, channel_axis_for, fit_gate, gate_open,
-                     looks_channels_last, moment_affine, moment_distance, pool_stats,
-                     select_topk, select_topk_fraction)
+from src.ssr import (SCOPE_CHOICES, aggregate_distances, channel_axis_for, fit_gate,
+                     gate_open, looks_channels_last, map_scope_rows, module_in_scope,
+                     moment_affine, moment_distance, pool_stats, select_topk,
+                     select_topk_fraction)
 from tools.build_atlas import read_profile_csv
 
 ALL_ARMS = ["frozen", "ssr_topk", "ssr_all", "ssr_gate_off", "bn_stats", "tent",
@@ -93,6 +99,12 @@ def parse_args():
                    help="top-k policy when --k is not given")
     p.add_argument("--bn-scope", default="all", choices=["all", "topk"],
                    help="BN-stat replacement scope (ResNet-50 arm)")
+    p.add_argument("--attach", default="profiled", choices=list(SCOPE_CHOICES),
+                   help="S2 attachment scope (SSR_PLAN §7.2): profiled = the S1 "
+                        "atlas-hooked module set; stream = residual-stream outputs "
+                        "(ViT blocks.N, ResNet stage outputs); sublayer = attn/mlp "
+                        "outputs (ViT) or bottleneck outputs (ResNet); norm = "
+                        "post-LN norm1/norm2 outputs (ViT only)")
     p.add_argument("--n-images", type=int, default=512,
                    help="eval images (the tail of the seeded draw; the head feeds "
                         "the calibration/estimation pool)")
@@ -122,10 +134,15 @@ def parse_args():
     return p.parse_args()
 
 
-def select_modules_for_hooks(model, max_depth=2):
+def select_modules_for_hooks(model, max_depth=2, attach="profiled"):
     """Profiled modules (same selection the atlas used) as (name, module) in
-    forward order."""
-    return rdp.select_profiled_modules(model, max_depth=max_depth)
+    forward order — or, for an S2 attachment scope, every module in that
+    scope (norm layers are leaves, so the depth-bounded container walk
+    cannot see them)."""
+    if attach == "profiled":
+        return rdp.select_profiled_modules(model, max_depth=max_depth)
+    return {name: module for name, module in model.named_modules()
+            if name and module_in_scope(name, attach)}
 
 
 def probe_channel_axes(model, modules, batch, device, token_mode="cls"):
@@ -464,19 +481,26 @@ def main():
     os.makedirs(args.output, exist_ok=True)
     t_wall = time.time()
     print("=" * 72)
-    print(f"SSR — model={args.model}, corruption={args.corruption}, arms={arms}")
+    print(f"SSR — model={args.model}, corruption={args.corruption}, arms={arms}, "
+          f"attach={args.attach}")
     print(f"Device: {DEVICE}")
     print("=" * 72)
 
     rows = read_profile_csv(args.profile_csv)
     if not rows:
         raise ValueError(f"empty profile CSV: {args.profile_csv}")
+    scope_rows = map_scope_rows(rows, args.attach)
+    if not scope_rows:
+        raise ValueError(f"--attach {args.attach!r} matches no rows in "
+                         f"{args.profile_csv} (profiled modules: "
+                         f"{[r['module'] for r in rows[:8]]} ...)")
     if args.k is not None:
-        selected_rows = select_topk(rows, args.k)
-        k_desc = f"top-{args.k}"
+        selected_rows = select_topk(scope_rows, args.k)
+        k_desc = f"top-{args.k}/{len(scope_rows)} @{args.attach}"
     else:
-        selected_rows = select_topk_fraction(rows, args.k_fraction)
-        k_desc = f"top-{len(selected_rows)}/{len(rows)} ({args.k_fraction:.0%})"
+        selected_rows = select_topk_fraction(scope_rows, args.k_fraction)
+        k_desc = (f"top-{len(selected_rows)}/{len(scope_rows)} "
+                  f"({args.k_fraction:.0%}) @{args.attach}")
     selected_names = [r["module"] for r in selected_rows]
     print(f"Drift selection ({k_desc} by cka_unbiased_drop): {selected_names}")
 
@@ -495,10 +519,13 @@ def main():
 
     model, model_desc = rdp.load_model(args.model, DEVICE)
     print(f"Model: {model_desc}")
-    modules = select_modules_for_hooks(model, args.max_depth)
+    modules = select_modules_for_hooks(model, args.max_depth, args.attach)
     dummy = [pool_imgs[0]]
     modules, axes = probe_channel_axes(model, modules, dummy, DEVICE,
                                        args.vit_token)
+    if not modules:
+        raise ValueError(f"--attach {args.attach!r} matched no firing modules "
+                         f"on {args.model}")
     missing = [n for n in selected_names if n not in modules]
     if missing:
         raise ValueError(f"selected modules not hookable on this model: {missing}")
@@ -676,6 +703,7 @@ def main():
 
     meta = {
         "model_desc": model_desc, "corruption": args.corruption,
+        "attach": args.attach,
         "profile_csv": args.profile_csv, "selection": k_desc,
         "selected_modules": selected_names, "n_pool": n_pool,
         "n_eval": len(eval_imgs), "seed": args.seed,

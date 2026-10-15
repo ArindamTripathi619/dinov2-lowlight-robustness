@@ -69,7 +69,7 @@ The research record (see `10_CONTEXT_INDEX.md` for a reading order).
 `ci.yml` (tests + torch-free import smoke on py3.10/3.11) and `security.yml` (weekly
 pip-audit).
 
-## Root Python scripts (31) — grouped
+## Root Python scripts (32) — grouped
 
 - **Harness / registry:** `run_experiments.py`
 - **Phase runners (local/Colab):** `run_notebook1{,_colab}.py`,
@@ -78,6 +78,7 @@ pip-audit).
   `run_lora_smoke_colab.py`
 - **Special studies:** `run_vitb_generality.py`, `run_corollaries.py`,
   `run_collapse_analysis.py`, `run_drift_profile.py`, `run_drift_proxy.py`,
+  `run_ssr.py`,
   `run_blur_adapter_eval.py`, `run_readout_repair.py`, `run_exdark_baseline.py`,
   `run_pilot_cpu.py`, `run_all_colab.py`
 - **Analysis:** `analyze_seeds.py`, `cka_recompute.py`, `cka_unbiased_recompute.py`,
@@ -98,7 +99,7 @@ pip-audit).
 ## File counts (working tree, non-heavy)
 
 - `src/`: 10 python
-- root: 31 python, 4 notebooks, 4 shell scripts
+- root: 32 python, 4 notebooks, 4 shell scripts
 - `docs/`: 6 md (+ this `project-context/`)
 - `paper/`: 2 tex + 12 generated tex + 6 figures + style/bib/Makefile
 - `results_pilot/`: 23 artifacts
