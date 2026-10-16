@@ -66,6 +66,7 @@ METADATA_JSON = '''{
 PROFILE_SOURCES = {
     "utils.py": "utils.py",
     "stats_tools.py": "stats_tools.py",
+    "agreement_report.py": "agreement_report.py",
     "run_drift_proxy.py": "run_drift_proxy.py",
     "run_drift_profile.py": "run_drift_profile.py",
     "vitb_profile.sh": "scripts/kaggle/vitb_profile.sh",
@@ -344,6 +345,7 @@ print("LORA_V9_ABL_COMPLETE" if (r.returncode == 0 and all(present.values())) el
 ATLAS_SOURCES = {
     "utils.py": "utils.py",
     "stats_tools.py": "stats_tools.py",
+    "agreement_report.py": "agreement_report.py",
     "run_drift_proxy.py": "run_drift_proxy.py",
     "run_drift_profile.py": "run_drift_profile.py",
     "atlas.sh": "scripts/kaggle/atlas.sh",
@@ -479,6 +481,7 @@ except Exception as _e:
 SSR_SOURCES = {
     "utils.py": "utils.py",
     "stats_tools.py": "stats_tools.py",
+    "agreement_report.py": "agreement_report.py",
     "run_drift_proxy.py": "run_drift_proxy.py",
     "run_drift_profile.py": "run_drift_profile.py",
     "run_ssr.py": "run_ssr.py",

@@ -32,7 +32,7 @@ presentation site).
                 │
      ┌──────────┴───────────┐
      ▼                      ▼
-make_paper_{tables,figures}   apps/presentation.py (site build source, 14 sections)
+make_paper_{tables,figures}   apps/presentation.py (site build source, 15 sections)
      │                          │
      ▼                          ▼
  paper/results,figures    tools/export_static_site.py ──► static site ──► Vercel
@@ -87,7 +87,7 @@ for every claim. `make_paper_tables.py` and `make_paper_figures.py` consume them
 `paper/results/*.tex` and `paper/figures/*` — never edited by hand.
 
 ### 6. Presentation layer
-`apps/presentation.py` is a **single-file Streamlit script** — the site's build source — with 14 sections. A
+`apps/presentation.py` is a **single-file Streamlit script** — the site's build source — with 15 sections. A
 `SECTION_ORDER` list, `SECTION_LABELS`/`SECTION_TITLES` dicts, and a `RENDERERS` dispatch
 table drive it. It reads presentation data from `PROJECT/OUTPUT/COLAB` path constants.
 Two headless modes (`PRESENTATION_SMOKE`, `PRESENTATION_STATIC`) let

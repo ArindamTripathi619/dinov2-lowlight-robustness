@@ -7,7 +7,7 @@
 ```
 dinov2-lowlight-robustness/
 ├── src/                     core importable library (10 modules)
-├── apps/                    presentation.py — site build source (1569 lines, 14 sections)
+├── apps/                    presentation.py — site build source (1887 lines, 15 sections)
 ├── tools/                   export_static_site.py — presentation.py → static site
 ├── scripts/                 build_kaggle_kernel.py + scripts/kaggle/*.sh
 ├── configs/                 experiments.yaml (full) + pilot_cpu.yaml (CPU pilot)
@@ -21,7 +21,7 @@ dinov2-lowlight-robustness/
 ├── data/  output/  colab_results/  logs/   large run artifacts (excluded)
 ├── upstream_src/            dead byte-identical copy of src/ (excluded)
 ├── .vercel/                 generated deploy mirror (excluded)
-├── *.py (31)                root runners / analysis / figure builders
+├── *.py (33)                root runners / analysis / figure builders
 ├── *.ipynb (4)              self-contained phase notebooks
 ├── *.sh                     background-launch helpers
 ├── index.html  vercel.json  static deploy
@@ -69,7 +69,7 @@ The research record (see `10_CONTEXT_INDEX.md` for a reading order).
 `ci.yml` (tests + torch-free import smoke on py3.10/3.11) and `security.yml` (weekly
 pip-audit).
 
-## Root Python scripts (32) — grouped
+## Root Python scripts (33) — grouped
 
 - **Harness / registry:** `run_experiments.py`
 - **Phase runners (local/Colab):** `run_notebook1{,_colab}.py`,
@@ -85,7 +85,7 @@ pip-audit).
   `colab_gpu_bench.py`, `colab_probe.py`
 - **Figure/table builders:** `make_paper_tables.py`, `make_paper_figures.py`,
   `make_mitigation_figure.py`, `make_readme_figures.py`
-- **Shared libs:** `stats_tools.py`, `utils.py`
+- **Shared libs:** `stats_tools.py`, `utils.py`, `agreement_report.py`
 
 ## Dead / generated trees (do not treat as source)
 
@@ -99,7 +99,7 @@ pip-audit).
 ## File counts (working tree, non-heavy)
 
 - `src/`: 10 python
-- root: 32 python, 4 notebooks, 4 shell scripts
+- root: 33 python, 4 notebooks, 4 shell scripts
 - `docs/`: 6 md (+ this `project-context/`)
 - `paper/`: 2 tex + 12 generated tex + 6 figures + style/bib/Makefile
 - `results_pilot/`: 23 artifacts

@@ -82,7 +82,7 @@ dataset (CIFAR-10-derived), a synthetic axis.
 | Core library | `src/` (10 modules) |
 | Committed pilot results | `results_pilot/` (23 files) |
 | Paper | `paper/` (TeX, auto-generated tables/figures, PDFs) |
-| Site build source | `apps/presentation.py` (14 sections, renders the static site) |
+| Site build source | `apps/presentation.py` (15 sections, renders the static site) |
 | Static website | `tools/export_static_site.py` → `index.html` → Vercel |
 | Docs | `README.md`, `docs/*.md` |
 | Tests + CI | `tests/run_tests.py`, `.github/workflows/` |

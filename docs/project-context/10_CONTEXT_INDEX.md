@@ -56,7 +56,7 @@ Root-level: [`../../AGENTS.md`](../../AGENTS.md) — agent operating instruction
 | Merge state | PRs #1–#6 merged upstream (latest `8ca8ca5`, PR #6); single lineage |
 | Tests | `python3 tests/run_tests.py` → 48/48 (custom runner, no pytest) |
 | Core library | `src/` — 10 modules |
-| Presentation | `index.html` (live site) ← built from `apps/presentation.py` — 1569 lines, 14 sections |
+| Presentation | `index.html` (live site) ← built from `apps/presentation.py` — 1887 lines, 15 sections |
 | Committed evidence | `results_pilot/` — 23 artifacts |
 | Configs | `configs/experiments.yaml` (full), `configs/pilot_cpu.yaml` (CPU pilot) |
 | CI | `ci.yml` (tests, py3.10/3.11), `security.yml` (weekly pip-audit) |

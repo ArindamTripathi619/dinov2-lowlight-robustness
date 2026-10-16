@@ -792,9 +792,14 @@ def test_select_topk_fraction_policy():
 def test_agreement_report_dataset_label():
     """The report header must name the dataset actually profiled (bug of
     2026-10-14: the txt line hardcoded 'CIFAR-10 test', mislabeling the six
-    Track-3 ImageNet agreement reports; the JSON meta was always right)."""
+    Track-3 ImageNet agreement reports; the JSON meta was always right).
+    Renders from the torch-free agreement_report module (run_drift_proxy
+    imports torch at module scope, so CI cannot import it) and checks the
+    runner still re-exports that exact writer."""
+    import re
     import tempfile
-    import run_drift_proxy as rdp
+
+    import agreement_report as rdp
 
     rows = [{"layer": i, "severity": 5, "module": f"m{i}",
              "energy_drop": 0.1, "mean_shift": 0.1, "cov_shift": 0.1,
@@ -823,6 +828,20 @@ def test_agreement_report_dataset_label():
     assert "CIFAR-10" not in txt_imagenet
     # default (proxy runner has no --dataset flag) keeps the legacy CIFAR label
     assert "10 CIFAR-10 test, seed 42" in render({})
+
+    proxy_src = open("run_drift_proxy.py").read()
+    m = re.search(r"^from agreement_report import (.+)$", proxy_src, re.M)
+    names = {n.strip() for n in m.group(1).split(",")} if m else set()
+    assert {"PROXY_KEYS", "write_agreement_report"} <= names, (
+        "run_drift_proxy must re-export the tested writer so the runner and "
+        f"this test exercise the same code; found: {m.group(0) if m else None!r}")
+
+    kb_src = open("scripts/build_kaggle_kernel.py").read()
+    for manifest in re.findall(r"_SOURCES = \{(.*?)\n\}", kb_src, re.S):
+        if '"run_drift_proxy.py"' in manifest:
+            assert '"agreement_report.py"' in manifest, (
+                "every kernel manifest shipping run_drift_proxy.py must also "
+                "ship agreement_report.py or the remote kernel dies on import")
 
 
 def test_ssr_kernel_verifier_matches_driver_dir_names():

@@ -12,7 +12,7 @@ mitigate it cheaply. It is organized as three phases — **measure** (Phase 1:
 accuracy/noise curves), **localize** (Phase 2: per-layer CKA / frequency / mechanism),
 **remediate** (Phase 3: enhancement baselines, readout repair, LoRA allocation) — plus a
 real-dark **ExDark** sim-to-real boundary study. Results feed a CVPR-style paper
-(`paper/`) and a 14-section presentation deployed as a static site (`index.html`, built from `apps/presentation.py`).
+(`paper/`) and a 15-section presentation deployed as a static site (`index.html`, built from `apps/presentation.py`).
 
 ## 2. The one rule
 

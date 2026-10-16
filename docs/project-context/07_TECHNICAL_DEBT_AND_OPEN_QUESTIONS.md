@@ -85,6 +85,25 @@ Two laddering defects, both found by direct read on the 2nd pass:
   (`make_paper_tables.py:163,259`, `make_readme_figures.py:149`, `run_all_colab.py:161`)
   tolerate its absence.
 
+### A6. Agreement-report regression test was unrunnable in CI — **[Resolved 2026-10-16]**
+`tests/run_tests.py::test_agreement_report_dataset_label` (added 2026-10-14, `98c6730`)
+did `import run_drift_proxy`, but `run_drift_proxy.py` imports `torch` at module scope — so
+in CI's torch-free environment the test **errored** (`ModuleNotFoundError`, 47/48) while any
+torch-enabled local run reported 48/48. Never caught because GitHub Actions has been
+unavailable on this account since 2026-10-14 (every run dies in ~3 s: "account is locked
+due to a billing issue"), i.e. the suite had not actually executed on 3.10/3.11 since.
+
+- **Fix direction:** the report is plain text/JSON rendering needing no torch — move it to
+  a torch-free module rather than soft-skipping the test (soft-skips exist elsewhere, but
+  this regression test exists precisely to run in CI).
+- **Resolved 2026-10-16:** renderer extracted to `agreement_report.py` (torch-free);
+  `run_drift_proxy` re-exports `PROXY_KEYS` + `write_agreement_report`, so
+  `run_drift_profile.py` and the runner are unchanged. The test imports the torch-free
+  module and also asserts the re-export wiring, so the runner cannot drift from the tested
+  writer. Verified **48/48 on Python 3.10 and 3.11 with CI's exact dependency set**
+  (reproduced locally: `uv run --python 3.10 --with numpy,scipy,scikit-learn,scikit-image,pyyaml
+  python tests/run_tests.py`, same for 3.11) plus 48/48 on the local torch-enabled env.
+
 ## B. Contradiction to resolve
 
 ### B1. Deterministic-noise primitive: present, but report says it was not ported — **[Closed 2026-10-09]**
