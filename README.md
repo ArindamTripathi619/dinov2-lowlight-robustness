@@ -27,20 +27,20 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 | Deliverable | Location | Run / Regenerate |
 |---|---|---|
 | Static website (live, Vercel-ready) | `index.html` (+ `static/gen/`) | `python3 tools/export_static_site.py` |
-| Site build source (14 sections) | `apps/presentation.py` | imported by `tools/export_static_site.py` |
+| Site build source (15 sections) | `apps/presentation.py` | imported by `tools/export_static_site.py` |
 | Internal smoke check (deterministic, no server) | `apps/presentation.py` | `PRESENTATION_SMOKE=1 python3 apps/presentation.py` |
 | Single-section static render (PNG) | `apps/presentation.py` | `PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name> python3 apps/presentation.py` |
 
 `apps/presentation.py` is the build source of the website — the presentation itself now lives only as the deployed static site. It is **read-only with respect
 to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
-(no new experiments). It has **14 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
+(no new experiments). It has **15 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, SSR (label-free repair), bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
 fails — it erases any doubt about whether the site's source actually renders every section from committed
 data, and it can be wired into CI.
 
 ### Static website — one click to Vercel (no server)
 
 `index.html` at the repo root **is** the presentation: a server-free static site with all
-14 sections — every figure, table, expander, tab and widget state
+15 sections — every figure, table, expander, tab and widget state
 (severity sliders, estimator toggle, corruption radio) — generated from
 `apps/presentation.py` by `tools/export_static_site.py`, so source and site can never
 quietly diverge. Assets are referenced in place (`output/`, `colab_results/`), so the

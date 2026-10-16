@@ -1,12 +1,12 @@
 """Presentation app: interactive, story-first walkthrough of the low-light study.
 
-Reads committed artifacts directly (no new experiments). 14 sections with real
+Reads committed artifacts directly (no new experiments). 15 sections with real
 sidebar navigation: story -> methods -> collapse -> localize -> mechanism ->
 proxy gate -> fix -> 9-arm grid -> families -> readout -> ExDark -> ViT-B ->
-bugs -> figure gallery.
+SSR (label-free repair) -> bugs -> figure gallery.
 
 Run:     streamlit run apps/presentation.py
-Smoke:   PRESENTATION_SMOKE=1  (renders all 14 sections headlessly, exits
+Smoke:   PRESENTATION_SMOKE=1  (renders all 15 sections headlessly, exits
          non-zero on any failure)
 Static:  PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name>  (renders
          __static_<name>.png next to this script, exits 0)
@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -40,7 +41,7 @@ st.set_page_config(page_title="Low-Light Study \u2014 Interactive Walkthrough",
 
 SECTION_ORDER = [
     "home", "methods", "collapse", "localize", "mechanism", "proxy", "fix",
-    "grid", "families", "readout", "exdark", "vitb", "bugs", "gallery",
+    "grid", "families", "readout", "exdark", "vitb", "ssr", "bugs", "gallery",
 ]
 
 SECTION_LABELS = {
@@ -56,6 +57,7 @@ SECTION_LABELS = {
     "readout": "\U0001F4E1 8 \u00b7 Readout staleness",
     "exdark": "\U0001F311 9 \u00b7 Real darkness (ExDark)",
     "vitb": "\U0001F52C 10 \u00b7 ViT-B/14 cross-architecture",
+    "ssr": "\U0001F527 11 \u00b7 Label-free repair (SSR)",
     "bugs": "\U0001F41B Bugs & lessons",
     "gallery": "\U0001F5BC Figure gallery",
 }
@@ -73,6 +75,7 @@ SECTION_TITLES = {
     "readout": "Readout staleness \u2014 features, not the head",
     "exdark": "ExDark \u2014 real darkness",
     "vitb": "Phase 2.7 \u2014 ViT-B/14 cross-architecture + v9 LoRA (n=3)",
+    "ssr": "Track 4 \u2014 SSR label-free repair (S1 \u2192 S2 \u2192 S3)",
     "bugs": "Appendix \u2014 bugs & lessons",
     "gallery": "Figure gallery \u2014 every committed figure",
 }
@@ -493,6 +496,9 @@ def _render_home():
         {"Question": "Cross-architecture?",
          "Answer": "ViT-B/14 confirms late-heavy drift, MLP > attention in all 12 blocks; LoRA parity "
                    "replicates at 24% fewer params (n=3)"},
+        {"Question": "Can label-free test-time repair (SSR) work?",
+         "Answer": "Attachment decides: ResNet-50 `stream` replicates **+5.1±0.8** (3 seeds, low_light sev5, "
+                   "S3); `sublayer` collapses −32.8; every ViT cell noise-level; identity gate 32/32 (S1→S3)"},
     ])
     st.dataframe(headline, use_container_width=True, hide_index=True)
 
@@ -506,6 +512,8 @@ def _render_home():
     6. **The fancy allocation doesn't matter (parity)** \u2014 drift-weighted ranks match uniform ranks and full fine-tuning.
     7. **The fix transfers** \u2014 to JPEG, blur, and contrast, with gains proportional to how fragile the family is.
     8. **The honest boundaries** \u2014 readout retraining caps out at 0.377; real-world transfer is +1.9, not +21.
+    9. **Label-free repair is scope-qualified** \u2014 the same moment-matching math is +5.1±0.8 where it attaches
+    to the final stage boundary (ResNet `stream`) and \u221232.8 where it attaches mid-network (`sublayer`).
     """)
 
     st.subheader("What we don't claim")
@@ -514,6 +522,8 @@ def _render_home():
         "We don't claim the synthetic results carry to real darkness (we measure the gap instead).",
         "We don't claim the findings generalize to ImageNet-scale statistics (CIFAR-10 at 32\u00d732 upsampled).",
         "We don't claim a cheap proxy exists (the gate was NO-GO \u2014 full CKA is cheap enough, forward-only).",
+        "We don't claim SSR wins broadly \u2014 one replicated positive regime (ResNet `stream`); the "
+        "deduplicated-profiled ablation and 4 of 6 models are still open (section 11).",
     ])
 
     st.subheader("Walkthrough order")
@@ -530,6 +540,7 @@ def _render_home():
         ("readout", "Probe-retrain control: how much was the head vs the features."),
         ("exdark", "7,363 real low-light images: the sim-to-real gap, measured."),
         ("vitb", "86M-parameter replication: late-heavy + MLP > attention; v9 LoRA parity at 24% fewer params (n=3)."),
+        ("ssr", "Track 4 label-free repair: gate holds → attachment flips → 32-leg replication (+5.1±0.8)."),
         ("bugs", "Four bugs, each caught pre-trust, each with a reproducibility lesson."),
         ("gallery", "Every committed figure, grouped by phase."),
     ]
@@ -1492,6 +1503,192 @@ def _render_vitb():
     ])
 
 
+# ---------------------------------------------------------------------------
+# Track 4 SSR — committed results of record (output/ssr{,_s2,_s3}/)
+# ---------------------------------------------------------------------------
+
+_SSR1_DIR_RE = re.compile(r"^(?P<slug>.+)_(?P<corr>low_light|jpeg)$")
+_SSR2_DIR_RE = re.compile(
+    r"^(?P<slug>.+)_(?P<scope>profiled|stream|sublayer|norm)_"
+    r"(?P<corr>low_light|jpeg)$")
+_SSR3_DIR_RE = re.compile(
+    r"^(?P<slug>.+)_(?P<scope>profiled|stream|sublayer|norm)_"
+    r"k(?P<k>\d+)_(?P<corr>low_light|jpeg)_s(?P<seed>\d+)$")
+
+
+def _ssr_leg_rows(subdir, pattern):
+    """Join each committed leg dir's name metadata with its ssr_results.csv rows."""
+    base = OUTPUT / subdir
+    rows = []
+    if not base.is_dir():
+        return rows
+    for d in sorted(p for p in base.iterdir() if p.is_dir()):
+        m = pattern.match(d.name)
+        csv_p = d / "ssr_results.csv"
+        if m is None or not csv_p.is_file():
+            continue
+        meta = dict(m.groupdict())
+        if meta.get("k") is not None:
+            meta["k"] = int(meta["k"])
+        if meta.get("seed") is not None:
+            meta["seed"] = int(meta["seed"])
+        for rec in pd.read_csv(csv_p).to_dict("records"):
+            rec.update(meta)
+            rows.append(rec)
+    return rows
+
+
+@st.cache_data
+def load_ssr_s1():
+    """S1 smoke (4 legs, 8 arms incl. CLAHE/TENT/AQR) — RESEARCH §6.7."""
+    return pd.DataFrame(_ssr_leg_rows("ssr", _SSR1_DIR_RE))
+
+
+@st.cache_data
+def load_ssr_s2():
+    """S2 attachment probe (7 scope legs, low_light, seed 42) — RESEARCH §6.8."""
+    return pd.DataFrame(_ssr_leg_rows("ssr_s2", _SSR2_DIR_RE))
+
+
+@st.cache_data
+def load_ssr_s3():
+    """S3 replication grid (32 legs: 3 seeds × 2 corruptions + k-matched) — §6.9."""
+    return pd.DataFrame(_ssr_leg_rows("ssr_s3", _SSR3_DIR_RE))
+
+
+def _mname(model):
+    return "ViT-S/16" if str(model).startswith("timm:") else "ResNet-50"
+
+
+def _fmt_pm(mu, sd, n):
+    return f"{100 * mu:+.1f}\u00b1{100 * (0.0 if pd.isna(sd) else sd):.1f}" if n > 1 else f"{100 * mu:+.1f}"
+
+
+def _ssr_repl(s3):
+    """Per (model, scope, corr, sev): mean\u00b1sd of ssr_topk delta over the k=25 seeds."""
+    k25 = s3[s3["k"] == 25]
+    g = (k25.groupby(["model", "scope", "corruption", "severity"])["delta_vs_frozen"]
+            .agg(mu="mean", sd="std", n="count").reset_index())
+    g["model"] = g["model"].map(_mname)
+    g["delta"] = [_fmt_pm(m, s, n) for m, s, n in zip(g["mu"], g["sd"], g["n"])]
+    return g
+
+
+def _plot_s3_repl(g5):
+    """Grouped bars: S3 sev5 delta (mean ± seed sd) per model × scope, split by corruption."""
+    groups = [(m, s) for m in ("ResNet-50", "ViT-S/16") for s in ("stream", "sublayer")]
+    corrs = [("low_light", "#1f77b4"), ("jpeg", "#ff7f0e")]
+    fig, ax = plt.subplots(figsize=(9, 4.4))
+    x = np.arange(len(groups))
+    w = 0.38
+    for j, (corr, color) in enumerate(corrs):
+        vals, errs = [], []
+        for m, s in groups:
+            row = g5[(g5["model"] == m) & (g5["scope"] == s) & (g5["corruption"] == corr)]
+            if len(row):
+                vals.append(100 * float(row["mu"].iloc[0]))
+                sd = float(row["sd"].iloc[0])
+                errs.append(0.0 if np.isnan(sd) else 100 * sd)
+            else:
+                vals.append(0.0)
+                errs.append(0.0)
+        ax.bar(x + (j - 0.5) * w, vals, width=w, yerr=errs, capsize=5,
+               color=color, label=corr, edgecolor="black", linewidth=0.5)
+    ax.axhline(0, color="black", linewidth=1.0)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{m}\n{s}" for m, s in groups])
+    ax.set_ylabel("\u0394 vs frozen @ sev5 (pts)")
+    ax.set_title("S3 replication \u2014 SSR top-k at sev5, mean \u00b1 sd over 3 seeds (k = 25%)")
+    ax.legend(framealpha=0.9)
+    ax.grid(True, axis="y", alpha=0.25)
+    fig.tight_layout()
+    return fig
+
+
+def _render_ssr():
+    st.subheader(SECTION_TITLES["ssr"])
+    st.markdown("""
+    *How we did it (label-free test-time repair).* SSR \u2014 **selective statistic recalibration** \u2014
+    stores each module's **clean channel moments** once, estimates the shift at test time from a few
+    **unlabeled** batches, and moment-matches a per-channel affine on only the **top-k drift-ranked
+    modules** (selection comes from the committed CKA atlas). A shift-distance **gate** must stay
+    closed on clean inputs \u2014 claim C2 is *exact identity*, verified bit-identical on every leg.
+    Three sessions tell the story: **S1** smoke (gate + selection hold; the repair itself harmful at
+    the default attachment), **S2** (the attachment point flips the outcome), **S3** (32-leg
+    replication across seeds and corruptions). Protocol: METHODS §7.11\u2013§7.13; verdicts: RESEARCH §6.7\u2013§6.9.
+    """)
+
+    s1, s2, s3 = load_ssr_s1(), load_ssr_s2(), load_ssr_s3()
+    if s3.empty:
+        st.warning("SSR results of record not found (output/ssr_s3/) \u2014 see docs/RESEARCH.md §6.9.")
+        return
+
+    g = _ssr_repl(s3)
+    g5 = g[g["severity"] == 5]
+    rn_ll = g5[(g5["model"] == "ResNet-50") & (g5["scope"] == "stream") &
+               (g5["corruption"] == "low_light")]
+    rn_ll_delta = rn_ll["delta"].iloc[0] if len(rn_ll) else "n/a"
+    rn_sub = g5[(g5["model"] == "ResNet-50") & (g5["scope"] == "sublayer") &
+                (g5["corruption"] == "low_light")]
+    rn_sub_delta = rn_sub["delta"].iloc[0] if len(rn_sub) else "n/a"
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("S1 \u2014 gate + selection", "Hold (C1\u2013C4)", "repair harmful at default attach")
+    c2.metric("S2 \u2014 attachment flip", "+4.3 vs \u221232.8", "stream vs profiled, ResNet-50 sev5")
+    c3.metric("S3 \u2014 3-seed replication", rn_ll_delta, "ResNet stream, low_light sev5 (n=3)")
+    c4.metric("Identity gate", f"{len(s3)}/32 legs", "bit-identical, every leg")
+
+    st.subheader("S3 replication grid \u2014 32 legs (3 seeds \u00d7 2 corruptions \u00d7 2 scopes \u00d7 2 models)")
+    st.pyplot(_plot_s3_repl(g5))
+    repl = g.rename(columns={"severity": "sev", "delta": "\u0394 vs frozen (pts, mean\u00b1sd)"})
+    repl["sev"] = repl["sev"].map(lambda v: f"sev{int(v)}")
+    st.dataframe(repl[["model", "scope", "corruption", "sev", "n", "\u0394 vs frozen (pts, mean\u00b1sd)"]]
+                 .sort_values(["model", "scope", "corruption", "sev"]),
+                 use_container_width=True, hide_index=True)
+    st.caption(f"Headline: ResNet-50 `stream` low_light sev5 {rn_ll_delta} / jpeg "
+               f"{g5[(g5['model'] == 'ResNet-50') & (g5['scope'] == 'stream') & (g5['corruption'] == 'jpeg')]['delta'].iloc[0] if len(g5[(g5['model'] == 'ResNet-50') & (g5['scope'] == 'stream') & (g5['corruption'] == 'jpeg')]) else 'n/a'} "
+               f"replicate; `sublayer` {rn_sub_delta} is scope-qualified harm; every ViT cell is noise-level.")
+
+    st.subheader("S2 attachment probe (seed 42, low_light) \u2014 where the repair attaches decides")
+    s2t = s2[(s2["arm"] == "ssr_topk") & (s2["severity"] == 5)].copy()
+    s2t["model"] = s2t["model"].map(_mname)
+    s2p = s2t.pivot_table(index="model", columns="scope", values="delta_vs_frozen") * 100
+    st.dataframe(s2p.round(1).astype(str).add_prefix("\u0394 sev5 pts \u00b7 "), use_container_width=True)
+    st.caption("S2's seed-42 legs are reproduced bit-exactly inside S3 (parity check, §6.9) \u2014 scope, "
+               "not session noise, moves the outcome; `norm` is ViT-only (ResNet has no profiled norm rows).")
+
+    st.subheader("Findings")
+    _bullets([
+        "**S1 (§6.7):** the identity gate and drift-ranked selection do real work (C1\u2013C4 hold everywhere), "
+        "but the moment-matching repair is net-harmful at the default attachment \u2014 and CLAHE@ViT-S low_light "
+        "sev5 (+22.3) is the one large positive of the session.",
+        "**S2 (§6.8):** holding gate + selection fixed and moving only the attachment flips ResNet-50 sev5 from "
+        "\u221232.8 (`profiled`) to **+4.3** (`stream` = final stage boundary) \u2014 attachment-point artifact, "
+        "mechanism not written off.",
+        f"**S3 (§6.9):** 32/32 legs rc=0, identity 32/32, seed-42 legs reproduce S2 bit-exactly; ResNet `stream` "
+        f"low_light sev5 **{rn_ll_delta}** and jpeg +4.1\u00b12.4 replicate over 3 seeds \u2014 replication, not rescue.",
+        "**K-matched control:** ResNet `sublayer` at k = top-1 (same tensor as `stream`'s layer4) matches the "
+        "stream result (+4.3); the collapse appears only when the 25% set pulls in mid/early rows \u2014 the extra "
+        "rows carry the harm, not the top-ranked location.",
+        "**TENT control stays flat** (ViT exactly 0.0; ResNet within \u22121.8..+2.0 pts across the grid), so the "
+        "comparisons are not drifting with the harness.",
+        "**Roster of confirmed positives = 2 cells:** CLAHE@ViT-S low_light sev5 (+22.3, §6.2) and "
+        "SSR-`stream`@ResNet-50 low_light sev5 (+4.3 seed 42 \u2192 +5.1\u00b10.8 over seeds).",
+    ])
+
+    st.subheader("What we don't claim")
+    _bullets([
+        "We don't claim SSR is a general fix \u2014 every ViT cell is noise-level and `sublayer` is strongly negative.",
+        "We don't claim `profiled` harm is purely mechanistic \u2014 duplicate container/child hooks may amplify it "
+        "(§6.8 caveat); the deduplicated-profiled rerun is still open.",
+        "We don't claim cross-model generality yet \u2014 2 of 6 roster models have run this grid; the 4-model "
+        "extension is the next session.",
+    ])
+    st.caption("Artifacts of record (committed): `output/ssr/` (S1), `output/ssr_s2/` (S2), "
+               "`output/ssr_s3/` + `output/ssr_s3_marks.log` (S3, 32 legs, `script_done fail=0`). "
+               "Aggregate: `python3 scripts/analyze_ssr_s3.py`.")
+
+
 def _render_bugs():
     st.subheader(SECTION_TITLES["bugs"])
     st.markdown("""
@@ -1613,6 +1810,7 @@ RENDERERS = {
     "readout": _render_readout,
     "exdark": _render_exdark,
     "vitb": _render_vitb,
+    "ssr": _render_ssr,
     "bugs": _render_bugs,
     "gallery": _render_gallery,
 }
@@ -1672,7 +1870,7 @@ def main():
         st.session_state["nav"] = default
 
     st.sidebar.title("DINOv2 low-light study")
-    st.sidebar.caption("11 phases + methods, bugs, gallery \u2014 reads committed artifacts only.")
+    st.sidebar.caption("12 phases + methods, bugs, gallery \u2014 reads committed artifacts only.")
     section = st.sidebar.radio("Sections", SECTION_ORDER, format_func=lambda k: SECTION_LABELS[k], key="nav")
     if env_sec in SECTION_ORDER:
         section = env_sec

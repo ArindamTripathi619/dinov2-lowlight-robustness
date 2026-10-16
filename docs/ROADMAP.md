@@ -199,6 +199,16 @@ rank stability at n ≥ 1k already established in Track 2).
 - Baselines: TENT, BN-adapt (adapt-all), enhancement front-ends (ZeroDCE/CLAHE),
   augmentation-only FT. Ablations: proxy-vs-CKA profiler, top-k vs all, gate on/off.
 - This is the cheapest method arm and the one that makes the framework "label-free".
+- Status: S1 smoke done 2026-10-14 (gate + selection hold, repair harmful —
+  RESEARCH §6.7); S2 attachment-point probe run 2026-10-15 (SSR_PLAN §7.2):
+  scope flips the outcome (ResNet stream **+4.3** sev5, ViT sublayer −1.4) —
+  artifact confirmed substantially, mechanism stands (RESEARCH §6.8);
+  S3 replication grid run 2026-10-15 (SSR_PLAN §7.3): **32/32 legs, ~35 min**
+  (3 seeds × {low_light, jpeg} × ladder + k-matched control) — ResNet stream
+  low_light sev5 **+5.1±0.8** and jpeg +4.1±2.4 replicate, sublayer harm
+  confirmed (−32.8±1.2), every ViT cell noise-level (the seed-42-only +0.8
+  fails to replicate), TENT flat, identity 32/32 (RESEARCH §6.9).
+  Next: deduplicated-profiled ablation + the 6-model grid.
 
 ### Track 5 — Real-darkness dense eval (the credibility arm; ~3–5 GPU-hours)
 - ACDC night + Dark Zurich (segmentation, eval-only with a frozen SegFormer/DeepLab
@@ -307,7 +317,43 @@ Next up, in order:
    moment-matching repair is net-harmful at every open gate — TENT is the
    only arm that never loses, CLAHE is the one large positive (ViT-S
    low_light sev5 +22.3). Verdict RESEARCH §6.7; artifacts `output/ssr/`.
-   Remaining: S2 decision (SSR_PLAN §8/§10 — full 6-model grid vs targeted
-   attachment-point probe).
+   Decision → item 8 (attachment-point probe, not the full grid).
 7. [x] Optional: deterministic-noise follow-up (Track 0 residual; non-blocking) —
    closed 2026-10-09 by agreement, `docs/DIVERGENCE_REPORT.md` §8.5.
+8. [x] **Track 4 S2 attachment-point probe** — decided + run 2026-10-15:
+   probe *where* the repair attaches (SSR_PLAN §7.2) before writing off the
+   mechanism; full 6-model grid deferred to S3, probe-gated. **Harness landed
+   2026-10-15**: `--attach {profiled,stream,sublayer,norm}` on `run_ssr.py`
+   (torch-free scope logic in `src/ssr.py` — scope owns hook modules +
+   selection rows; norm rows borrow their sublayer's drift rank; `blocks`
+   container excluded from `stream` to prevent a double affine), driver
+   `scripts/kaggle/ssr_s2.sh` (7 legs: ResNet-50 {profiled,sublayer,stream} +
+   ViT-S {profiled,sublayer,stream,norm}, low_light, 4 arms →
+   `output/ssr_s2/`), kernel variant `ssr_s2` (`arindamtripathi/ssr-s2`,
+   verifier-naming regression test mirrored). 47/47 tests; CPU smoke green
+   on all 6 scope legs (identity bit-identical each).
+   **Run DONE 2026-10-15** (kernel `arindamtripathi/ssr-s2` v1, T4, 601 s,
+   `SSR_S2_COMPLETE`, 7/7 rc=0, identity 7/7, artifacts `output/ssr_s2/` +
+   `output/ssr_s2_marks.log`): scope flips the outcome — ResNet `stream`
+   (k=1, `layer4`) **+4.3 sev5** vs profiled −32.8; ViT `sublayer` −1.4 vs
+   profiled −9.0; profiled legs reproduce S1 bit-close (cross-session
+   parity).   **Verdict: attachment-point artifact confirmed substantially —
+   mechanism not written off** (RESEARCH §6.8, METHODS §7.12). Next: S3
+   replication (seeds × jpeg × severity ladder + k-matched and
+   deduplicated-profiled ablations), then the 6-model grid.
+9. [x] **Track 4 S3 replication grid** — run + verdict 2026-10-15
+   (SSR_PLAN §7.3, RESEARCH §6.9, METHODS §7.13): `stream`/`sublayer` ×
+   seeds {42,43,44} × {low_light, jpeg} × sev {1,5} + k-matched
+   (ResNet top-1 / ViT top-3) control at seed 42 — driver
+   `scripts/kaggle/ssr_s3.sh`, kernel `arindamtripathi/ssr-s3` (fresh slug),
+   aggregator `scripts/analyze_ssr_s3.py` (committed results of record:
+   `output/ssr_s3/` + `output/ssr_s3_marks.log`), 48/48 tests.
+   **All 32/32 legs rc=0 in ~35 min, identity bit-identical 32/32.**
+   ResNet `stream` low_light sev5 **+5.1±0.8** / jpeg +4.1±2.4 replicate
+   across seeds (seed 42 = S2's +4.3, bit-exact parity); ResNet `sublayer`
+   stays harmful (−32.8±1.2 / −24.0±1.6); every ViT cell noise-level —
+   the seed-42-only jpeg +0.8 fails to replicate. K-matched: sublayer k=1
+   rescues (+4.3 vs k25 −32.2) → the extra mid/early rows carry the harm.
+   **Verdict: replication, not rescue; roster = 2 positives** (CLAHE@ViT-S
+   low_light sev5, SSR-stream@ResNet-50 low_light sev5). Next:
+   deduplicated-profiled ablation + the 4 remaining models.

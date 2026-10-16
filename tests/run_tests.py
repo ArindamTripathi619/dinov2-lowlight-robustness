@@ -21,10 +21,10 @@ from src.corruptions import (BRIGHTNESS_FACTORS, clahe_enhance, gamma_correct, h
                              simple_gain)
 from src.probes import NTrainableProbe, stratified_split
 from src.aqr import apply_aqr, apply_quantile_map, fit_channel_quantiles
-from src.ssr import (aggregate_distances, apply_affine, channel_axis_for, channel_stats,
-                     fit_gate, gate_open, looks_channels_last, moment_affine,
-                     moment_distance, pool_stats, recalibrate, select_topk,
-                     select_topk_fraction)
+from src.ssr import (SCOPE_CHOICES, aggregate_distances, apply_affine, channel_axis_for,
+                     channel_stats, fit_gate, gate_open, looks_channels_last,
+                     map_scope_rows, module_in_scope, moment_affine, moment_distance,
+                     pool_stats, recalibrate, select_topk, select_topk_fraction)
 
 
 # ---------------------------------------------------------------------------
@@ -609,6 +609,77 @@ def test_ssr_select_topk_membership_and_order():
         pass
 
 
+def test_ssr_attach_scope_module_membership():
+    """S2 scopes (SSR_PLAN §7.2): full-match membership over timm-ViT /
+    torchvision-ResNet names. The ViT `blocks` container must be stream-
+    FALSE — its output tensor *is* blocks.11's (Sequential returns the last
+    child), so selecting both would apply the moment affine twice to one
+    value; `avgpool` (readout) is out of the stream too."""
+    assert module_in_scope("anything", "profiled")
+    assert module_in_scope("patch_embed", "profiled")
+    assert module_in_scope("blocks.11", "stream")
+    assert module_in_scope("layer4", "stream")
+    assert not module_in_scope("blocks", "stream")
+    assert not module_in_scope("blocks.11.attn", "stream")
+    assert not module_in_scope("avgpool", "stream")
+    assert not module_in_scope("layer4.2.downsample", "stream")
+    assert module_in_scope("blocks.6.attn", "sublayer")
+    assert module_in_scope("blocks.6.mlp", "sublayer")
+    assert module_in_scope("layer3.4", "sublayer")
+    assert not module_in_scope("blocks.6", "sublayer")
+    assert not module_in_scope("blocks.6.norm1", "sublayer")
+    assert not module_in_scope("layer3.4.downsample", "sublayer")
+    assert module_in_scope("blocks.0.norm1", "norm")
+    assert module_in_scope("blocks.11.norm2", "norm")
+    assert not module_in_scope("blocks.0.attn", "norm")
+    assert not module_in_scope("layer3.4.bn1", "norm")
+    assert not module_in_scope("layer3", "norm")
+    try:
+        module_in_scope("blocks.0", "pre_norm")
+        assert False, "unknown scope must raise"
+    except ValueError:
+        pass
+
+
+def test_ssr_scope_row_mapping_and_k_policy():
+    """map_scope_rows keeps S1 semantics for profiled (rows unchanged),
+    filters to the scope for stream/sublayer (k = top-25% counts the
+    scope's rows), and aliases norm rows to the sublayer they feed
+    (norm1 <- attn, norm2 <- mlp) because the atlas does not hook norm
+    layers."""
+    def row(m, d):
+        return {"module": m, "cka_unbiased_drop": d}
+
+    rows = [row("patch_embed", 0.11), row("blocks", 0.12),
+            row("blocks.0.attn", 0.20), row("blocks.0.mlp", 0.30),
+            row("blocks.1", 0.90), row("blocks.11", 0.95),
+            row("avgpool", 0.05)]
+    prof = map_scope_rows(rows, "profiled")
+    assert prof == rows and prof is not rows, "profiled must copy, not filter"
+    stream = [r["module"] for r in map_scope_rows(rows, "stream")]
+    assert stream == ["blocks.1", "blocks.11"], stream
+    sub = [r["module"] for r in map_scope_rows(rows, "sublayer")]
+    assert sub == ["blocks.0.attn", "blocks.0.mlp"], sub
+    norm = [r["module"] for r in map_scope_rows(rows, "norm")]
+    assert norm == ["blocks.0.norm1", "blocks.0.norm2"], norm
+
+    vit_stream = [row(f"blocks.{i}", 0.01 * i) for i in range(12)]
+    sel = select_topk_fraction(map_scope_rows(vit_stream, "stream"), 0.25)
+    assert [r["module"] for r in sel] == ["blocks.9", "blocks.10", "blocks.11"], sel
+    rn = [row("layer1", 0.1), row("layer1.0", 0.9),
+          row("layer1.0.downsample", 0.8), row("layer2", 0.2),
+          row("avgpool", 0.3)]
+    sel_s = select_topk_fraction(map_scope_rows(rn, "stream"), 0.25)
+    assert [r["module"] for r in sel_s] == ["layer2"], sel_s
+    sel_b = select_topk_fraction(map_scope_rows(rn, "sublayer"), 0.25)
+    assert [r["module"] for r in sel_b] == ["layer1.0"], sel_b
+    try:
+        map_scope_rows(rows, "nope")
+        assert False, "unknown scope must raise"
+    except ValueError:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # AQR baseline (quantile-transport invariants; SSR_PLAN §3/§6)
 # ---------------------------------------------------------------------------
@@ -721,9 +792,14 @@ def test_select_topk_fraction_policy():
 def test_agreement_report_dataset_label():
     """The report header must name the dataset actually profiled (bug of
     2026-10-14: the txt line hardcoded 'CIFAR-10 test', mislabeling the six
-    Track-3 ImageNet agreement reports; the JSON meta was always right)."""
+    Track-3 ImageNet agreement reports; the JSON meta was always right).
+    Renders from the torch-free agreement_report module (run_drift_proxy
+    imports torch at module scope, so CI cannot import it) and checks the
+    runner still re-exports that exact writer."""
+    import re
     import tempfile
-    import run_drift_proxy as rdp
+
+    import agreement_report as rdp
 
     rows = [{"layer": i, "severity": 5, "module": f"m{i}",
              "energy_drop": 0.1, "mean_shift": 0.1, "cov_shift": 0.1,
@@ -753,6 +829,20 @@ def test_agreement_report_dataset_label():
     # default (proxy runner has no --dataset flag) keeps the legacy CIFAR label
     assert "10 CIFAR-10 test, seed 42" in render({})
 
+    proxy_src = open("run_drift_proxy.py").read()
+    m = re.search(r"^from agreement_report import (.+)$", proxy_src, re.M)
+    names = {n.strip() for n in m.group(1).split(",")} if m else set()
+    assert {"PROXY_KEYS", "write_agreement_report"} <= names, (
+        "run_drift_proxy must re-export the tested writer so the runner and "
+        f"this test exercise the same code; found: {m.group(0) if m else None!r}")
+
+    kb_src = open("scripts/build_kaggle_kernel.py").read()
+    for manifest in re.findall(r"_SOURCES = \{(.*?)\n\}", kb_src, re.S):
+        if '"run_drift_proxy.py"' in manifest:
+            assert '"agreement_report.py"' in manifest, (
+                "every kernel manifest shipping run_drift_proxy.py must also "
+                "ship agreement_report.py or the remote kernel dies on import")
+
 
 def test_ssr_kernel_verifier_matches_driver_dir_names():
     """The S1 kernel's exit verifier checks for per-invocation result dirs by
@@ -780,6 +870,84 @@ def test_ssr_kernel_verifier_matches_driver_dir_names():
     got = set(namespace["invocations"])
     assert got == expected, (
         f"verifier checks {sorted(got)}; driver creates {sorted(expected)}")
+
+
+def test_ssr_s2_kernel_verifier_matches_driver_dir_names():
+    """S2 mirror of the S1 naming-bug test: the ssr_s2 kernel's exit
+    verifier must derive its result-dir names from the driver's
+    (slug, scope) legs (output/ssr_s2/<slug_safe>_<scope>_low_light/),
+    and every scope the driver runs must be a scope run_ssr.py accepts
+    (--attach choices = src.ssr.SCOPE_CHOICES)."""
+    import re
+
+    sh = open("scripts/kaggle/ssr_s2.sh").read()
+    assert "--attach" in sh, "S2 driver must pass --attach to run_ssr.py"
+    expected, scopes_seen = set(), set()
+    for scopes_str, body in re.findall(r"for scope in ([\w ]+); do(.*?)done",
+                                       sh, re.S):
+        slugs = re.findall(r'run_invocation "([^"]+)"', body)
+        assert slugs, f"no run_invocation calls under 'for scope in {scopes_str}'"
+        for slug in slugs:
+            for sc in scopes_str.split():
+                scopes_seen.add(sc)
+                expected.add(f"{slug.replace(':', '_')}_{sc}_low_light")
+    assert expected, "no legs parsed from ssr_s2.sh"
+    assert scopes_seen <= set(SCOPE_CHOICES), (scopes_seen, SCOPE_CHOICES)
+
+    src = open("scripts/build_kaggle_kernel.py").read()
+    m_blk = re.search(r"SSR_S2_TEMPLATE = '''(.*?)'''", src, re.S)
+    assert m_blk, "SSR_S2_TEMPLATE not found in the kernel builder"
+    m_inv = re.search(r"invocations = \[(.*?)\]", m_blk.group(1), re.S)
+    assert m_inv, "S2 verifier invocations list not found"
+    namespace = {}
+    exec("invocations = [" + m_inv.group(1) + "]", namespace)
+    got = {f"{s.replace(':', '_')}_{sc}_low_light"
+           for s, sc in namespace["invocations"]}
+    assert got == expected, (
+        f"verifier checks {sorted(got)}; driver creates {sorted(expected)}")
+
+
+def test_ssr_s3_kernel_verifier_matches_driver_dir_names():
+    """S3 mirror of the S1/S2 naming-bug tests: the ssr_s3 kernel's exit
+    verifier must derive its result-dir names from the driver's LEGS
+    array (output/ssr_s3/<slug_safe>_<scope>_k<k>_<corr>_s<seed>/). Every
+    scope must be one run_ssr.py accepts (--attach choices), and the grid
+    must cover the replication axes S3-r1 claims: {stream, sublayer} x
+    {low_light, jpeg} x seeds {42,43,44} at k=25, plus k-matched controls."""
+    import re
+
+    sh = open("scripts/kaggle/ssr_s3.sh").read()
+    assert "--attach" in sh, "S3 driver must pass --attach to run_ssr.py"
+    m_legs = re.search(r"LEGS=\((.*?)\n\)", sh, re.S)
+    assert m_legs, "S3 driver LEGS array not found"
+    legs = re.findall(r'"(\S+) (\S+) (\S+) (\d+) (\d+)"', m_legs.group(1))
+    assert legs, "no legs parsed from ssr_s3.sh LEGS"
+    scopes = {sc for _, sc, _, _, _ in legs}
+    assert scopes <= set(SCOPE_CHOICES), (scopes, SCOPE_CHOICES)
+    expected = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+                for s, sc, c, sd, k in legs}
+    primary = {(s, sc, c, sd) for s, sc, c, sd, k in legs if k == "25"}
+    for corr in ("low_light", "jpeg"):
+        for sd in ("42", "43", "44"):
+            for s in ("resnet50", "timm:vit_small_patch16_224"):
+                for sc in ("stream", "sublayer"):
+                    assert (s, sc, corr, sd) in primary, \
+                        f"missing replication leg {s} {sc} {corr} seed {sd}"
+    assert any(k != "25" for _, _, _, _, k in legs), \
+        "no k-matched control legs in S3 grid"
+
+    src = open("scripts/build_kaggle_kernel.py").read()
+    m_blk = re.search(r"SSR_S3_TEMPLATE = '''(.*?)'''", src, re.S)
+    assert m_blk, "SSR_S3_TEMPLATE not found in the kernel builder"
+    m_inv = re.search(r"invocations = \[(.*?)\]", m_blk.group(1), re.S)
+    assert m_inv, "S3 verifier invocations list not found"
+    namespace = {}
+    exec("invocations = [" + m_inv.group(1) + "]", namespace)
+    got = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+           for s, sc, c, sd, k in namespace["invocations"]}
+    assert got == expected, (
+        f"verifier checks {len(got)} dirs; driver creates {len(expected)}; "
+        f"symmetric difference {sorted(got ^ expected)}")
 
 
 # ---------------------------------------------------------------------------

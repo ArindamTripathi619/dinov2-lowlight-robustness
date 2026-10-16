@@ -12,6 +12,8 @@ frozen model. That guarantee holds by construction — `recalibrate` returns the
 rounding) touches the activation path.
 """
 
+import re
+
 import numpy as np
 
 EPS = 1e-6
@@ -168,3 +170,65 @@ def select_topk(rows, k, key="cka_unbiased_drop"):
     order = sorted(range(len(rows)), key=lambda i: (-float(rows[i][key]), i))
     chosen = set(order[:min(k, len(rows))])
     return [rows[i] for i in range(len(rows)) if i in chosen]
+
+
+SCOPE_CHOICES = ("profiled", "stream", "sublayer", "norm")
+
+_SCOPE_PATTERNS = {
+    "stream": (r"blocks\.\d+", r"layer\d+"),
+    "sublayer": (r"blocks\.\d+\.(?:attn|mlp)", r"layer\d+\.\d+"),
+    "norm": (r"blocks\.\d+\.norm[12]",),
+}
+
+_NORM_ALIAS = (("attn", "norm1"), ("mlp", "norm2"))
+
+
+def module_in_scope(name, scope):
+    """Whether an S2 attachment scope owns this module (SSR_PLAN §7.2).
+
+    Full-match semantics on timm-ViT / torchvision-ResNet names:
+      profiled  everything (the S1 hook set, untouched)
+      stream    residual-stream outputs: ViT ``blocks.<n>`` (post-block) and
+                ResNet stage outputs ``layer<n>``. The ViT ``blocks``
+                container is excluded: its output tensor *is* ``blocks.11``'s
+                (Sequential returns the last child), and selecting both
+                would apply the moment affine twice to the same value.
+                ResNet ``avgpool`` is the readout, not the stream.
+      sublayer  per-sublayer outputs: ViT ``blocks.<n>.attn|mlp``, ResNet
+                bottleneck outputs ``layer<n>.<m>`` (pre-norm residual
+                stream — where the atlas profiles point, SSR_PLAN §2)
+      norm      post-LN outputs: ViT ``blocks.<n>.norm1|norm2`` — the class
+                S1 repaired into (LN normalizes channel moments away there)
+    """
+    if scope == "profiled":
+        return True
+    if scope not in _SCOPE_PATTERNS:
+        raise ValueError(f"unknown attach scope {scope!r}; choices: {SCOPE_CHOICES}")
+    return any(re.fullmatch(p, name) for p in _SCOPE_PATTERNS[scope])
+
+
+def map_scope_rows(rows, scope):
+    """Profile-CSV rows an attachment scope may select from (SSR_PLAN §7.2).
+
+    ``profiled`` returns the rows unchanged — S1 behaviour, byte-for-byte.
+    ``stream``/``sublayer`` keep only in-scope rows (so the k = top-25%
+    policy counts the scope's rows, not the whole atlas). ``norm`` rows have
+    no profiled rows of their own (the atlas does not hook norm layers), so
+    each borrows the drift rank of the sublayer it feeds: ``norm1`` <-
+    ``attn``, ``norm2`` <- ``mlp`` — the LN output's shift is the shift that
+    reached it through the sublayer it normalizes.
+    """
+    if scope == "profiled":
+        return list(rows)
+    if scope not in _SCOPE_PATTERNS:
+        raise ValueError(f"unknown attach scope {scope!r}; choices: {SCOPE_CHOICES}")
+    if scope == "norm":
+        aliased = []
+        for r in rows:
+            for suffix, norm in _NORM_ALIAS:
+                if r["module"].endswith("." + suffix):
+                    a = dict(r)
+                    a["module"] = r["module"][:-len(suffix)] + norm
+                    aliased.append(a)
+        rows = aliased
+    return [r for r in rows if module_in_scope(r["module"], scope)]

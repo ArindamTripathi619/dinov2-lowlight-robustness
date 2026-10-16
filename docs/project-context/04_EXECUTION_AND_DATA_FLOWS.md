@@ -99,12 +99,12 @@ commands rebuild every table/figure.
 ```
 results_pilot/ + output/ + colab_results/   (PROJECT/OUTPUT/COLAB path constants)
    ▼
-apps/presentation.py  (site build source; 14 sections via RENDERERS)
-   │  PRESENTATION_SMOKE=1                  → headless render check (all 14 sections)
+apps/presentation.py  (site build source; 15 sections via RENDERERS)
+   │  PRESENTATION_SMOKE=1                  → headless render check (all 15 sections)
    │  PRESENTATION_STATIC=1 PRESENTATION_SECTION=<name> → one section to PNG (matplotlib)
    ▼
 tools/export_static_site.py  (902 lines)   → streamlit shim + import presentation.py,
-                                             render all 14 sections incl. widget states
+                                             render all 15 sections incl. widget states
                                              (safety cap MAX_SECTION_RUNS=30)
    ▼
 index.html + static/gen/*.png  ──► Vercel (vercel.json, pinned deploy)

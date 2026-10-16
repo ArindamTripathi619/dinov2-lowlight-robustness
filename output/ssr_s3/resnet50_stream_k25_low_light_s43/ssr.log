@@ -1,0 +1,33 @@
+========================================================================
+SSR — model=resnet50, corruption=low_light, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=stream
+Device: cuda
+========================================================================
+Drift selection (top-1/4 (25%) @stream by cka_unbiased_drop): ['layer4']
+Loaded 640 images from ImageNet-val extract at '/kaggle/input/datasets/sautkin/imagenet1kvalid' (1000 class folders), seed=43
+[+9.1s] ImageNet cache MISS -> wrote ssr_cache/imagenet_n640_seed43_050cc56e.pkl (429 MB)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Model: torchvision resnet50 IMAGENET1K_V1 (76.130%)
+  forward pass: 1 images in 0.3s
+4 modules fire; channel axes: {'layer4': 1}
+  forward pass: 128 images in 2.9s
+[+3s] clean calibration moments on 128 images
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+Gate tau=0.129064 (clean distances max=0.129064)
+  forward pass: 128 images in 2.8s
+  forward pass: 128 images in 2.9s
+Identity check (clean inputs): d=0.000000 <= tau=0.129064 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7363 (d=0.205, gate=open)
+  sev1 ssr_topk     top1=0.7402 (d=0.205, gate=open)
+  sev1 ssr_gate_off top1=0.7402 (d=0.205, gate=open)
+  sev1 tent         top1=0.7363 (d=0.205, gate=open)
+  forward pass: 128 images in 2.8s
+  sev5 frozen       top1=0.3438 (d=0.775, gate=open)
+  sev5 ssr_topk     top1=0.3965 (d=0.775, gate=open)
+  sev5 ssr_gate_off top1=0.3965 (d=0.775, gate=open)
+  sev5 tent         top1=0.3359 (d=0.775, gate=open)
+  Saved output/ssr_s3/resnet50_stream_k25_low_light_s43/ssr_results.csv
+  Saved output/ssr_s3/resnet50_stream_k25_low_light_s43/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=68s

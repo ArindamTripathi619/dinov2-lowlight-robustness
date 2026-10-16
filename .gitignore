@@ -117,6 +117,16 @@ output/v9_ablation/**/*.pt
 !output/ssr/
 !output/ssr/**
 !output/ssr_marks.log
+
+# Track 4 SSR S2 attachment-probe + S3 replication results of record
+# (ssr-s2 / ssr-s3 kernels, 2026-10-15; verdicts METHODS §7.12/§7.13 —
+# 32-leg S3 grid incl. per-leg ssr_results.csv / ssr_meta.json / ssr.log)
+!output/ssr_s2/
+!output/ssr_s2/**
+!output/ssr_s2_marks.log
+!output/ssr_s3/
+!output/ssr_s3/**
+!output/ssr_s3_marks.log
 __pycache__/
 *.pyc
 .vercel

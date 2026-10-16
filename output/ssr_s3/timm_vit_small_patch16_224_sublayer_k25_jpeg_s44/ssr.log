@@ -1,0 +1,33 @@
+========================================================================
+SSR — model=timm:vit_small_patch16_224, corruption=jpeg, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=sublayer
+Device: cuda
+========================================================================
+Drift selection (top-6/24 (25%) @sublayer by cka_unbiased_drop): ['blocks.5.mlp', 'blocks.7.mlp', 'blocks.8.attn', 'blocks.8.mlp', 'blocks.9.attn', 'blocks.10.mlp']
+[+0.3s] ImageNet cache HIT: ssr_cache/imagenet_n640_seed44_050cc56e.pkl (640 images)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Model: timm vit_small_patch16_224 (22.1M params, pretrained=True)
+  forward pass: 1 images in 0.2s
+24 modules fire; channel axes: {'blocks.5.mlp': 2, 'blocks.7.mlp': 2, 'blocks.8.attn': 2, 'blocks.8.mlp': 2, 'blocks.9.attn': 2, 'blocks.10.mlp': 2}
+  forward pass: 128 images in 2.9s
+[+3s] clean calibration moments on 128 images
+  forward pass: 32 images in 0.6s
+  forward pass: 32 images in 0.8s
+  forward pass: 32 images in 0.8s
+  forward pass: 32 images in 0.9s
+Gate tau=0.091262 (clean distances max=0.091262)
+  forward pass: 128 images in 2.9s
+  forward pass: 128 images in 2.8s
+Identity check (clean inputs): d=0.000000 <= tau=0.091262 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7305 (d=0.039, gate=closed)
+  sev1 ssr_topk     top1=0.7305 (d=0.039, gate=closed)
+  sev1 ssr_gate_off top1=0.7305 (d=0.039, gate=closed)
+  sev1 tent         top1=0.7305 (d=0.039, gate=closed)
+  forward pass: 128 images in 2.8s
+  sev5 frozen       top1=0.6504 (d=0.154, gate=open)
+  sev5 ssr_topk     top1=0.6465 (d=0.154, gate=open)
+  sev5 ssr_gate_off top1=0.6465 (d=0.154, gate=open)
+  sev5 tent         top1=0.6504 (d=0.154, gate=open)
+  Saved output/ssr_s3/timm_vit_small_patch16_224_sublayer_k25_jpeg_s44/ssr_results.csv
+  Saved output/ssr_s3/timm_vit_small_patch16_224_sublayer_k25_jpeg_s44/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=51s
