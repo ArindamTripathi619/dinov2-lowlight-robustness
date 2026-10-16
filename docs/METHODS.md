@@ -329,9 +329,9 @@ Track 4's S2 probe (SSR_PLAN §7.2; verdict RESEARCH §6.8). Protocol = §7.11 b
 
 ## 7.13 SSR S3 replication grid — seeds × {low_light, jpeg} × severity ladder before promoting any positive claim (Track 4, 2026-10-15)
 
-**Run.** The S2 probe (§6.8/§7.12) resolved the attachment-versus-mechanism question at a single seed, but the framework's claim structure requires replication across the full experimental grid before any positive claim is promoted. This kernel `arindamtripathi/ssr-s3` v1, Tesla T4, produced 25 complete legs spanning models (ResNet-50, ViT-S/16), scopes (stream, sublayer), corruptions (low_light, jpeg), and seeds (42/43/44), with k = 25% of each scope's rows. Kernel wall ~90 min; all legs rc=0.
+**Run.** The S2 probe (§6.8/§7.12) resolved the attachment-versus-mechanism question at a single seed, but the framework's claim structure requires replication across the full experimental grid before any positive claim is promoted. This kernel `arindamtripathi/ssr-s3` v1, Tesla T4, produced **all 32 planned legs complete** — 24 replication legs at k = 25% of each scope's rows (2 models × 2 scopes × 2 corruptions × seeds 42/43/44) plus 8 k-matched legs at seed 42 (ResNet-50 top-1, ViT-S top-3) — all rc=0, identity bit-identical on 32/32, `script_done fail=0 legs=32`. Driver wall 2 125 s ≈ **35 min** (`output/ssr_s3_marks.log`).
 
-**Replication table:** per (model, scope, corr, severity) the ssr_topk delta-vs-frozen as mean ± sd across the 3 replication seeds (k = 25).
+**Replication table:** per (model, scope, corr, severity) the ssr_topk delta-vs-frozen as mean ± sd across the 3 replication seeds (k = 25; every cell n = 3).
 
 | model       | scope     | corr       | sev  | n   | delta mean±sd  |
 |-------------|-----------|------------|------|-----|----------------|
@@ -347,8 +347,10 @@ Track 4's S2 probe (SSR_PLAN §7.2; verdict RESEARCH §6.8). Protocol = §7.11 b
 | ViT-S/16    | stream    | jpeg       | 5    | 3   | −0.9±1.1       |
 | ViT-S/16    | stream    | low_light  | 1    | 3   | −0.5±0.7       |
 | ViT-S/16    | stream    | low_light  | 5    | 3   | −4.6±1.4       |
-| ViT-S/16    | sublayer  | jpeg       | 1    | 1   | +0.0±0.0       |
-| ViT-S/16    | sublayer  | jpeg       | 5    | 1   | +0.8±0.0       |
+| ViT-S/16    | sublayer  | jpeg       | 1    | 3   | +0.0±0.0       |
+| ViT-S/16    | sublayer  | jpeg       | 5    | 3   | −0.1±0.7       |
+| ViT-S/16    | sublayer  | low_light  | 1    | 3   | +0.1±0.3       |
+| ViT-S/16    | sublayer  | low_light  | 5    | 3   | −3.1±1.7       |
 
 → **ResNet stream at sev5 low_light (+5.1±0.8) and stream jpeg (+4.1±2.4) are reproducible** across the 3 seeds — the S2 positive generalizes to the full seed distribution.
 
@@ -356,41 +358,42 @@ Track 4's S2 probe (SSR_PLAN §7.2; verdict RESEARCH §6.8). Protocol = §7.11 b
 
 → **ViT stream at sev5 low_light (−4.6±1.4) and jpeg (−0.9±1.1) are noise-level** across seeds, consistent with S2's −1.4 / −4.9 findings.
 
-→ **ViT sublayer jpeg sev5 (+0.8±0.0, n=1 seed 42) is the only positive** in the ViT column — isolated, not replicated across seeds.
+→ **ViT sublayer is noise-level in every cell** (low_light sev5 −3.1±1.7, jpeg sev5 −0.1±0.7): the +0.8 jpeg-sev5 value seen at seed 42 alone **fails to replicate** — it does not become a third roster cell.
 
-**S2 parity check** (low_light, seed 42, k25): the S2 headline of ResNet stream +4.3 @sev5 and ViT sublayer −1.4 @sev5 is confirmed in S3 ResNet stream +4.3 @sev5 (identical) and ViT sublayer results are directionally consistent but seed-dependent; the S2 single-seed snapshot is replicated but not fully generalised.
+**S2 parity check** (low_light, seed 42, k25): all 8 (model × scope × severity) cells reproduce S2 **exactly** — ResNet stream +0.8 / +4.3, ResNet sublayer −6.2 / −32.2, ViT stream −0.4 / −4.9, ViT sublayer +0.4 / −1.4 — so the S2 snapshot is bit-for-bit confirmed; the only new information is the cross-seed spread in the table above.
 
-**K-matched control** (seed 42): k = 1 (absolute top-1 row) vs k = 25 (25% of scope rows), isolating location from scope size:
+**K-matched control** (seed 42): dedicated k = absolute-top-row legs vs the k = 25% primary (ResNet top-1; ViT top-3), isolating row-set size from location:
 
 | model       | scope     | corr       | sev  | k25      | k_abs    |
 |-------------|-----------|------------|------|----------|----------|
-| ResNet50    | stream    | jpeg       | 1    | +4.3     | +4.3     |
-| ResNet50    | stream    | jpeg       | 5    | +4.3     | +4.3     |
-| ResNet50    | stream    | low_light  | 1    | +4.3     | +0.8     |
+| ResNet50    | stream    | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | stream    | jpeg       | 5    | +3.3     | +3.3     |
+| ResNet50    | stream    | low_light  | 1    | +0.8     | +0.8     |
 | ResNet50    | stream    | low_light  | 5    | +4.3     | +4.3     |
-| ResNet50    | sublayer  | jpeg       | 1    | −25.6    | +3.3     |
-| ResNet50    | sublayer  | jpeg       | 5    | −25.6    | +4.3     |
-| ResNet50    | sublayer  | low_light  | 1    | −32.2    | +0.8     |
+| ResNet50    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | sublayer  | jpeg       | 5    | −25.6    | +3.3     |
+| ResNet50    | sublayer  | low_light  | 1    | −6.2     | +0.8     |
 | ResNet50    | sublayer  | low_light  | 5    | −32.2    | +4.3     |
-| ViT-S/16    | stream    | jpeg       | 1    | −2.0     | −2.0     |
+| ViT-S/16    | stream    | jpeg       | 1    | +0.0     | +0.0     |
 | ViT-S/16    | stream    | jpeg       | 5    | −2.0     | −2.0     |
-| ViT-S/16    | stream    | low_light  | 1    | −4.9     | −4.9     |
+| ViT-S/16    | stream    | low_light  | 1    | −0.4     | −0.4     |
 | ViT-S/16    | stream    | low_light  | 5    | −4.9     | −4.9     |
-| ViT-S/16    | sublayer  | jpeg       | 5    | +0.8     | −2.0     |
+| ViT-S/16    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ViT-S/16    | sublayer  | jpeg       | 5    | +0.8     | +1.0     |
+| ViT-S/16    | sublayer  | low_light  | 1    | +0.4     | −0.4     |
+| ViT-S/16    | sublayer  | low_light  | 5    | −1.4     | −2.0     |
 
-→ **For ResNet stream, k = 1 (absolute top-1 row) gives identical results to k = 25** — the positive generalizes to the minimal k-matched control.
+→ **Where k25 already equals k_abs the rerun is a harness sanity check**: ResNet `stream` has 4 stage rows (25% → k = 1) and ViT `stream` 12 (25% → k = 3) — those legs reproduce exactly, so the stream positive *is* the minimal single-module repair (ResNet `layer4`).
 
-→ **For ResNet sublayer, k = 1 gives dramatically different results** (k25 = −32.2, k_abs = +4.3 for low_light sev5) — the k-selection mechanism matters; sublayer repair requires the broader row set.
+→ **The informative contrast is ResNet `sublayer` (k25 = 4 vs k_abs = 1)**: at k = 1 its top row is `layer4.2` — the *same tensor* as `stream`'s `layer4` — and it matches the stream result (+4.3 @sev5); the collapse appears only when the 25% set pulls in the mid/early rows (−6.2 @sev1, −32.2 @sev5). **The harm is carried by the extra mid/early rows, not by the top-ranked location.**
 
-→ **For ViT stream, k = 1 matches k = 25** across both corruptions, confirming the scope effect is robust to k choice.
+→ **ViT sublayer (k25 = 6 vs k_abs = 3) stays noise-level under both k settings** (low_light sev5 −1.4 vs −2.0; jpeg +0.8 vs +1.0) — nothing resolvable above noise, and over 3 seeds the same cells read −3.1±1.7 / −0.1±0.7.
 
-→ **For ViT sublayer jpeg, k = 1 gives −2.0 vs k25 = +0.8** — the k-selection mechanism matters here too; the single-positive cell at k25 does not survive k = 1.
+→ **Control: TENT stays flat across the grid** — ViT exactly 0.0 in every leg; ResNet within −0.6..+0.4 pts at sev1 and −1.8..+2.0 pts at sev5 (S1's band on its own legs was −1.8..+0.8; the +2.0 jpeg-sev5 end is the largest deviation). The identity gate held bit-identical on 32/32 legs.
 
-→ **Control: TENT stays flat** (ViT 0.0 in all legs; ResNet +0.2 at sev1, −1.6 to −1.8 at sev5 — inside S1's −1.8..+0.8 band), confirming the gate holds across the full grid.
+**Verdict.** S3 is **replication, not rescue**, and it is now *complete for the planned grid*: 32/32 legs, identity 32/32, S2 exact at seed 42. What replicates: ResNet-50 `stream` (low_light sev5 **+5.1±0.8**, jpeg +4.1±2.4 over 3 seeds); what is confirmed negative: ResNet `sublayer` (−32.8±1.2 low_light / −24.0±1.6 jpeg); what is noise: every ViT-S cell — including the seed-42-only jpeg positive that failed to replicate. The roster of confirmed positives stands at exactly two cells: (a) CLAHE@ViT-S low_light sev5 (+22.3, from §6.2) and (b) SSR-stream@ResNet-50 low_light sev5 (+4.3 at seed 42 → **+5.1±0.8** over 3 seeds, from §6.8/§7.12). Before promoting (b) past this grid: the **deduplicated-profiled ablation** (harness caveat §7.12) and the **4 remaining models of the 6-model grid** are still open.
 
-**Verdict.** S3 is now **replication, not rescue**: seeds × {low_light, jpeg} × the full severity ladder, plus the k-matched and deduplicated-profiled ablations, before any positive claim is promoted. The roster of confirmed positives stands at exactly two cells: (a) CLAHE@ViT-S low_light sev5 (+22.3, from §6.2) and (b) SSR-stream@ResNet-50 low_light sev5 (+4.3, from §6.8/§7.12). All other cells are either negative or unreplicated — no positive claim may be promoted until the full S3 grid (seeds × corruptions × severities) plus k-matched ablation are complete.
-
-**Limits.** 3 seeds (42/43/44), n_eval = 512 (±2 pts readable), two models, two corruptions, two scopes — this grid priced at ~90 min (actual: ~90 min), priced at the S2 probe's ~1 h (actual: 10 min). Artifacts: `output/ssr_s3/{resnet50,timm_vit_small_patch16_224}_{stream,sublayer}_{low_light,jpeg}_s{42,43,44}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_s3_marks.log`. Re-harvest: `kaggle kernels output arindamtripathi/ssr-s3 -p <dir>`.
+**Limits.** 3 seeds (42/43/44), n_eval = 512 (±2 pts readable), two models, two corruptions, two scopes, k = 25% with the k-matched arm at one seed — this grid priced at ~90 min (actual: ~35 min), against the S2 probe's ~1 h price (actual: 10 min). Artifacts (committed): `output/ssr_s3/{resnet50,timm_vit_small_patch16_224}_{stream,sublayer}_k{25,1|3}_{low_light,jpeg}_s{42,43,44}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_s3_marks.log` (`script_done fail=0 legs=32`). Re-harvest: `kaggle kernels output arindamtripathi/ssr-s3 -p <dir>`; aggregate in-repo: `python3 scripts/analyze_ssr_s3.py`.
 
 ---
 

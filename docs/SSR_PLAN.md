@@ -143,8 +143,10 @@ attachment-point check. Budget ~1 h (actual: 34 min, §8).
 
 The §2 question — mechanistic failure vs attachment-point artifact — is
 answered cheap-first: probe *where* the repair attaches before writing off
-moment matching. The full 6-model grid is deferred to **S3, probe-gated**
-(~3–4 h, only run if the probe rescues the repair).
+moment matching. The full 6-model grid was deferred to **S3, probe-gated**
+(~3–4 h, only run if the probe rescues the repair). The probe rescued the
+repair, so S3 first ran as a 2-model replication grid (§7.3); the remaining
+4 models of the 6-model grid are the follow-on.
 
 - **Protocol:** S1's exact protocol (seed 42, sev 1+5, 512 eval / 128 pool,
   top-25% drift selection, gate + identity check, real ImageNet-val) with
@@ -172,17 +174,39 @@ moment matching. The full 6-model grid is deferred to **S3, probe-gated**
   −1.4 (control −9.0). The artifact explanation wins substantially —
   mechanism not written off; S3 becomes replication (seeds × jpeg × ladder
   + k-matched and deduplicated-profiled ablations).
-- **RUN 2026-10-15 — verdict RESEARCH §6.8:** `SSR_S2_COMPLETE`, 7/7 legs
-  rc=0 in 601 s, identity 7/7. Scope flipped the outcome: ResNet `stream`
-  (k=1, `layer4`) **+4.3 at sev5** (profiled control −32.8); ViT `sublayer`
-  −1.4 (control −9.0). The artifact explanation wins substantially —
-  mechanism not written off; S3 becomes replication (seeds × jpeg × ladder
-  + k-matched and deduplicated-profiled ablations).
 
 Kernel reuses the `scripts/build_kaggle_kernel.py` base64-packaging pattern;
 new `scripts/kaggle/ssr.sh` (S1) and `scripts/kaggle/ssr_s2.sh` (S2).
 
-## 8. Implementation pieces
+### 7.3 S3 — replication grid (seeds × corruptions × ladder) — **RUN 2026-10-15**
+
+Probe-gated S3 ran as **replication, not rescue**: `stream`/`sublayer` ×
+seeds {42, 43, 44} × {low_light, jpeg} × sev {1, 5}, k = 25% of the scope's
+rows, plus a k-matched control (k = absolute top-1) at seed 42 — S1's
+protocol otherwise unchanged (512 eval / 128 pool, gate + identity check,
+real ImageNet-val, arms frozen · ssr_topk · ssr_gate_off · tent).
+
+- **Grid:** driver `scripts/kaggle/ssr_s3.sh` (32 legs), kernel variant
+  `ssr_s3` (`arindamtripathi/ssr-s3`; exit verifier mirrors the driver's
+  leg names), aggregator `scripts/analyze_ssr_s3.py` (leg-name parser →
+  seed mean ± sd, S2 parity check, k-matched vs absolute-k, TENT gate
+  control); 48/48 tests.
+- **RUN 2026-10-15 — verdict RESEARCH §6.9 / METHODS §7.13:** all 32/32
+  legs complete (`script_done fail=0 legs=32`, identity bit-identical 32/32,
+  driver wall ≈35 min). ResNet `stream` low_light sev5 **+5.1±0.8** across the
+  3 seeds (seed 42 = S2's +4.3, exact parity) and stream jpeg sev5 +4.1±2.4
+  — the S2 positive replicates; ResNet `sublayer` stays harmful
+  (−32.8±1.2 low_light / −24.0±1.6 jpeg); ViT both scopes noise-level
+  (stream −4.6±1.4; sublayer −3.1±1.7 low_light / −0.1±0.7 jpeg — the
+  +0.8 seed-42-only cell fails to replicate). K-matched: stream's k25 leg
+  *is* k=1 (4 stage rows) and reproduces exactly; sublayer k=1 flips to
+  +4.3 vs k25 −32.2 — the extra mid/early rows carry the harm, not the
+  top-ranked location. TENT flat across every leg (ViT 0.0; ResNet within
+  −1.8..+2.0 pts — gate holds). Roster of confirmed positives = 2 cells:
+  CLAHE@ViT-S low_light sev5 (+22.3) and SSR-stream@ResNet-50 low_light sev5.
+- **Remaining open:** the deduplicated-profiled ablation and the other 4
+  models (full 6-model grid), per §7.2's probe-gating.
+
 
 - **`src/ssr.py` (landed with this plan)** — torch-free NumPy core: channel
   moments, moment-matching affine, shift distance, gate, drift-ranked top-k
@@ -257,6 +281,14 @@ Track 3 kernel ✓ (2026-10-14, drift-atlas-v4, fail=0) → harvest ✓ (output/
                        (ResNet stream +4.3 sev5, ViT sublayer −1.4) →
                        mechanism NOT written off → S3 = replication
                        (seeds × jpeg × ladder + k-matched/dedup ablations)
+                 → ssr-s3 T4 run ✓ (2026-10-15: 32/32 legs rc=0, ~35 min,
+                       seeds×{low_light,jpeg}×ladder + k-matched control,
+                       analyzer scripts/analyze_ssr_s3.py, 48/48 tests)
+                 → verdict ✓ RESEARCH §6.9 / METHODS §7.13: replication,
+                       not rescue — ResNet stream low_light sev5 +5.1±0.8
+                       (3 seeds), sublayer harm confirmed, TENT flat,
+                       roster = 2 positives → open: dedup-profiled
+                       ablation + the 4 remaining models
 ```
 
 Selection inputs of record (§4, one measurement two consumers): per-model

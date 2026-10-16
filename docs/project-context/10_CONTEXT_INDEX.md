@@ -53,8 +53,8 @@ Root-level: [`../../AGENTS.md`](../../AGENTS.md) — agent operating instruction
 |---|---|
 | Ledger HEAD | `90577cbe171cefe98a551d05979bb8d74c6b986c` (`main`) |
 | Remotes | `origin` = ArindamTripathi619 fork; `upstream` = officialarghya29 |
-| Merge state | PRs #1–#4 merged (latest `0ad0ef5`, 2026-10-12); single lineage |
-| Tests | `python3 tests/run_tests.py` → 47/47 (custom runner, no pytest) |
+| Merge state | PRs #1–#6 merged upstream (latest `8ca8ca5`, PR #6); single lineage |
+| Tests | `python3 tests/run_tests.py` → 48/48 (custom runner, no pytest) |
 | Core library | `src/` — 10 modules |
 | Presentation | `index.html` (live site) ← built from `apps/presentation.py` — 1569 lines, 14 sections |
 | Committed evidence | `results_pilot/` — 23 artifacts |

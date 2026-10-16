@@ -1,0 +1,32 @@
+========================================================================
+SSR — model=timm:vit_small_patch16_224, corruption=low_light, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=profiled
+Device: cuda
+========================================================================
+Drift selection (top-10/38 (25%) @profiled by cka_unbiased_drop): ['blocks', 'blocks.6.mlp', 'blocks.7', 'blocks.8', 'blocks.9', 'blocks.9.attn', 'blocks.10.attn', 'blocks.10.mlp', 'blocks.11', 'blocks.11.mlp']
+[+0.3s] ImageNet cache HIT: ssr_cache/imagenet_n640_seed42_050cc56e.pkl (640 images)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Model: timm vit_small_patch16_224 (22.1M params, pretrained=True)
+  forward pass: 1 images in 0.3s
+38 modules fire; channel axes: {'blocks': 2, 'blocks.6.mlp': 2, 'blocks.7': 2, 'blocks.8': 2, 'blocks.9': 2, 'blocks.9.attn': 2, 'blocks.10.attn': 2, 'blocks.10.mlp': 2, 'blocks.11': 2, 'blocks.11.mlp': 2}
+  forward pass: 128 images in 4.4s
+[+4s] clean calibration moments on 128 images
+  forward pass: 32 images in 1.0s
+  forward pass: 32 images in 1.0s
+  forward pass: 32 images in 1.1s
+  forward pass: 32 images in 1.0s
+Gate tau=0.081749 (clean distances max=0.081749)
+  forward pass: 128 images in 4.6s
+  forward pass: 128 images in 4.3s
+Identity check (clean inputs): d=0.000000 <= tau=0.081749 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7363 (d=0.160, gate=open)
+  sev1 ssr_topk     top1=0.7207 (d=0.160, gate=open)
+  sev1 ssr_gate_off top1=0.7207 (d=0.160, gate=open)
+  sev1 tent         top1=0.7363 (d=0.160, gate=open)
+  forward pass: 128 images in 4.4s
+  sev5 frozen       top1=0.0918 (d=0.786, gate=open)
+  sev5 ssr_topk     top1=0.0020 (d=0.786, gate=open)
+  sev5 ssr_gate_off top1=0.0020 (d=0.786, gate=open)
+  sev5 tent         top1=0.0918 (d=0.786, gate=open)
+  Saved output/ssr_s2/timm_vit_small_patch16_224_profiled_low_light/ssr_results.csv
+  Saved output/ssr_s2/timm_vit_small_patch16_224_profiled_low_light/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=74s

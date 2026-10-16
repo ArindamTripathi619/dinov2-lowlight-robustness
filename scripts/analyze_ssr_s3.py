@@ -19,12 +19,20 @@ import os
 import re
 import sys
 
-SSR3 = "/tmp/ssr_s3_harvest/output/ssr_s3"
-SSR2 = "/tmp/ssr_s3_harvest/output/ssr_s2"
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Defaults are the committed results of record; pass dirs as argv to point
+# at a fresh harvest, e.g. `python3 scripts/analyze_ssr_s3.py <harvest>/output/ssr_s3 <harvest>/output/ssr_s2`.
+SSR3 = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, "output", "ssr_s3")
+SSR2 = sys.argv[2] if len(sys.argv) > 2 else os.path.join(REPO, "output", "ssr_s2")
 
 DIR_RE = re.compile(
     r"^(?P<slug>.+)_(?P<scope>profiled|stream|sublayer|norm)_"
     r"k(?P<k>\d+)_(?P<corr>low_light|jpeg)_s(?P<seed>\d+)$")
+# S2 legs carry no k/seed in the dir name: <slug>_<scope>_<corr>
+DIR_RE_S2 = re.compile(
+    r"^(?P<slug>.+)_(?P<scope>profiled|stream|sublayer|norm)_"
+    r"(?P<corr>low_light|jpeg)$")
 
 
 def read_leg(res_dir):
@@ -41,16 +49,19 @@ def read_leg(res_dir):
     return out
 
 
-def collect(base):
+def collect(base, pattern=None):
     """Parse all leg dirs under base -> list of (meta, deltas)."""
+    regex = pattern or DIR_RE
     legs = []
     for d in sorted(glob.glob(os.path.join(base, "*"))):
         if not os.path.isdir(d):
             continue
-        m = DIR_RE.match(os.path.basename(d))
+        m = regex.match(os.path.basename(d))
         if not m:
             continue
         meta = m.groupdict()
+        meta.setdefault("k", "25")
+        meta.setdefault("seed", "42")
         meta["slug"] = meta["slug"].replace("_", ":", 1) if meta["slug"].startswith("timm_") else meta["slug"]
         deltas = read_leg(d)
         if deltas is not None:
@@ -95,7 +106,7 @@ def main():
 
     # --- 2. S2 parity: low_light seed 42 k25 vs the S2 headline ---
     print("\n=== S2 parity check (low_light, seed 42, k25) ===")
-    s2 = collect(SSR2)
+    s2 = collect(SSR2, DIR_RE_S2)
     s2_map = {(m["slug"], m["scope"]): d for m, d in s2}
     for meta, deltas in legs:
         if meta["k"] != "25" or meta["seed"] != "42" or meta["corr"] != "low_light":

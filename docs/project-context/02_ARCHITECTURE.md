@@ -95,7 +95,7 @@ Two headless modes (`PRESENTATION_SMOKE`, `PRESENTATION_STATIC`) let
 producing the Vercel-deployed site (`index.html`).
 
 ### 7. CI/quality layer
-`tests/run_tests.py` exercises the torch-free analysis stack (`47/47`). CI installs only
+`tests/run_tests.py` exercises the torch-free analysis stack (`48/48`). CI installs only
 `numpy scipy scikit-learn scikit-image pyyaml` and runs the tests plus an import smoke.
 Security workflow runs weekly `pip-audit` on `requirements-audit.txt`.
 

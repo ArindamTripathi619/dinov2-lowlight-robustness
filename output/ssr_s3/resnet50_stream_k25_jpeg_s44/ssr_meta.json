@@ -1,0 +1,42 @@
+{
+  "model_desc": "torchvision resnet50 IMAGENET1K_V1 (76.130%)",
+  "corruption": "jpeg",
+  "attach": "stream",
+  "profile_csv": "output/profiles/resnet50/drift_profile_sev5_jpeg.csv",
+  "selection": "top-1/4 (25%) @stream",
+  "selected_modules": [
+    "layer3"
+  ],
+  "n_pool": 128,
+  "n_eval": 512,
+  "seed": 44,
+  "gate": {
+    "tau": 0.12134834276670936,
+    "clean_distances": [
+      0.11067904199015235,
+      0.11097857888591922,
+      0.12134834276670936,
+      0.11153359716740283
+    ],
+    "quantile": 1.0,
+    "margin": 1.0
+  },
+  "identity": {
+    "clean_shift_distance": 0.0,
+    "gate_closed_on_clean": true,
+    "disarmed_hooks_max_abs_logit_diff": 0.0,
+    "bit_identical": true
+  },
+  "per_condition_shift": {
+    "jpeg@sev5": 0.18253467279409416
+  },
+  "arms": [
+    "frozen",
+    "ssr_topk",
+    "ssr_gate_off",
+    "tent"
+  ],
+  "device": "cuda",
+  "torch": "2.11.0+cu128",
+  "wall_s": 48.46601366996765
+}

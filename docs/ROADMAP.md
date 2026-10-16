@@ -202,9 +202,13 @@ rank stability at n ≥ 1k already established in Track 2).
 - Status: S1 smoke done 2026-10-14 (gate + selection hold, repair harmful —
   RESEARCH §6.7); S2 attachment-point probe run 2026-10-15 (SSR_PLAN §7.2):
   scope flips the outcome (ResNet stream **+4.3** sev5, ViT sublayer −1.4) —
-  artifact confirmed substantially, mechanism stands (RESEARCH §6.8).
-  Next: S3 replication (seeds × jpeg × ladder + k-matched/dedup ablations),
-  then the 6-model grid.
+  artifact confirmed substantially, mechanism stands (RESEARCH §6.8);
+  S3 replication grid run 2026-10-15 (SSR_PLAN §7.3): **32/32 legs, ~35 min**
+  (3 seeds × {low_light, jpeg} × ladder + k-matched control) — ResNet stream
+  low_light sev5 **+5.1±0.8** and jpeg +4.1±2.4 replicate, sublayer harm
+  confirmed (−32.8±1.2), every ViT cell noise-level (the seed-42-only +0.8
+  fails to replicate), TENT flat, identity 32/32 (RESEARCH §6.9).
+  Next: deduplicated-profiled ablation + the 6-model grid.
 
 ### Track 5 — Real-darkness dense eval (the credibility arm; ~3–5 GPU-hours)
 - ACDC night + Dark Zurich (segmentation, eval-only with a frozen SegFormer/DeepLab
@@ -333,7 +337,23 @@ Next up, in order:
    `output/ssr_s2_marks.log`): scope flips the outcome — ResNet `stream`
    (k=1, `layer4`) **+4.3 sev5** vs profiled −32.8; ViT `sublayer` −1.4 vs
    profiled −9.0; profiled legs reproduce S1 bit-close (cross-session
-   parity). **Verdict: attachment-point artifact confirmed substantially —
+   parity).   **Verdict: attachment-point artifact confirmed substantially —
    mechanism not written off** (RESEARCH §6.8, METHODS §7.12). Next: S3
    replication (seeds × jpeg × severity ladder + k-matched and
    deduplicated-profiled ablations), then the 6-model grid.
+9. [x] **Track 4 S3 replication grid** — run + verdict 2026-10-15
+   (SSR_PLAN §7.3, RESEARCH §6.9, METHODS §7.13): `stream`/`sublayer` ×
+   seeds {42,43,44} × {low_light, jpeg} × sev {1,5} + k-matched
+   (ResNet top-1 / ViT top-3) control at seed 42 — driver
+   `scripts/kaggle/ssr_s3.sh`, kernel `arindamtripathi/ssr-s3` (fresh slug),
+   aggregator `scripts/analyze_ssr_s3.py` (committed results of record:
+   `output/ssr_s3/` + `output/ssr_s3_marks.log`), 48/48 tests.
+   **All 32/32 legs rc=0 in ~35 min, identity bit-identical 32/32.**
+   ResNet `stream` low_light sev5 **+5.1±0.8** / jpeg +4.1±2.4 replicate
+   across seeds (seed 42 = S2's +4.3, bit-exact parity); ResNet `sublayer`
+   stays harmful (−32.8±1.2 / −24.0±1.6); every ViT cell noise-level —
+   the seed-42-only jpeg +0.8 fails to replicate. K-matched: sublayer k=1
+   rescues (+4.3 vs k25 −32.2) → the extra mid/early rows carry the harm.
+   **Verdict: replication, not rescue; roster = 2 positives** (CLAHE@ViT-S
+   low_light sev5, SSR-stream@ResNet-50 low_light sev5). Next:
+   deduplicated-profiled ablation + the 4 remaining models.

@@ -19,11 +19,12 @@ python3 tests/run_tests.py
 
 **Observed result (2026-10-11): `26/26 passed`, exit 0.**
 
-## 2. What is covered (47 tests at 2026-10-15)
+## 2. What is covered (48 tests at 2026-10-15)
 
 The group table below is the 2026-10-11 snapshot (26 tests); since then the
-SSR/AQR/selection/kernel-verifier/SSR-S2-scope tests were added (2026-10-13 →
-10-15). The runner itself is the source of truth (`python3 tests/run_tests.py`).
+SSR/AQR/selection/kernel-verifier/SSR-S2-scope/SSR-S3 tests were added
+(2026-10-13 → 10-15; latest: `test_ssr_s3_kernel_verifier_matches_driver_dir_names`,
+`test_ssr_scope_row_mapping_and_k_policy`). The runner itself is the source of truth (`python3 tests/run_tests.py`).
 
 Almost everything tested is in the **torch-free analysis stack** (`src/corruptions.py`,
 `src/analysis.py`, `src/probes.py`, plus local `biased` math in-test). The runner itself
@@ -84,7 +85,7 @@ This proves the **torch-optional import invariant** enforced by `src/common.py:_
 ## 6. How to verify a change (practical checklist)
 
 ```bash
-python3 tests/run_tests.py                                   # 47/47 expected
+python3 tests/run_tests.py                                   # 48/48 expected
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # if touching the site's source
 git status --porcelain                                        # confirm no stray artifacts

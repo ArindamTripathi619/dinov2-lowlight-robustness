@@ -1,0 +1,32 @@
+========================================================================
+SSR — model=timm:vit_small_patch16_224, corruption=low_light, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=stream
+Device: cuda
+========================================================================
+Drift selection (top-3/12 (25%) @stream by cka_unbiased_drop): ['blocks.7', 'blocks.8', 'blocks.11']
+[+0.3s] ImageNet cache HIT: ssr_cache/imagenet_n640_seed44_050cc56e.pkl (640 images)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Model: timm vit_small_patch16_224 (22.1M params, pretrained=True)
+  forward pass: 1 images in 0.2s
+12 modules fire; channel axes: {'blocks.7': 2, 'blocks.8': 2, 'blocks.11': 2}
+  forward pass: 128 images in 2.0s
+[+2s] clean calibration moments on 128 images
+  forward pass: 32 images in 0.4s
+  forward pass: 32 images in 0.5s
+  forward pass: 32 images in 0.5s
+  forward pass: 32 images in 0.5s
+Gate tau=0.068395 (clean distances max=0.068395)
+  forward pass: 128 images in 1.8s
+  forward pass: 128 images in 1.7s
+Identity check (clean inputs): d=0.000000 <= tau=0.068395 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7656 (d=0.158, gate=open)
+  sev1 ssr_topk     top1=0.7539 (d=0.158, gate=open)
+  sev1 ssr_gate_off top1=0.7539 (d=0.158, gate=open)
+  sev1 tent         top1=0.7656 (d=0.158, gate=open)
+  forward pass: 128 images in 1.8s
+  sev5 frozen       top1=0.1191 (d=0.548, gate=open)
+  sev5 ssr_topk     top1=0.0879 (d=0.548, gate=open)
+  sev5 ssr_gate_off top1=0.0879 (d=0.548, gate=open)
+  sev5 tent         top1=0.1191 (d=0.548, gate=open)
+  Saved output/ssr_s3/timm_vit_small_patch16_224_stream_k25_low_light_s44/ssr_results.csv
+  Saved output/ssr_s3/timm_vit_small_patch16_224_stream_k25_low_light_s44/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=60s

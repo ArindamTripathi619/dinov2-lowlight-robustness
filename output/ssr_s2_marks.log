@@ -1,0 +1,17 @@
+SSR_MARK ts=2026-10-15T02:56:11+00:00 since_start_s=0 event=script_start leg=ssr_s2 root=/kaggle/input/datasets/sautkin/imagenet1kvalid
+SSR_MARK ts=2026-10-15T02:56:11+00:00 since_start_s=0 event=run_start model=resnet50 scope=profiled dir=output/ssr_s2/resnet50_profiled_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T02:58:53+00:00 since_start_s=162 event=run_done model=resnet50 scope=profiled duration_s=162 rc=0
+SSR_MARK ts=2026-10-15T02:58:53+00:00 since_start_s=162 event=run_start model=resnet50 scope=sublayer dir=output/ssr_s2/resnet50_sublayer_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:00:28+00:00 since_start_s=257 event=run_done model=resnet50 scope=sublayer duration_s=95 rc=0
+SSR_MARK ts=2026-10-15T03:00:28+00:00 since_start_s=257 event=run_start model=resnet50 scope=stream dir=output/ssr_s2/resnet50_stream_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:01:33+00:00 since_start_s=322 event=run_done model=resnet50 scope=stream duration_s=65 rc=0
+SSR_MARK ts=2026-10-15T03:01:33+00:00 since_start_s=322 event=run_start model=timm:vit_small_patch16_224 scope=profiled dir=output/ssr_s2/timm_vit_small_patch16_224_profiled_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:02:53+00:00 since_start_s=402 event=run_done model=timm:vit_small_patch16_224 scope=profiled duration_s=80 rc=0
+SSR_MARK ts=2026-10-15T03:02:53+00:00 since_start_s=402 event=run_start model=timm:vit_small_patch16_224 scope=sublayer dir=output/ssr_s2/timm_vit_small_patch16_224_sublayer_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:04:02+00:00 since_start_s=471 event=run_done model=timm:vit_small_patch16_224 scope=sublayer duration_s=69 rc=0
+SSR_MARK ts=2026-10-15T03:04:02+00:00 since_start_s=471 event=run_start model=timm:vit_small_patch16_224 scope=stream dir=output/ssr_s2/timm_vit_small_patch16_224_stream_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:05:05+00:00 since_start_s=534 event=run_done model=timm:vit_small_patch16_224 scope=stream duration_s=63 rc=0
+SSR_MARK ts=2026-10-15T03:05:05+00:00 since_start_s=534 event=run_start model=timm:vit_small_patch16_224 scope=norm dir=output/ssr_s2/timm_vit_small_patch16_224_norm_low_light limit_s=3600
+SSR_MARK ts=2026-10-15T03:06:12+00:00 since_start_s=601 event=run_done model=timm:vit_small_patch16_224 scope=norm duration_s=67 rc=0
+SSR_MARK ts=2026-10-15T03:06:12+00:00 since_start_s=601 event=script_done fail=0
+SSR_MARK ts=2026-10-15T03:06:12+00:00 SSR_S2_COMPLETE
