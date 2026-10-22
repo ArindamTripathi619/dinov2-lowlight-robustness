@@ -89,9 +89,13 @@ dataset (CIFAR-10-derived), a synthetic axis.
 
 ## Status
 
-- PRs #1–#6 merged upstream (2026-10-01 → 2026-10-15; latest merge `8ca8ca5`,
+- PRs #1–#6 merged upstream (2026-10-01 → 2026-10-12; latest merge `8ca8ca5`,
   PR #6); upstream and fork share one lineage; both content sets preserved.
-- 48/48 unit tests pass; static site published to Vercel at HEAD.
+  **Upstream PR #7 open** (2026-10-22, sync of Tracks 3–4 + CI fix, checks GREEN on
+  upstream's runners). Fork PR #2 (SSR S2/S3 + CI fix) merged 2026-10-22 (`d6d2bde`).
+- 48/48 unit tests pass; static site published to Vercel at HEAD (re-exported
+  2026-10-22 — `07 §A7`). GitHub-hosted CI on the fork is **billing-locked** since
+  2026-10-14; `scripts/ci_local.sh` is the gate of record meanwhile (`06 §3`).
 - Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
   ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
   closed (DIVERGENCE_REPORT §8.5).

@@ -5,7 +5,14 @@ architecture-agnostic directions, free-tier compute plan) with the current state
 this repo. All GPU work assumes free-tier Colab/Kaggle (METHODS §11); total GPU cost
 of the recommended path fits in ~2–3 weeks of Kaggle quota (30 h/week).*
 
-*Last updated 2026-10-14: **Track 3 atlas DONE** (kernel `drift-atlas-v4`, T4, 46 min,
+*Last updated 2026-10-22: **docs/site sync** — `index.html` re-exported (was stale at
+14 sections; the Track-4 SSR section never reached the deployed site), 24 gallery figures
+committed (were gitignored — `07 §A7`), `scripts/ci_local.sh` added as the local CI gate
+(GitHub Actions billing-locked since 10-14; upstream CI green on PR #7).
+Last update before that, 2026-10-15: **Track 4 SSR S1–S3 complete** (verdicts RESEARCH
+§6.7–§6.9, SSR_PLAN §7; results of record `output/ssr{,_s2,_s3}/`; 32/32-leg S3 grid,
+ResNet `stream` +5.1±0.8 replicates, `sublayer` harm confirmed, all ViT cells noise).
+Before that, 2026-10-14: **Track 3 atlas DONE** (kernel `drift-atlas-v4`, T4, 46 min,
 `fail=0` — 6 ImageNet + 2 CIFAR profiles harvested, `output/profiles/` + aggregated
 `output/atlas/` with the Fig. 1 candidate; verdict RESEARCH §5.2 / DPA_DESIGN §2:
 late-heavy drift is the cross-family default, DINOv2 the early-heavy outlier — the

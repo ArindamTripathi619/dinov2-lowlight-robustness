@@ -59,7 +59,7 @@ Root-level: [`../../AGENTS.md`](../../AGENTS.md) — agent operating instruction
 | Presentation | `index.html` (live site) ← built from `apps/presentation.py` — 1887 lines, 15 sections |
 | Committed evidence | `results_pilot/` — 23 artifacts |
 | Configs | `configs/experiments.yaml` (full), `configs/pilot_cpu.yaml` (CPU pilot) |
-| CI | `ci.yml` (tests, py3.10/3.11), `security.yml` (weekly pip-audit) |
+| CI | `ci.yml` (tests, py3.10/3.11; **billing-locked since 2026-10-14** — local gate: `scripts/ci_local.sh`), `security.yml` (weekly pip-audit) |
 | Deploy | static site via Vercel (`tools/export_static_site.py`) |
 | Excluded/ignored | `upstream_src/` (dead), `.vercel/`, `data/`, `output/`, `colab_results/`, `logs/` |
 

@@ -35,7 +35,9 @@ linear probe accuracy     CKA drift, frequency ablation,     70% dark / 30% clea
 to results**: it reads committed artifacts (`output/`, `colab_results/`) and rebuilds charts from them
 (no new experiments). It has **15 sections with sidebar navigation**: home (story), methods, collapse, localize, mechanism, proxy gate, fix, 9-arm grid, families, readout, ExDark, ViT-B, SSR (label-free repair), bugs, figure gallery. The smoke check renders every one of those sections headlessly and exits non-zero if any
 fails — it erases any doubt about whether the site's source actually renders every section from committed
-data, and it can be wired into CI.
+data, and it is wired into the local CI gate (`scripts/ci_local.sh`). After changing the app, re-run
+`python3 tools/export_static_site.py` and commit the refreshed `index.html` + `static/gen/` — the smoke
+renders the source, not the deployed export, so only the re-export keeps the live site in step.
 
 ### Static website — one click to Vercel (no server)
 
@@ -235,6 +237,7 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `run_drift_proxy.py` | Track-1 drift-proxy harness: per-module forward-only proxies vs CKA agreement, pre-registered go/no-go gate (`output/drift_proxy/`) |
 | `run_drift_profile.py` | Severity×corruption drift-profile sweep over one clean pass (Tracks 2+3); produced the ViT-B atlas `output/vitb_profile/` |
 | `scripts/build_kaggle_kernel.py` | Builds the self-contained Kaggle kernel (base64-embedded package files + CIFAR mount + GPU guard); regenerates the v6 kernel byte-identically |
+| `scripts/ci_local.sh` | Local CI gate: reproduces the GitHub-Actions matrix (py3.10/3.11, torch-free deps via `uv`) plus native torch tests, all 9 kernel builds and the presentation smoke — one command, non-zero exit on any failure |
 | `scripts/kaggle/grid_tail.sh` | Corruption-arm chain executed inside the Kaggle kernel |
 | `run_lora_finetune_colab.py` | Phase 3 alternative using the PEFT library |
 | `dinov2_*.ipynb` | Original notebook forms of all three phases |

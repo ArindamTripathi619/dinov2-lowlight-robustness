@@ -1,0 +1,95 @@
+========================================================================
+DRIFT-PROXY FEASIBILITY REPORT (Track 1 gate, docs/ROADMAP.md section 2)
+========================================================================
+model        : torchvision resnet50 IMAGENET1K_V1 (76.130%)
+device       : cpu | torch 2.13.0+cu130
+images       : 100 CIFAR-10 test, seed 42
+degradation  : severity 5 | corruptions: blur, low_light
+modules      : 25 profiled (forward-only, no backprop)
+
+--- blur (severity 5) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+layer1                   0.0593   0.1182   1.1801   0.0271   0.9304    0.0696
+layer1.0                 0.0536   0.0937   1.0512   0.0232   0.9617    0.0383
+layer1.0.downsample      0.1735   0.0000   1.0366   0.0382   0.9888    0.0112
+layer1.1                 0.0572   0.0993   1.1564   0.0253   0.9325    0.0675
+layer1.2                 0.0593   0.1182   1.1801   0.0271   0.9304    0.0696
+layer2                   0.1237   0.1291   1.7437   0.0585   0.7786    0.2214
+layer2.0                 0.1084   0.0860   0.8768   0.0472   0.9567    0.0433
+layer2.0.downsample      0.2612   0.0000   0.7942   0.0889   0.9632    0.0368
+layer2.1                 0.1312   0.0962   1.6703   0.0593   0.8150    0.1850
+layer2.2                 0.1378   0.1174   1.7726   0.0645   0.7720    0.2280
+layer2.3                 0.1237   0.1291   1.7437   0.0585   0.7786    0.2214
+layer3                   0.2692   0.1267   1.5250   0.1232   0.6348    0.3652
+layer3.0                 0.1975   0.0672   1.4205   0.0921   0.6804    0.3196
+layer3.0.downsample      0.5077   0.0000   1.1907   0.1783   0.8320    0.1680
+layer3.1                 0.1900   0.0807   1.5227   0.0906   0.6514    0.3486
+layer3.2                 0.1933   0.0905   1.5265   0.0924   0.6355    0.3645
+layer3.3                 0.2152   0.0990   1.5150   0.1024   0.6167    0.3833
+layer3.4                 0.2482   0.1136   1.4520   0.1171   0.6224    0.3776
+layer3.5                 0.2692   0.1267   1.5250   0.1232   0.6348    0.3652
+layer4                   0.5168   0.0225   1.1024   0.2574   0.4073    0.5927
+layer4.0                 0.3374   0.0397   1.1573   0.1601   0.6545    0.3455
+layer4.0.downsample      0.8447   0.0000   1.1577   0.3733   0.6830    0.3170
+layer4.1                 0.3949   0.0310   1.1036   0.1915   0.5544    0.4456
+layer4.2                 0.5168   0.0225   1.1024   0.2574   0.4073    0.5927
+avgpool                  0.5168   0.0225   1.1024   0.2574   0.4073    0.5927
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.6861 (p=0.0002)  top3=0.67  top5=0.60
+    mean_shift   rho=-0.0451 (p=0.8304)  top3=0.00  top5=0.00
+    cov_shift    rho=0.2048 (p=0.3261)  top3=0.00  top5=0.00
+    cos_drop     rho=0.7910 (p=0.0000)  top3=0.67  top5=0.80
+
+--- low_light (severity 5) ---
+module                   energy     mean      cov     cosd     CKAu CKAu drop
+layer1                   0.0523   0.0756   0.9068   0.0244   0.8663    0.1337
+layer1.0                 0.0644   0.0862   0.8564   0.0298   0.8916    0.1084
+layer1.0.downsample      0.1656   0.0000   0.5316   0.0751   0.9796    0.0204
+layer1.1                 0.0576   0.0781   0.9060   0.0267   0.8718    0.1282
+layer1.2                 0.0523   0.0756   0.9068   0.0244   0.8663    0.1337
+layer2                   0.0927   0.1831   0.9399   0.0439   0.6693    0.3307
+layer2.0                 0.1108   0.0347   0.8814   0.0515   0.8605    0.1395
+layer2.0.downsample      0.3783   0.0000   0.8731   0.1687   0.8828    0.1172
+layer2.1                 0.0885   0.1228   0.9323   0.0425   0.7339    0.2661
+layer2.2                 0.1011   0.1869   0.9424   0.0477   0.6713    0.3287
+layer2.3                 0.0927   0.1831   0.9399   0.0439   0.6693    0.3307
+layer3                   0.1725   0.1344   0.9449   0.0868   0.4719    0.5281
+layer3.0                 0.1315   0.0471   0.9518   0.0664   0.4926    0.5074
+layer3.0.downsample      0.4017   0.0000   0.8608   0.2120   0.6736    0.3264
+layer3.1                 0.1183   0.0638   0.9587   0.0602   0.4873    0.5127
+layer3.2                 0.1201   0.0758   0.9576   0.0610   0.4803    0.5197
+layer3.3                 0.1360   0.0926   0.9561   0.0686   0.4577    0.5423
+layer3.4                 0.1622   0.1154   0.9529   0.0816   0.4652    0.5348
+layer3.5                 0.1725   0.1344   0.9449   0.0868   0.4719    0.5281
+layer4                   0.4861   0.0305   0.9666   0.2556   0.1939    0.8061
+layer4.0                 0.2836   0.0869   0.9488   0.1505   0.4482    0.5518
+layer4.0.downsample      0.6934   0.0000   0.9042   0.4181   0.4840    0.5160
+layer4.1                 0.3441   0.0602   0.9495   0.1839   0.3542    0.6458
+layer4.2                 0.4861   0.0305   0.9666   0.2556   0.1939    0.8061
+avgpool                  0.4861   0.0305   0.9666   0.2556   0.1939    0.8061
+
+  proxy agreement vs CKA profile (ref = cka_unbiased_drop):
+    energy_drop  rho=0.6251 (p=0.0008)  top3=0.67  top5=0.60
+    mean_shift   rho=0.0312 (p=0.8822)  top3=0.00  top5=0.00
+    cov_shift    rho=0.8673 (p=0.0000)  top3=1.00  top5=0.60
+    cos_drop     rho=0.6537 (p=0.0004)  top3=0.67  top5=0.60
+
+------------------------------------------------------------------------
+GATE (roadmap: Spearman rho >= 0.8 on >= 2 corruptions AND full containment at k=5)
+------------------------------------------------------------------------
+  energy_drop  rho: blur=0.6861, low_light=0.6251
+               top5 containment: blur=0.6000, low_light=0.6000
+  mean_shift   rho: blur=-0.0451, low_light=0.0312
+               top5 containment: blur=0.0000, low_light=0.0000
+  cov_shift    rho: blur=0.2048, low_light=0.8673
+               top5 containment: blur=0.0000, low_light=0.6000
+  cos_drop     rho: blur=0.7910, low_light=0.6537
+               top5 containment: blur=0.8000, low_light=0.6000
+
+  best proxy: cos_drop
+  VERDICT: NO-GO
+
+  Fallback per roadmap: keep full CKA as the profiler (it is
+  forward-only and already proven); claim weakens to 'single cheap
+  profiling pass' — the paper does not die here.

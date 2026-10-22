@@ -104,6 +104,33 @@ due to a billing issue"), i.e. the suite had not actually executed on 3.10/3.11 
   (reproduced locally: `uv run --python 3.10 --with numpy,scipy,scikit-learn,scikit-image,pyyaml
   python tests/run_tests.py`, same for 3.11) plus 48/48 on the local torch-enabled env.
 
+### A7. Deployed site drifted from its source; 24 gallery figures were never committed — **[Resolved 2026-10-22]**
+Two coupled defects in the presentation pipeline:
+
+1. `index.html` (deployed site) was last exported at `40fe066` (2026-10-13, 14 sections)
+   and was **never regenerated** after `aa3a006` (2026-10-15) added the Track-4 SSR
+   section — the live site was missing the entire SSR story while the repo docs described
+   it. `PRESENTATION_SMOKE` could not catch this: it renders the *app source*, not the
+   committed export.
+2. The gallery section enumerates `output/**/*.png` from the working tree, so it
+   referenced 24 figures in gitignored dirs (`output/notebook1_{blur,jpeg,contrast}/`,
+   `output/notebook2_{blur,jpeg,contrast}/`, `output/drift_proxy_smoke/`) that were
+   **never committed** — a fresh clone produced broken image links (and the exporter's
+   existence self-check only passed because the files existed locally). The root cause was
+   `.gitignore`: `output/**` plus per-dir negations, where the corruption-family re-run
+   dirs had never been added to the negation list (their base dirs `notebook1/`/`notebook2/`
+   were, which is why the base figures were tracked).
+
+- **Resolved 2026-10-22:** all 24 figures + sibling CSVs committed; `.gitignore` negations
+  added for the 7 dirs; `index.html` re-exported (15 sections, all 245 figures present);
+  exporter badges (`N sections` / `N committed figures`) now derived from the build rather
+  than hardcoded (they said "14 sections / 84 committed figures"); bugs section updated
+  4 → 6 (exit-verifier naming, hardcoded report label). Exporter's existing self-check
+  (broken-src detection) plus the committed files now make the invariant enforceable from
+  a clean clone. **Process rule: re-run `python3 tools/export_static_site.py` and commit
+  the refreshed `index.html` + `static/gen/` whenever `apps/presentation.py` changes** —
+  smoke alone does not prove the deployed site is current.
+
 ## B. Contradiction to resolve
 
 ### B1. Deterministic-noise primitive: present, but report says it was not ported — **[Closed 2026-10-09]**

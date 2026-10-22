@@ -2,7 +2,7 @@
 
 ## 1. Test runner
 
-`tests/run_tests.py` (293 lines) is a **custom, dependency-free test runner** — **not
+`tests/run_tests.py` (~970 lines, incl. tests) is a **custom, dependency-free test runner** — **not
 pytest** (pytest is not a dependency and is not installed in the observed environment).
 
 - Discovery: collects every module-global `callable` whose name starts with `test_`.

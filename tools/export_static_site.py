@@ -6,7 +6,7 @@ The Streamlit app remains the single source of truth. This script installs a sma
 offline — including every widget state (severity sliders, estimator toggle,
 corruption radio) — and writes:
 
-    index.html            one-page site: sidebar nav + all 14 sections
+    index.html            one-page site: sidebar nav + all sections
     static/gen/*.png      matplotlib figures produced by the app's own helpers
 
 Repository assets (output/**, colab_results/**) are referenced in place at their
@@ -738,6 +738,8 @@ def build_page(app, sections_html: dict) -> str:
         f'<a href="#{key}"{(" class=\"active\"" if i == 0 else "")}>{html.escape(labels[key])}</a>'
         for i, key in enumerate(app.SECTION_ORDER))
     body = "".join(sections_html[key] for key in app.SECTION_ORDER)
+    n_sections = len(app.SECTION_ORDER)
+    n_figures = len(set(re.findall(r'<img[^>]+src="([^"]+)', body)))
     extra_css = "".join(SERIALIZER_CSS)
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -767,8 +769,8 @@ def build_page(app, sections_html: dict) -> str:
    ~9% under extreme darkness. This is the full study: where it breaks, why it breaks,
    the cheap-profiling dead end, and the tiny LoRA patch that recovers most of it —
    every number read from committed artifacts, no experiments re-run.</p>
-  <div class="badges"><span class="badge">14 sections</span>
-   <span class="badge">84 committed figures</span>
+  <div class="badges"><span class="badge">{n_sections} sections</span>
+   <span class="badge">{n_figures} committed figures</span>
    <span class="badge">0.99% parameters patched</span>
    <span class="badge">3 seeds × 9 arms</span>
    <span class="badge">ExDark + ViT-B/14 replications</span></div>

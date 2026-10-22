@@ -55,7 +55,7 @@ PILOT-SCALE (test fold n≈60).
 | **Google Colab (GPU)** | `run_*_colab.py`, `run_all_colab.py`, `colab_*.py` | Full-scale GPU runs; outputs land in `colab_results/`. |
 | **Kaggle** | `scripts/build_kaggle_kernel.py`, `scripts/kaggle/*.sh` | Alternative GPU execution (grid tail, ViT-B profile). |
 | **Vercel** | `vercel.json`, `.vercelignore`, `.vercel/`, `index.html` | Hosts the exported static presentation site. |
-| **GitHub Actions** | `.github/workflows/ci.yml`, `security.yml` | CI + weekly security audit. |
+| **GitHub Actions** | `.github/workflows/ci.yml`, `security.yml` | CI + weekly security audit. **Billing-locked since 2026-10-14** — every run aborts in ~4 s with zero steps; `scripts/ci_local.sh` reproduces the gate locally meanwhile (`06 §3`). |
 | **TeX Live / Overleaf** | `paper/Makefile`, `paper/*.sty/.bst` | Paper build (`pdfLaTeX`). |
 
 ## 4. CI configuration
@@ -66,6 +66,10 @@ PILOT-SCALE (test fold n≈60).
 - Installs **only** `numpy scipy scikit-learn scikit-image pyyaml` (deliberately no torch).
 - Runs `python tests/run_tests.py`, then a torch-free import smoke:
   `import src.analysis, src.corruptions, src.probes, src.common`.
+- **Status 2026-10-14 →:** account-level billing lock — jobs never start (fails in
+  ~3–4 s, zero steps). No code/workflow defect; rerun once billing is cleared.
+  Interim gate of record: **`scripts/ci_local.sh`** (same matrix via `uv` + native torch
+  tests + 9 kernel builds + presentation smoke).
 
 ### `.github/workflows/security.yml`
 - Triggers: weekly cron (Mon 06:00 UTC), push to `main` touching `requirements.txt` or the

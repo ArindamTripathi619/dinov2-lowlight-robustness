@@ -541,7 +541,7 @@ def _render_home():
         ("exdark", "7,363 real low-light images: the sim-to-real gap, measured."),
         ("vitb", "86M-parameter replication: late-heavy + MLP > attention; v9 LoRA parity at 24% fewer params (n=3)."),
         ("ssr", "Track 4 label-free repair: gate holds → attachment flips → 32-leg replication (+5.1±0.8)."),
-        ("bugs", "Four bugs, each caught pre-trust, each with a reproducibility lesson."),
+        ("bugs", "Six bugs, each caught pre-trust, each with a reproducibility lesson."),
         ("gallery", "Every committed figure, grouped by phase."),
     ]
     for key, blurb in walk:
@@ -1692,12 +1692,12 @@ def _render_ssr():
 def _render_bugs():
     st.subheader(SECTION_TITLES["bugs"])
     st.markdown("""
-    *Why we show the bugs.* Four bugs slipped into the work at different points — and every one was
+    *Why we show the bugs.* Six bugs slipped into the work at different points — and every one was
     caught by a **sanity check** (metric bounds, unexpected stability, static validation,
-    eval-matching) *before* any conclusion trusted the numbers. Publishing them is the point: a
-    result is only as good as the checks that could have killed it, and each fix left the pipeline
-    stronger — correct formula, actually-independent resamples, ordered definitions, isolated
-    worker RNGs.
+    eval-matching, report cross-checks) *before* any conclusion trusted the numbers. Publishing
+    them is the point: a result is only as good as the checks that could have killed it, and each
+    fix left the pipeline stronger — correct formula, actually-independent resamples, ordered
+    definitions, isolated worker RNGs, self-derived verifier names, no hardcoded report labels.
     """)
     bugs = pd.DataFrame([
         {"#": "1", "Bug": "CKA sqrt bug",
@@ -1712,6 +1712,12 @@ def _render_bugs():
         {"#": "4", "Bug": "Worker-correlated augmentation + unmatched eval noise",
          "What": "NumPy global RNG inside __getitem__ with num_workers=2 (workers fork without re-seeding); eval noise drawn independently for LoRA vs original pass \u2192 jitter.",
          "Fix": "Fixes: per-sample default_rng(seed=idx) for training, precomputed seeded corrupted arrays for eval."},
+        {"#": "5", "Bug": "Kernel exit-verifier hardcoded model dir names",
+         "What": "The SSR S1 kernel's exit verifier hardcoded `vit_small_patch16_224_*` dir names while the driver sanitizes the timm slug (colon \u2192 underscore) \u2192 a fully successful run was misreported as `SSR_S1_FAILED` in the marks log.",
+         "Fix": "Verifier now derives names from the driver's own slug list; regression tests lock the invariant for all three SSR kernels. Lesson: a verifier must share its source of truth, not duplicate it."},
+        {"#": "6", "Bug": "Hardcoded dataset label in report writer",
+         "What": "`write_agreement_report` stamped `CIFAR-10 test` into the txt header of every report, including the ImageNet-val atlas legs (the JSON `meta.dataset` was correct throughout; txt files patched post-run, numbers unaffected).",
+         "Fix": "Label now comes from the dataset argument, guarded by a regression test. Lesson: cross-check human-readable artifacts against their machine-readable twins \u2014 and never hardcode provenance."},
     ])
     st.dataframe(bugs, use_container_width=True, hide_index=True)
     _bullets([

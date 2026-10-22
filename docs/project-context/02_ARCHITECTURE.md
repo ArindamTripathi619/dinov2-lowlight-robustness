@@ -97,7 +97,10 @@ producing the Vercel-deployed site (`index.html`).
 ### 7. CI/quality layer
 `tests/run_tests.py` exercises the torch-free analysis stack (`48/48`). CI installs only
 `numpy scipy scikit-learn scikit-image pyyaml` and runs the tests plus an import smoke.
-Security workflow runs weekly `pip-audit` on `requirements-audit.txt`.
+Security workflow runs weekly `pip-audit` on `requirements-audit.txt`. GitHub-hosted CI
+on this account is billing-locked since 2026-10-14, so **`scripts/ci_local.sh`** reproduces
+the CI matrix locally (via `uv`) and adds the gates CI cannot run (native torch tests,
+all 9 kernel builds, presentation smoke) — see `06 §3`.
 
 ## Key invariants
 

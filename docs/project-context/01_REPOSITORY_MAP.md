@@ -7,9 +7,9 @@
 ```
 dinov2-lowlight-robustness/
 ├── src/                     core importable library (10 modules)
-├── apps/                    presentation.py — site build source (1887 lines, 15 sections)
+├── apps/                    presentation.py — site build source (1893 lines, 15 sections)
 ├── tools/                   export_static_site.py — presentation.py → static site
-├── scripts/                 build_kaggle_kernel.py + scripts/kaggle/*.sh
+├── scripts/                 build_kaggle_kernel.py + ci_local.sh (local CI gate) + scripts/kaggle/*.sh
 ├── configs/                 experiments.yaml (full) + pilot_cpu.yaml (CPU pilot)
 ├── results_pilot/           23 committed pilot CSVs/JSON/numbers.tex (claim artifacts)
 ├── paper/                   manuscript + auto-generated tables/figures + vendored style
@@ -44,7 +44,8 @@ PRESENTATION_SECTION=<name>`) modes used by the static exporter.
 `export_static_site.py` renders each section to HTML/PNG for the Vercel site.
 
 ### `scripts/` — remote runners
-Kaggle kernel builder + GPU shell wrappers.
+Kaggle kernel builder + GPU shell wrappers + `ci_local.sh` (reproduces the CI matrix
+locally while GitHub Actions is billing-locked — see `06 §3`).
 
 ### `configs/` — configuration (single source of truth)
 `experiments.yaml` (full-scale; embedded SHA-256 into results manifest) and

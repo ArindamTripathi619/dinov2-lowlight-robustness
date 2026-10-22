@@ -30,6 +30,15 @@ data/
 output/**
 !output/notebook1/
 !output/notebook2/
+# Corruption-family re-runs (Phase-1/2 per family) — figures/tables of record,
+# referenced by the presentation gallery and RESEARCH §5.1; without these
+# negations the deployed site's images were never committed.
+!output/notebook1_blur/
+!output/notebook1_contrast/
+!output/notebook1_jpeg/
+!output/notebook2_blur/
+!output/notebook2_contrast/
+!output/notebook2_jpeg/
 logs/
 *.png
 !colab_results/**/*.png
@@ -75,6 +84,8 @@ colab_results/sessionA/
 !output/drift_proxy/**
 !output/drift_proxy_dinov2_check/
 !output/drift_proxy_dinov2_check/**
+!output/drift_proxy_smoke/
+!output/drift_proxy_smoke/**
 
 # Track 2 v8 ViT-B drift-profile kernel results of record (same situation)
 # Presentation app source
