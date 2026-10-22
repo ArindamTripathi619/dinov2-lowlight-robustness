@@ -59,6 +59,10 @@ configs/*.yaml ──► run_experiments.py (registry) ──► src/* (library)
 ## 5. Reproduce / run (safe, no GPU)
 
 ```bash
+# Full local gate (CI matrix via uv + native torch tests + kernels + presentation smoke;
+# use this while GitHub-hosted CI is billing-locked — see 06 §3)
+bash scripts/ci_local.sh
+
 # Unit tests (custom runner, NOT pytest)
 python3 tests/run_tests.py            # expected: 48/48 pass, exit 0
 

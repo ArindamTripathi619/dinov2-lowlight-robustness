@@ -29,6 +29,7 @@ contributed `src/`/`tests/`/`paper/`/CI (see `docs/DIVERGENCE_REPORT.md`).
 ## Verify before/after any change
 
 ```bash
+bash scripts/ci_local.sh                                      # full local gate: CI matrix + native + kernels + smoke
 python3 tests/run_tests.py                                    # expect 48/48, exit 0
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # only if touching the site's source
@@ -37,7 +38,10 @@ git status --porcelain
 
 There is **no pytest, no lint, no typecheck** in this repo. The custom runner is the gate.
 CI (`.github/workflows/ci.yml`) runs the same two commands on Python 3.10/3.11 with a
-torch-free dependency set.
+torch-free dependency set. **GitHub-hosted CI is currently billing-locked** (runs abort
+in ~4s with zero steps since 2026-10-14); until billing is cleared, `scripts/ci_local.sh`
+is the gate of record — it reproduces the CI matrix exactly and adds the gates CI cannot
+run (native torch tests, all 9 kernel builds, presentation smoke).
 
 ## Environment notes
 

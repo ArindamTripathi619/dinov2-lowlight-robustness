@@ -52,6 +52,26 @@ torch-enabled local environments.
 
 This proves the **torch-optional import invariant** enforced by `src/common.py:_torch`.
 
+**Status (2026-10-16 →):** GitHub-hosted CI is **billing-locked** for the account — every
+run (push, PR, schedule, manual) aborts in ~3–4 s with zero steps started and the
+annotation *"account is locked due to a billing issue"*. This is an account-level action,
+not a workflow or code failure; the workflow above is unchanged and will run again once
+billing is cleared (`gh run rerun <id>`).
+
+### `scripts/ci_local.sh` — local reproduction of the CI gate
+
+Until GitHub-hosted runners work, **`bash scripts/ci_local.sh` is the gate of record**.
+One command, exits non-zero on first failure:
+
+1. `tests/run_tests.py` + import smoke on **Python 3.10** (CI matrix, torch-free deps via `uv`)
+2. the same on **Python 3.11** (CI matrix)
+3. the same on the **native python3** (torch-optional tests active) + runner imports
+   (`run_drift_proxy`, `run_drift_profile`, `run_ssr`)
+4. builds **all 9 Kaggle kernel variants** (`build_kaggle_kernel.py` — catches manifest wiring regressions)
+5. **presentation smoke** — renders all 15 sections headlessly
+
+Verified ALL GREEN on 2026-10-22: 48/48 tests on 3.10, 3.11, and native; 9/9 kernels; 15/15 sections.
+
 ### `.github/workflows/security.yml`
 - Weekly (Mon 06:00 UTC) + on push touching `requirements.txt` / the workflow.
 - `pip-audit -r requirements-audit.txt --strict` — torch-free stack only, by design.
@@ -85,6 +105,7 @@ This proves the **torch-optional import invariant** enforced by `src/common.py:_
 ## 6. How to verify a change (practical checklist)
 
 ```bash
+bash scripts/ci_local.sh                                      # full gate (CI matrix + native + kernels + smoke)
 python3 tests/run_tests.py                                   # 48/48 expected
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # if touching the site's source

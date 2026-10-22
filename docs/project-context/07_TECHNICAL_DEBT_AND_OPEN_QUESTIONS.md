@@ -175,6 +175,16 @@ seeded protocol (`default_rng(1000 + severity)`) drives every committed artifact
    ("Run real CPU pilot, add collapse finding, supplementary suite, CVPR audit") — that
    commit's harness state is the generator of record; HEAD's writer schema differs (the
    `cka_summary.json` drift above). Byte-exact re-runs must check out `128e9cb`.
+9. **[Risk, external] GitHub-hosted CI is billing-locked.** Every Actions run (push, PR,
+   schedule, manual) since 2026-10-14 aborts in ~3–4 s with zero steps started and the
+   annotation *"account is locked due to a billing issue"* — an account-level action, not
+   a workflow/code defect. `main` has no branch protection, so merges are unblocked, but
+   PR checks stay red until billing is cleared; then `gh run rerun <id>` should pass (the
+   exact recipe passes locally). Mitigation: **`scripts/ci_local.sh`** reproduces the CI
+   matrix (py3.10/3.11, torch-free deps via `uv`) plus the gates GitHub CI cannot run
+   (native torch tests, 9 kernel builds, presentation smoke) and is the gate of record
+   in the interim (2026-10-22: ALL GREEN). Related: the weekly `pip-audit` Security
+   workflow fails the same way and needs no code change.
 
 ## F. Suggested triage order (if asked to harden)
 
