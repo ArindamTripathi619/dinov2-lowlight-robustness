@@ -245,6 +245,7 @@ The kernel hard-aborts without CUDA, mounts CIFAR-10 from a private Kaggle datas
 | `colab_results/` | Colab-run artifacts (LoRA plots + log, earlier Phase 1/2 runs, Phase 3 v2 grid in `sessionD/`, corruption-family sessions E + F) |
 | `colab_results/kaggle_sessionF/` | Kaggle T4 corruption-grid artifacts: jpeg/contrast drift + uniform arms, nb2_contrast Phase-2 run, full kernel + per-arm logs |
 | `colab_gpu_bench.py`, `colab_probe.py` | Colab CLI probes: auth/runtime check + T4 throughput benchmark |
+| `docs/ASSESSMENT.md` | **Whole-project assessment** (start here for the big picture): what we set out to do, what we found, success scorecard, what's left and how — with mermaid diagrams |
 | `docs/RESEARCH.md` | **Full research narrative**: aim, hypotheses, methodology rationale, findings, bugs-as-lessons, limitations, future work |
 | `docs/METHODS.md` | Formal methods appendix: corruption parameter tables, CKA math, seed registry, environment versions |
 | `docs/DPA_DESIGN.md` | Design doc for Drift-Profiled Adaptation (DPA) + Selective Statistic Recalibration (SSR): gate outcome, allocation taxonomy, prior-art search log |

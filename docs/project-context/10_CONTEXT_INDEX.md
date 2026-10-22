@@ -25,6 +25,7 @@ Root-level: [`../../AGENTS.md`](../../AGENTS.md) — agent operating instruction
 | File | Read it for |
 |---|---|
 | `README.md` | Top-level quickstart, claims registry, section list. |
+| `docs/ASSESSMENT.md` | **Whole-project assessment**: what we set out to do, what we found, success scorecard, what's left and how — with mermaid diagrams. Start here for the big picture. |
 | `docs/RESEARCH.md` | Master research narrative + all results. |
 | `docs/METHODS.md` | Methods, protocols, reference environment (§10). |
 | `docs/DPA_DESIGN.md` | Diagnostic-guided parameter (LoRA rank) allocation design. |
