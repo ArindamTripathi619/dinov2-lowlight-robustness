@@ -1,0 +1,35 @@
+========================================================================
+SSR — model=resnet50, corruption=low_light, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=profiled
+Device: cuda
+========================================================================
+Drift selection (top-6/25 (25%) @profiled by cka_unbiased_drop): ['layer1', 'layer1.1', 'layer1.2', 'layer4', 'layer4.2', 'avgpool']
+Loaded 640 images from ImageNet-val extract at '/kaggle/input/datasets/sautkin/imagenet1kvalid' (1000 class folders), seed=42
+[+30.5s] ImageNet cache MISS -> wrote ssr_cache/imagenet_n640_seed42_050cc56e.pkl (400 MB)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Downloading: "https://download.pytorch.org/models/resnet50-0676ba61.pth" to /root/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+  0%|          | 0.00/97.8M [00:00<?, ?B/s]  9%|▊         | 8.50M/97.8M [00:00<00:01, 88.6MB/s] 29%|██▉       | 28.2M/97.8M [00:00<00:00, 158MB/s]  49%|████▉     | 47.9M/97.8M [00:00<00:00, 179MB/s] 69%|██████▊   | 67.1M/97.8M [00:00<00:00, 188MB/s] 89%|████████▊ | 86.8M/97.8M [00:00<00:00, 194MB/s]100%|██████████| 97.8M/97.8M [00:00<00:00, 185MB/s]
+Model: torchvision resnet50 IMAGENET1K_V1 (76.130%)
+  forward pass: 1 images in 1.3s
+25 modules fire; channel axes: {'layer1': 1, 'layer1.1': 1, 'layer1.2': 1, 'layer4': 1, 'layer4.2': 1, 'avgpool': 1}
+  forward pass: 128 images in 13.8s
+[+14s] clean calibration moments on 128 images
+  forward pass: 32 images in 3.3s
+  forward pass: 32 images in 3.3s
+  forward pass: 32 images in 3.3s
+  forward pass: 32 images in 3.3s
+Gate tau=0.106021 (clean distances max=0.106021)
+  forward pass: 128 images in 13.9s
+  forward pass: 128 images in 13.7s
+Identity check (clean inputs): d=0.000000 <= tau=0.106021 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7285 (d=0.210, gate=open)
+  sev1 ssr_topk     top1=0.6406 (d=0.210, gate=open)
+  sev1 ssr_gate_off top1=0.6406 (d=0.210, gate=open)
+  sev1 tent         top1=0.7305 (d=0.210, gate=open)
+  forward pass: 128 images in 13.6s
+  sev5 frozen       top1=0.3301 (d=0.861, gate=open)
+  sev5 ssr_topk     top1=0.0020 (d=0.861, gate=open)
+  sev5 ssr_gate_off top1=0.0020 (d=0.861, gate=open)
+  sev5 tent         top1=0.3145 (d=0.861, gate=open)
+  Saved output/ssr_s2/resnet50_profiled_low_light/ssr_results.csv
+  Saved output/ssr_s2/resnet50_profiled_low_light/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=144s

@@ -101,6 +101,16 @@ Lazy-imported by the harness (`run_experiments.py:566`).
 
 ## Root shared libraries
 
+### `agreement_report.py` (89 lines) — torch-free gate-report rendering
+Split out of `run_drift_proxy.py` (torch at module scope) so the dataset-label regression
+test runs in CI's torch-free environment; `run_drift_proxy` re-exports `PROXY_KEYS` and
+`write_agreement_report`, so its callers are unchanged.
+| Symbol | Line | Notes |
+|---|---|---|
+| `PROXY_KEYS` | 17 | Proxy candidates + report order; re-exported by `run_drift_proxy`. |
+| `DATASET_LABELS` | 19 | `cifar10` / `imagenet` header labels for the report line. |
+| `write_agreement_report(...)` | 26 | txt + json Track 1/3 gate report; called by `run_drift_profile.py` via `rdp.`. |
+
 ### `stats_tools.py` (223 lines)
 Torch-free port of the statistics stack. **Duplicates much of `src/analysis.py`** plus
 additions:
@@ -139,24 +149,25 @@ Legacy/shared image + plotting utilities, **duplicating** parts of `src/`:
 | `run_readout_repair.py` | Readout-staleness repair | hardened paired-perm + Wilson CI |
 | `run_exdark_baseline.py` | Real-dark baseline + CLAHE | uses opencv `clahe_enhance` |
 | `run_vitb_generality.py` | ViT-B/14 replication | — |
+| `run_ssr.py` | Track 4 SSR runner; `--attach {profiled,stream,sublayer,norm}` scope legs (S2 probe) | arms chain in `main()`; identity check per run |
 | `analyze_seeds.py` | Seed-sensitivity analysis | `None`-guard bug at 97,99 |
 | `make_paper_tables.py` / `make_paper_figures.py` | `results_pilot/` → `paper/` | — |
 | `analyze_seeds.py`, `cka_recompute.py`, `cka_unbiased_recompute.py` | post-hoc analysis | — |
 | `tools/export_static_site.py` (902) | `presentation.py` → static site | drives `PRESENTATION_STATIC` |
 
-## `apps/presentation.py` (1569 lines) — structure
+## `apps/presentation.py` (1887 lines) — structure
 
 | Element | Line(s) |
 |---|---|
-| `PROJECT/OUTPUT/COLAB` path constants | 29-31 |
-| `st.set_page_config(...)` | 33-34 |
-| `SECTION_ORDER` (14 keys) | 41-44 |
-| `SECTION_LABELS` | 46-61 |
-| `SECTION_TITLES` | 63-78 |
-| Section renderers | `_render_home` 399, `_render_methods` 504, `_render_collapse` 793, `_render_localize` 826, `_render_mechanism` 869, `_render_proxy` 915, `_render_fix` 970, `_render_grid` 1022, `_render_families` 1081, `_render_readout` 1172, `_render_exdark` 1228, `_render_vitb` 1294, `_render_bugs` 1382, `_render_gallery` 1453 |
-| `RENDERERS` dispatch | 1483-1498 |
-| `main()` | 1529 |
-| Entry guard | 1568 |
+| `PROJECT/OUTPUT/COLAB` path constants | 30-32 |
+| `st.set_page_config(...)` | 34-35 |
+| `SECTION_ORDER` (15 keys) | 42-45 |
+| `SECTION_LABELS` | 47-63 |
+| `SECTION_TITLES` | 65-81 |
+| Section renderers | `_render_home` 433, `_render_methods` 551, `_render_collapse` 840, `_render_localize` 873, `_render_mechanism` 916, `_render_proxy` 962, `_render_fix` 1017, `_render_grid` 1069, `_render_families` 1128, `_render_readout` 1219, `_render_exdark` 1275, `_render_vitb` 1341, `_render_ssr` 1608, `_render_bugs` 1692, `_render_gallery` 1769 |
+| `RENDERERS` dispatch | 1800-1816 |
+| `main()` | 1847 |
+| Entry guard | 1886 |
 
 Modes: `PRESENTATION_SMOKE=1` (render check), `PRESENTATION_STATIC=1
 PRESENTATION_SECTION=<name>` (single-section HTML for export).

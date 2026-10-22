@@ -1,0 +1,33 @@
+========================================================================
+SSR — model=timm:vit_small_patch16_224, corruption=low_light, arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'], attach=norm
+Device: cuda
+========================================================================
+Drift selection (top-6/24 (25%) @norm by cka_unbiased_drop): ['blocks.6.norm2', 'blocks.8.norm2', 'blocks.9.norm1', 'blocks.10.norm1', 'blocks.10.norm2', 'blocks.11.norm2']
+[+0.3s] ImageNet cache HIT: ssr_cache/imagenet_n640_seed42_050cc56e.pkl (640 images)
+pool=128 (calibration + estimation), eval=512 (disjoint, SSR_PLAN §6)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Model: timm vit_small_patch16_224 (22.1M params, pretrained=True)
+  forward pass: 1 images in 0.2s
+24 modules fire; channel axes: {'blocks.6.norm2': 2, 'blocks.8.norm2': 2, 'blocks.9.norm1': 2, 'blocks.10.norm1': 2, 'blocks.10.norm2': 2, 'blocks.11.norm2': 2}
+  forward pass: 128 images in 3.2s
+[+3s] clean calibration moments on 128 images
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+  forward pass: 32 images in 0.7s
+Gate tau=0.063963 (clean distances max=0.063963)
+  forward pass: 128 images in 3.0s
+  forward pass: 128 images in 3.0s
+Identity check (clean inputs): d=0.000000 <= tau=0.063963 -> gate closed; disarmed-hook max|dlogit|=0.0 -> BIT-IDENTICAL
+  sev1 frozen       top1=0.7363 (d=0.117, gate=open)
+  sev1 ssr_topk     top1=0.7363 (d=0.117, gate=open)
+  sev1 ssr_gate_off top1=0.7363 (d=0.117, gate=open)
+  sev1 tent         top1=0.7363 (d=0.117, gate=open)
+  forward pass: 128 images in 3.0s
+  sev5 frozen       top1=0.0918 (d=0.592, gate=open)
+  sev5 ssr_topk     top1=0.0547 (d=0.592, gate=open)
+  sev5 ssr_gate_off top1=0.0547 (d=0.592, gate=open)
+  sev5 tent         top1=0.0918 (d=0.592, gate=open)
+  Saved output/ssr_s2/timm_vit_small_patch16_224_norm_low_light/ssr_results.csv
+  Saved output/ssr_s2/timm_vit_small_patch16_224_norm_low_light/ssr_meta.json
+SSR_DONE arms=['frozen', 'ssr_topk', 'ssr_gate_off', 'tent'] wall=61s

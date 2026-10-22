@@ -12,7 +12,7 @@ mitigate it cheaply. It is organized as three phases — **measure** (Phase 1:
 accuracy/noise curves), **localize** (Phase 2: per-layer CKA / frequency / mechanism),
 **remediate** (Phase 3: enhancement baselines, readout repair, LoRA allocation) — plus a
 real-dark **ExDark** sim-to-real boundary study. Results feed a CVPR-style paper
-(`paper/`) and a 14-section presentation deployed as a static site (`index.html`, built from `apps/presentation.py`).
+(`paper/`) and a 15-section presentation deployed as a static site (`index.html`, built from `apps/presentation.py`).
 
 ## 2. The one rule
 
@@ -59,8 +59,12 @@ configs/*.yaml ──► run_experiments.py (registry) ──► src/* (library)
 ## 5. Reproduce / run (safe, no GPU)
 
 ```bash
+# Full local gate (CI matrix via uv + native torch tests + kernels + presentation smoke;
+# use this while GitHub-hosted CI is billing-locked — see 06 §3)
+bash scripts/ci_local.sh
+
 # Unit tests (custom runner, NOT pytest)
-python3 tests/run_tests.py            # expected: 26/26 pass, exit 0
+python3 tests/run_tests.py            # expected: 48/48 pass, exit 0
 
 # Torch-free import smoke (as CI does)
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"

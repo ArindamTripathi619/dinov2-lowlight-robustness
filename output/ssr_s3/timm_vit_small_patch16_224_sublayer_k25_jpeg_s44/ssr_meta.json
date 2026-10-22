@@ -1,0 +1,47 @@
+{
+  "model_desc": "timm vit_small_patch16_224 (22.1M params, pretrained=True)",
+  "corruption": "jpeg",
+  "attach": "sublayer",
+  "profile_csv": "output/profiles/vit_small_patch16_224/drift_profile_sev5_jpeg.csv",
+  "selection": "top-6/24 (25%) @sublayer",
+  "selected_modules": [
+    "blocks.5.mlp",
+    "blocks.7.mlp",
+    "blocks.8.attn",
+    "blocks.8.mlp",
+    "blocks.9.attn",
+    "blocks.10.mlp"
+  ],
+  "n_pool": 128,
+  "n_eval": 512,
+  "seed": 44,
+  "gate": {
+    "tau": 0.09126173174081044,
+    "clean_distances": [
+      0.08925469138872273,
+      0.09126173174081044,
+      0.0905524050043997,
+      0.08869023025365103
+    ],
+    "quantile": 1.0,
+    "margin": 1.0
+  },
+  "identity": {
+    "clean_shift_distance": 0.0,
+    "gate_closed_on_clean": true,
+    "disarmed_hooks_max_abs_logit_diff": 0.0,
+    "bit_identical": true
+  },
+  "per_condition_shift": {
+    "jpeg@sev5": 0.15388818080918776
+  },
+  "arms": [
+    "frozen",
+    "ssr_topk",
+    "ssr_gate_off",
+    "tent"
+  ],
+  "device": "cuda",
+  "torch": "2.11.0+cu128",
+  "wall_s": 50.65299320220947
+}

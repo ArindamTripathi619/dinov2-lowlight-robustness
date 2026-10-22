@@ -291,7 +291,7 @@ Note on the txt reports: the `images :` header line said "CIFAR-10 test" for the
 
 ### 7.11 SSR S1 smoke (`run_ssr.py`; kernel `ssr-s1`)
 
-Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Runner `run_ssr.py`; core math (`channel_stats`, `apply_affine`, shift distance, gate, top-k selector) is the torch-free `src/ssr.py` already covered by §CI tests (44/44).
+Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Runner `run_ssr.py`; core math (`channel_stats`, `apply_affine`, shift distance, gate, top-k selector) is the torch-free `src/ssr.py` already covered by §CI tests (47/47 at the S2 harness landing, 2026-10-15).
 
 | Item | Value |
 |------|-------|
@@ -306,6 +306,94 @@ Track 4's first real-data session (SSR_PLAN §7 S1; verdict RESEARCH §6.7). Run
 | Artifacts of record | `output/ssr/<model>_<corr>/`: `ssr_results.csv` (16 rows = 8 arms × 2 severities, or 14 for ViT-S), `ssr_meta.json` (selection, gate, identity, per-condition shift), `ssr.log`; run audit `output/ssr_marks.log` |
 
 Known incident (harness, not results): the kernel's exit verifier initially hardcoded `vit_small_patch16_224_*` dir names while `ssr.sh` sanitizes the timm slug to `timm_vit_small_patch16_224_*` (colon → underscore), so the completed run was misreported as `SSR_S1_FAILED` in `output/ssr_marks.log` despite all four legs rc=0 with valid artifacts. Verifier now derives names from the driver's slug list; regression test `test_ssr_kernel_verifier_matches_driver_dir_names` (44th test) locks the invariant.
+
+### 7.12 SSR S2 attachment-point probe (`run_ssr.py --attach`; kernel `ssr-s2`)
+
+Track 4's S2 probe (SSR_PLAN §7.2; verdict RESEARCH §6.8). Protocol = §7.11 byte-for-byte with `--attach` as the only design variable; scope logic in the torch-free `src/ssr.py` (`module_in_scope`, `map_scope_rows`), driver `scripts/kaggle/ssr_s2.sh`, builder variant `ssr_s2`.
+
+| Item | Value |
+|------|-------|
+| Models | the same two: torchvision ResNet-50 IMAGENET1K_V1 (BN) and timm `vit_small_patch16_224` pretrained (LN), frozen, eval mode, CUDA |
+| Data | identical draw and split to §7.11: `sautkin/imagenet1kvalid` mount, n_total = 640 (`--n-est 128 --n-images 512`), first 128 = calibration/estimation pool (B = 4 × 64), remaining 512 = eval, seed 42, matched-noise `rng 1000 + severity` (§7.3), same cached image list `ssr_cache/imagenet_n640_seed42_*.pkl` |
+| Corruptions × severities | **low_light × {1, 5} only** — S1's maximal-harm family and the §2 luminance family; jpeg deferred to S3 |
+| Legs (`--attach`) | 7: ResNet-50 {profiled, sublayer, stream} + ViT-S {profiled, sublayer, stream, norm}; output dir `output/ssr_s2/<slug>_<scope>_low_light/` |
+| Selection (of record) | k = top 25% of the **scope's rows** of the same severity-5 atlas CSVs: profiled top-6/25 / top-10/38 (S1 parity), sublayer top-4/16 / top-6/24, stream top-1/4 / top-3/12, norm top-6/24 (norm rows borrow their sublayer's drift rank: norm1 ← attn, norm2 ← mlp — the atlas does not hook norms). Exact module lists in each `ssr_meta.json.selected_modules` (e.g. ResNet stream = [`layer4`]; ViT stream = [`blocks.7`, `blocks.8`, `blocks.11`]) |
+| Gate | τ per leg (each scope forms its own moment set): ResNet 0.106 / 0.112 / 0.091 (profiled / stream / sublayer); ViT 0.082 / 0.088 / 0.068 / 0.064 (profiled / sublayer / stream / norm). Open at sev 1 and 5 on all 7 legs; closed on clean ×7 |
+| Identity check (C2) | 7/7 legs `bit_identical: true`, disarmed-hook max abs logit diff 0.0 |
+| Arms | frozen · ssr_topk · ssr_gate_off · tent (adaptation-only control, unaffected by attachment) — `ssr_gate_off` ≡ `ssr_topk` in every cell because the gate was open in every shifted evaluation |
+| Compute | kernel `arindamtripathi/ssr-s2` v1, Tesla T4, **601 s (10 min)** — legs 162 / 95 / 65 / 80 / 69 / 63 / 67 s in driver order (ResNet profiled/sublayer/stream, then ViT profiled/sublayer/stream/norm); built via `scripts/build_kaggle_kernel.py --variant ssr_s2`, tail `scripts/kaggle/ssr_s2.sh`; exit marker `SSR_S2_COMPLETE` (verifier derives dir names from the driver's legs — `test_ssr_s2_kernel_verifier_matches_driver_dir_names`) |
+| Artifacts of record | `output/ssr_s2/<slug>_<scope>_low_light/`: `ssr_results.csv` (8 rows = 4 arms × 2 severities), `ssr_meta.json` (`attach`, `selection`, `selected_modules`, `gate`, `identity`), `ssr.log`; run audit `output/ssr_s2_marks.log` |
+| Known harness notes | (1) `profiled` selections contain same-tensor container/child pairs (ViT `blocks` + `blocks.11`; ResNet `layer1` + `layer1.2` and `layer4` + `layer4.2` — verified identical tensor object, so those affines compose twice); the duplication exists in S1's run as well (hence the exact profiled parity), and the non-profiled scopes are duplicate-free (containers excluded by `module_in_scope`). (2) `ssr_meta.json.per_condition_shift` keys both severities as `low_light@sev5` (leaked severity loop variable overwrites the sev1 entry) — the per-row `shift_distance` in `ssr_results.csv` is correct; meta-only defect, both noted for S3. |
+
+---
+
+## 7.13 SSR S3 replication grid — seeds × {low_light, jpeg} × severity ladder before promoting any positive claim (Track 4, 2026-10-15)
+
+**Run.** The S2 probe (§6.8/§7.12) resolved the attachment-versus-mechanism question at a single seed, but the framework's claim structure requires replication across the full experimental grid before any positive claim is promoted. This kernel `arindamtripathi/ssr-s3` v1, Tesla T4, produced **all 32 planned legs complete** — 24 replication legs at k = 25% of each scope's rows (2 models × 2 scopes × 2 corruptions × seeds 42/43/44) plus 8 k-matched legs at seed 42 (ResNet-50 top-1, ViT-S top-3) — all rc=0, identity bit-identical on 32/32, `script_done fail=0 legs=32`. Driver wall 2 125 s ≈ **35 min** (`output/ssr_s3_marks.log`).
+
+**Replication table:** per (model, scope, corr, severity) the ssr_topk delta-vs-frozen as mean ± sd across the 3 replication seeds (k = 25; every cell n = 3).
+
+| model       | scope     | corr       | sev  | n   | delta mean±sd  |
+|-------------|-----------|------------|------|-----|----------------|
+| ResNet50    | stream    | jpeg       | 1    | 3   | +0.0±0.0       |
+| ResNet50    | stream    | jpeg       | 5    | 3   | +4.1±2.4       |
+| ResNet50    | stream    | low_light  | 1    | 3   | +0.2±0.7       |
+| ResNet50    | stream    | low_light  | 5    | 3   | +5.1±0.8       |
+| ResNet50    | sublayer  | jpeg       | 1    | 3   | +0.0±0.0       |
+| ResNet50    | sublayer  | jpeg       | 5    | 3   | −24.0±1.6      |
+| ResNet50    | sublayer  | low_light  | 1    | 3   | −7.6±1.9       |
+| ResNet50    | sublayer  | low_light  | 5    | 3   | −32.8±1.2      |
+| ViT-S/16    | stream    | jpeg       | 1    | 3   | +0.0±0.0       |
+| ViT-S/16    | stream    | jpeg       | 5    | 3   | −0.9±1.1       |
+| ViT-S/16    | stream    | low_light  | 1    | 3   | −0.5±0.7       |
+| ViT-S/16    | stream    | low_light  | 5    | 3   | −4.6±1.4       |
+| ViT-S/16    | sublayer  | jpeg       | 1    | 3   | +0.0±0.0       |
+| ViT-S/16    | sublayer  | jpeg       | 5    | 3   | −0.1±0.7       |
+| ViT-S/16    | sublayer  | low_light  | 1    | 3   | +0.1±0.3       |
+| ViT-S/16    | sublayer  | low_light  | 5    | 3   | −3.1±1.7       |
+
+→ **ResNet stream at sev5 low_light (+5.1±0.8) and stream jpeg (+4.1±2.4) are reproducible** across the 3 seeds — the S2 positive generalizes to the full seed distribution.
+
+→ **ResNet sublayer at sev5 low_light (−32.8±1.2) and jpeg (−24.0±1.6) remain strongly negative** across all seeds, confirming the scope-qualified harm.
+
+→ **ViT stream at sev5 low_light (−4.6±1.4) and jpeg (−0.9±1.1) are noise-level** across seeds, consistent with S2's −1.4 / −4.9 findings.
+
+→ **ViT sublayer is noise-level in every cell** (low_light sev5 −3.1±1.7, jpeg sev5 −0.1±0.7): the +0.8 jpeg-sev5 value seen at seed 42 alone **fails to replicate** — it does not become a third roster cell.
+
+**S2 parity check** (low_light, seed 42, k25): all 8 (model × scope × severity) cells reproduce S2 **exactly** — ResNet stream +0.8 / +4.3, ResNet sublayer −6.2 / −32.2, ViT stream −0.4 / −4.9, ViT sublayer +0.4 / −1.4 — so the S2 snapshot is bit-for-bit confirmed; the only new information is the cross-seed spread in the table above.
+
+**K-matched control** (seed 42): dedicated k = absolute-top-row legs vs the k = 25% primary (ResNet top-1; ViT top-3), isolating row-set size from location:
+
+| model       | scope     | corr       | sev  | k25      | k_abs    |
+|-------------|-----------|------------|------|----------|----------|
+| ResNet50    | stream    | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | stream    | jpeg       | 5    | +3.3     | +3.3     |
+| ResNet50    | stream    | low_light  | 1    | +0.8     | +0.8     |
+| ResNet50    | stream    | low_light  | 5    | +4.3     | +4.3     |
+| ResNet50    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | sublayer  | jpeg       | 5    | −25.6    | +3.3     |
+| ResNet50    | sublayer  | low_light  | 1    | −6.2     | +0.8     |
+| ResNet50    | sublayer  | low_light  | 5    | −32.2    | +4.3     |
+| ViT-S/16    | stream    | jpeg       | 1    | +0.0     | +0.0     |
+| ViT-S/16    | stream    | jpeg       | 5    | −2.0     | −2.0     |
+| ViT-S/16    | stream    | low_light  | 1    | −0.4     | −0.4     |
+| ViT-S/16    | stream    | low_light  | 5    | −4.9     | −4.9     |
+| ViT-S/16    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ViT-S/16    | sublayer  | jpeg       | 5    | +0.8     | +1.0     |
+| ViT-S/16    | sublayer  | low_light  | 1    | +0.4     | −0.4     |
+| ViT-S/16    | sublayer  | low_light  | 5    | −1.4     | −2.0     |
+
+→ **Where k25 already equals k_abs the rerun is a harness sanity check**: ResNet `stream` has 4 stage rows (25% → k = 1) and ViT `stream` 12 (25% → k = 3) — those legs reproduce exactly, so the stream positive *is* the minimal single-module repair (ResNet `layer4`).
+
+→ **The informative contrast is ResNet `sublayer` (k25 = 4 vs k_abs = 1)**: at k = 1 its top row is `layer4.2` — the *same tensor* as `stream`'s `layer4` — and it matches the stream result (+4.3 @sev5); the collapse appears only when the 25% set pulls in the mid/early rows (−6.2 @sev1, −32.2 @sev5). **The harm is carried by the extra mid/early rows, not by the top-ranked location.**
+
+→ **ViT sublayer (k25 = 6 vs k_abs = 3) stays noise-level under both k settings** (low_light sev5 −1.4 vs −2.0; jpeg +0.8 vs +1.0) — nothing resolvable above noise, and over 3 seeds the same cells read −3.1±1.7 / −0.1±0.7.
+
+→ **Control: TENT stays flat across the grid** — ViT exactly 0.0 in every leg; ResNet within −0.6..+0.4 pts at sev1 and −1.8..+2.0 pts at sev5 (S1's band on its own legs was −1.8..+0.8; the +2.0 jpeg-sev5 end is the largest deviation). The identity gate held bit-identical on 32/32 legs.
+
+**Verdict.** S3 is **replication, not rescue**, and it is now *complete for the planned grid*: 32/32 legs, identity 32/32, S2 exact at seed 42. What replicates: ResNet-50 `stream` (low_light sev5 **+5.1±0.8**, jpeg +4.1±2.4 over 3 seeds); what is confirmed negative: ResNet `sublayer` (−32.8±1.2 low_light / −24.0±1.6 jpeg); what is noise: every ViT-S cell — including the seed-42-only jpeg positive that failed to replicate. The roster of confirmed positives stands at exactly two cells: (a) CLAHE@ViT-S low_light sev5 (+22.3, from §6.2) and (b) SSR-stream@ResNet-50 low_light sev5 (+4.3 at seed 42 → **+5.1±0.8** over 3 seeds, from §6.8/§7.12). Before promoting (b) past this grid: the **deduplicated-profiled ablation** (harness caveat §7.12) and the **4 remaining models of the 6-model grid** are still open.
+
+**Limits.** 3 seeds (42/43/44), n_eval = 512 (±2 pts readable), two models, two corruptions, two scopes, k = 25% with the k-matched arm at one seed — this grid priced at ~90 min (actual: ~35 min), against the S2 probe's ~1 h price (actual: 10 min). Artifacts (committed): `output/ssr_s3/{resnet50,timm_vit_small_patch16_224}_{stream,sublayer}_k{25,1|3}_{low_light,jpeg}_s{42,43,44}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_s3_marks.log` (`script_done fail=0 legs=32`). Re-harvest: `kaggle kernels output arindamtripathi/ssr-s3 -p <dir>`; aggregate in-repo: `python3 scripts/analyze_ssr_s3.py`.
 
 ---
 

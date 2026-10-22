@@ -315,9 +315,109 @@ Top-1 (%), gate state in brackets — the full grid in `output/ssr/*/ssr_results
 
 **Gate-off ablation (ResNet jpeg sev1: 74.8 → 75.4, +0.6).** Always-on recalibration at the mildest shift produced a +0.6 pt change — within noise, and against −8.8 at low_light sev1 — so the gate's conservative closed verdict at jpeg sev1 trades a noise-level possible gain for guaranteed identity; that is the correct trade for a safety property.
 
-**Verdict.** SSR's four claims survive; its mechanism does not. What the S1 run establishes for the framework paper: (a) the clean-calibrated shift gate gives exactly-identity on clean inputs *and* correct shift/no-shift discrimination on real data, cross-family; (b) drift-ranked selection from the shared atlas bounds the damage of a failing repair by 50+ points relative to adapt-all — the one-measurement-two-consumers selection signal demonstrably does real work; (c) on this roster the only label-free test-time recipe that never hurts is TENT, and the only large positive is CLAHE on one backbone. Whether the repair failure is mechanistic (second-moment matching itself) or an attachment-point artifact (SSR_PLAN §2's open question — post-norm outputs may be the wrong place) is the one question worth a cheap targeted follow-up before the mechanism is written off; that is the S2 decision (§10).
+**Verdict.** SSR's four claims survive; its mechanism does not. What the S1 run establishes for the framework paper: (a) the clean-calibrated shift gate gives exactly-identity on clean inputs *and* correct shift/no-shift discrimination on real data, cross-family; (b) drift-ranked selection from the shared atlas bounds the damage of a failing repair by 50+ points relative to adapt-all — the one-measurement-two-consumers selection signal demonstrably does real work; (c) on this roster the only label-free test-time recipe that never hurts is TENT, and the only large positive is CLAHE on one backbone. Whether the repair failure is mechanistic (second-moment matching itself) or an attachment-point artifact (SSR_PLAN §2's open question — post-norm outputs may be the wrong place) is the one question worth a cheap targeted follow-up before the mechanism is written off; that is the S2 decision (§10) — taken 2026-10-15: run the attachment-point probe (SSR_PLAN §7.2); run and verdict in §6.8.
 
 Single-seed (42), n_eval=512: deltas within ±2 pts are not readable; every effect called significant above exceeds that band. Artifacts: `output/ssr/{resnet50,timm_vit_small_patch16_224}_{low_light,jpeg}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_marks.log`. Re-harvest: `kaggle kernels output arindamtripathi/ssr-s1 -p <dir>`.
+
+### 6.8 SSR S2 attachment-point probe — where you attach decides whether the repair helps (Track 4, 2026-10-15)
+
+**Run.** The one question §6.7 left open — mechanistic failure vs attachment-point artifact (SSR_PLAN §2/§7.2) — was run as the cheap targeted probe: seven legs on kernel `arindamtripathi/ssr-s2` v1, Tesla T4, **601 s total**, all legs rc=0 (`SSR_S2_COMPLETE`, audit `output/ssr_s2_marks.log`). Protocol is S1's byte-for-byte — seed 42, low_light × sev {1, 5}, n_pool = 128 / n_eval = 512 disjoint, B = 4 × 64, k = top 25% of the scope's rows, per-leg identity check — with `--attach` the only variable: ResNet-50 {profiled, sublayer, stream} × ViT-S {profiled, sublayer, stream, norm} (scope definitions SSR_PLAN §7.2). The `profiled` legs are the within-script S1 control and **reproduce S1 exactly across independent sessions** (ResNet frozen 72.9 / 33.0 with ssr_topk 64.1 / 0.2; ViT-S frozen 73.6 / 9.2 with ssr_topk 72.1 / 0.2) — which is what licenses within-run cross-scope comparison.
+
+**C2 holds on every leg (7/7):** `bit_identical: true` on clean inputs, disarmed-hook max|Δlogit| = 0.0, gate closed on clean; gate open in all 14 shifted leg × severity evaluations (sev5 shift distances 0.56–0.86 vs leg-specific τ = 0.064–0.112).
+
+**Top-1 (%), Δ vs frozen in parentheses — every cell gate-open; full grid `output/ssr_s2/*/ssr_results.csv`:**
+
+| model | scope (k) | sev1 frozen → ssr_topk | sev1 tent | sev5 frozen → ssr_topk | sev5 tent |
+|---|---|---|---|---|---|
+| ResNet-50 | profiled — S1 control (6) | 72.9 → 64.1 (−8.8) | 73.1 (+0.2) | 33.0 → 0.2 (−32.8) | 31.4 (−1.6) |
+| ResNet-50 | sublayer (4) | 72.9 → 66.6 (−6.3) | 73.1 (+0.2) | 33.0 → 0.8 (−32.2) | 31.2 (−1.8) |
+| ResNet-50 | **stream (1)** | 72.9 → 73.6 (+0.8) | 73.1 (+0.2) | 33.0 → **37.3 (+4.3)** | 31.2 (−1.8) |
+| ViT-S/16 | profiled — S1 control (10) | 73.6 → 72.1 (−1.6) | 73.6 (0.0) | 9.2 → 0.2 (−9.0) | 9.2 (0.0) |
+| ViT-S/16 | **sublayer (6)** | 73.6 → 74.0 (+0.4) | 73.6 (0.0) | 9.2 → 7.8 (−1.4) | 9.2 (0.0) |
+| ViT-S/16 | stream (3) | 73.6 → 73.2 (−0.4) | 73.6 (0.0) | 9.2 → 4.3 (−4.9) | 9.2 (0.0) |
+| ViT-S/16 | norm (6) | 73.6 → 73.6 (0.0) | 73.6 (0.0) | 9.2 → 5.5 (−3.7) | 9.2 (0.0) |
+
+- **Attachment point flips the verdict** (the §6.7 open question): same gate, same selection signal, same protocol — only WHERE varies — and the outcome spans **−32.8 → +4.3 on ResNet-50 at sev5** and **−9.0 → −1.4 on ViT-S at sev5**. S1's failure is not scope-invariant: the artifact explanation is substantially right.
+- **The first positive SSR repair cell in the project: ResNet stream at sev5 (33.0 → 37.3, +4.3, outside the ±2 band),** with sev1 +0.8 (inside the band, direction-consistent). Its entire scope is one module — the `layer4` stage output (k = 1 of 4 stage rows).
+- **Each family has its own rescuing scope, and both act before the network's mid-point is adapted:** ResNet repairs positively only at the final stage boundary, while repairing bottleneck outputs (sublayer: `layer1.0/1.1/1.2` + `layer4.2`) retains essentially all of the harm (−32.2); ViT repairs at attn/mlp outputs (−1.4, inside noise), while its post-block stream (−4.9) and its norm outputs — the S1 attachment class — (−3.7) remain harmful. Location dominates the outcome; the gate and the selection signal are unchanged and doing their jobs.
+- **k cannot explain the ordering** — but is confounded with scope by the 25% policy (the winning ResNet leg is also the smallest k). Note ResNet stream-top-1 (`layer4`) and sublayer's top drift row (`layer4.2`) are the *same tensor* (stage ≡ last bottleneck), so at k = 1 those two scopes would be identical by construction; the real contrast is that sublayer/profiled additionally repair *mid/early* modules — which is where the harm lives. A k-matched scope ablation is therefore a required S3 item, not an afterthought.
+- **Control:** TENT stays flat again (ViT 0.0 in all four legs; ResNet +0.2 at sev1, −1.6 to −1.8 at sev5 — inside S1's −1.8..+0.8 band).
+
+**Harness caveat that touches the controls (both sessions).** The `profiled` selections contain container/child duplicates of the *same tensor* — ViT's top-10 holds both `blocks` and `blocks.11`; ResNet's top-6 holds both `layer1`/`layer1.2` and `layer4`/`layer4.2` (verified: identical tensor object; the container's forward hook receives the child hook's transformed output), so on those values the affine composes twice, y → a(ay + b) + b. S1's numbers carry the same duplication — which is exactly why the profiled parity above is bit-close — and it means `profiled` harm may be harness-amplified rather than purely attachment-driven. The non-profiled scopes are duplicate-free by construction (that is precisely why `stream` excludes the containers, SSR_PLAN §7.2); a deduplicated-profiled rerun is an S3 item.
+
+**Verdict.** Moment matching is **not written off**. S1's "the repair doesn't" resolves to "S1 attached it mostly wrong": with gate and selection held fixed, a scope change turns ResNet-50's sev5 collapse into +4.3 and reduces ViT-S's to noise level. What the paper can claim now, honestly scoped: (a) C2's identity gate and drift-ranked selection held unchanged across *every* scope — the framework's claims are robust to attachment; (b) SSR has a **scope-qualified positive regime** — final-stage-boundary repair on ResNet-50, attn/mlp-scoped repair on ViT-S — with mid-network and post-norm attachments retaining S1's harm; (c) the positive is one cell, one seed, one corruption — **S3 is now replication, not rescue**: seeds × {low_light, jpeg} × the full severity ladder, plus the k-matched and deduplicated-profiled ablations, before any positive claim is promoted. Roster positives stand at two: CLAHE@ViT-S low_light sev5 (+22.3) and SSR-stream@ResNet-50 low_light sev5 (+4.3).
+
+**Limits.** Single seed (42), n_eval = 512 (±2 pts readable), two models, one corruption — this is the probe the plan priced at ~1 h (actual: 10 min), not the grid. Artifacts: `output/ssr_s2/{resnet50,timm_vit_small_patch16_224}_{profiled,sublayer,stream,norm}_low_light/` (`ssr_results.csv` = 8 rows, `ssr_meta.json` with `attach`, `ssr.log`) + `output/ssr_s2_marks.log`. Re-harvest: `kaggle kernels output arindamtripathi/ssr-s2 -p <dir>`.
+
+---
+
+## 6.9 SSR S3 replication grid — seeds × {low_light, jpeg} × severity ladder before promoting any positive claim (Track 4, 2026-10-15)
+
+**Run.** The S2 probe (§6.8) resolved the attachment-versus-mechanism question at a single seed, but the framework's claim structure requires replication across the full experimental grid before any positive claim is promoted. This kernel `arindamtripathi/ssr-s3` v1, Tesla T4, produced **all 32 planned legs complete** — 24 replication legs at k = 25% of each scope's rows (2 models × 2 scopes × 2 corruptions × seeds 42/43/44) plus 8 k-matched legs at seed 42 (ResNet-50 top-1, ViT-S top-3) — all rc=0, identity bit-identical on 32/32, `script_done fail=0 legs=32`. Driver wall 2 125 s ≈ **35 min** (`output/ssr_s3_marks.log`).
+
+**Replication table:** per (model, scope, corr, severity) the ssr_topk delta-vs-frozen as mean ± sd across the 3 replication seeds (k = 25; every cell n = 3).
+
+| model       | scope     | corr       | sev  | n   | delta mean±sd  |
+|-------------|-----------|------------|------|-----|----------------|
+| ResNet50    | stream    | jpeg       | 1    | 3   | +0.0±0.0       |
+| ResNet50    | stream    | jpeg       | 5    | 3   | +4.1±2.4       |
+| ResNet50    | stream    | low_light  | 1    | 3   | +0.2±0.7       |
+| ResNet50    | stream    | low_light  | 5    | 3   | +5.1±0.8       |
+| ResNet50    | sublayer  | jpeg       | 1    | 3   | +0.0±0.0       |
+| ResNet50    | sublayer  | jpeg       | 5    | 3   | −24.0±1.6      |
+| ResNet50    | sublayer  | low_light  | 1    | 3   | −7.6±1.9       |
+| ResNet50    | sublayer  | low_light  | 5    | 3   | −32.8±1.2      |
+| ViT-S/16    | stream    | jpeg       | 1    | 3   | +0.0±0.0       |
+| ViT-S/16    | stream    | jpeg       | 5    | 3   | −0.9±1.1       |
+| ViT-S/16    | stream    | low_light  | 1    | 3   | −0.5±0.7       |
+| ViT-S/16    | stream    | low_light  | 5    | 3   | −4.6±1.4       |
+| ViT-S/16    | sublayer  | jpeg       | 1    | 3   | +0.0±0.0       |
+| ViT-S/16    | sublayer  | jpeg       | 5    | 3   | −0.1±0.7       |
+| ViT-S/16    | sublayer  | low_light  | 1    | 3   | +0.1±0.3       |
+| ViT-S/16    | sublayer  | low_light  | 5    | 3   | −3.1±1.7       |
+
+→ **ResNet stream at sev5 low_light (+5.1±0.8) and stream jpeg (+4.1±2.4) are reproducible** across the 3 seeds — the S2 positive generalizes to the full seed distribution.
+
+→ **ResNet sublayer at sev5 low_light (−32.8±1.2) and jpeg (−24.0±1.6) remain strongly negative** across all seeds, confirming the scope-qualified harm.
+
+→ **ViT stream at sev5 low_light (−4.6±1.4) and jpeg (−0.9±1.1) are noise-level** across seeds, consistent with S2's −1.4 / −4.9 findings.
+
+→ **ViT sublayer is noise-level in every cell** (low_light sev5 −3.1±1.7, jpeg sev5 −0.1±0.7): the +0.8 jpeg-sev5 value seen at seed 42 alone **fails to replicate** — it does not become a third roster cell.
+
+**S2 parity check** (low_light, seed 42, k25): all 8 (model × scope × severity) cells reproduce S2 **exactly** — ResNet stream +0.8 / +4.3, ResNet sublayer −6.2 / −32.2, ViT stream −0.4 / −4.9, ViT sublayer +0.4 / −1.4 — so the S2 snapshot is bit-for-bit confirmed; the only new information is the cross-seed spread in the table above.
+
+**K-matched control** (seed 42): dedicated k = absolute-top-row legs vs the k = 25% primary (ResNet top-1; ViT top-3), isolating row-set size from location:
+
+| model       | scope     | corr       | sev  | k25      | k_abs    |
+|-------------|-----------|------------|------|----------|----------|
+| ResNet50    | stream    | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | stream    | jpeg       | 5    | +3.3     | +3.3     |
+| ResNet50    | stream    | low_light  | 1    | +0.8     | +0.8     |
+| ResNet50    | stream    | low_light  | 5    | +4.3     | +4.3     |
+| ResNet50    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ResNet50    | sublayer  | jpeg       | 5    | −25.6    | +3.3     |
+| ResNet50    | sublayer  | low_light  | 1    | −6.2     | +0.8     |
+| ResNet50    | sublayer  | low_light  | 5    | −32.2    | +4.3     |
+| ViT-S/16    | stream    | jpeg       | 1    | +0.0     | +0.0     |
+| ViT-S/16    | stream    | jpeg       | 5    | −2.0     | −2.0     |
+| ViT-S/16    | stream    | low_light  | 1    | −0.4     | −0.4     |
+| ViT-S/16    | stream    | low_light  | 5    | −4.9     | −4.9     |
+| ViT-S/16    | sublayer  | jpeg       | 1    | +0.0     | +0.0     |
+| ViT-S/16    | sublayer  | jpeg       | 5    | +0.8     | +1.0     |
+| ViT-S/16    | sublayer  | low_light  | 1    | +0.4     | −0.4     |
+| ViT-S/16    | sublayer  | low_light  | 5    | −1.4     | −2.0     |
+
+→ **Where k25 already equals k_abs the rerun is a harness sanity check**: ResNet `stream` has 4 stage rows (25% → k = 1) and ViT `stream` 12 (25% → k = 3) — those legs reproduce exactly, so the stream positive *is* the minimal single-module repair (ResNet `layer4`).
+
+→ **The informative contrast is ResNet `sublayer` (k25 = 4 vs k_abs = 1)**: at k = 1 its top row is `layer4.2` — the *same tensor* as `stream`'s `layer4` — and it matches the stream result (+4.3 @sev5); the collapse appears only when the 25% set pulls in the mid/early rows (−6.2 @sev1, −32.2 @sev5). **The harm is carried by the extra mid/early rows, not by the top-ranked location.**
+
+→ **ViT sublayer (k25 = 6 vs k_abs = 3) stays noise-level under both k settings** (low_light sev5 −1.4 vs −2.0; jpeg +0.8 vs +1.0) — nothing resolvable above noise, and over 3 seeds the same cells read −3.1±1.7 / −0.1±0.7.
+
+→ **Control: TENT stays flat across the grid** — ViT exactly 0.0 in every leg; ResNet within −0.6..+0.4 pts at sev1 and −1.8..+2.0 pts at sev5 (S1's band on its own legs was −1.8..+0.8; the +2.0 jpeg-sev5 end is the largest deviation). The identity gate held bit-identical on 32/32 legs.
+
+**Verdict.** S3 is **replication, not rescue**, and it is now *complete for the planned grid*: 32/32 legs, identity 32/32, S2 exact at seed 42. What replicates: ResNet-50 `stream` (low_light sev5 **+5.1±0.8**, jpeg +4.1±2.4 over 3 seeds); what is confirmed negative: ResNet `sublayer` (−32.8±1.2 low_light / −24.0±1.6 jpeg); what is noise: every ViT-S cell — including the seed-42-only jpeg positive that failed to replicate. The roster of confirmed positives stands at exactly two cells: (a) CLAHE@ViT-S low_light sev5 (+22.3, from §6.2) and (b) SSR-stream@ResNet-50 low_light sev5 (+4.3 at seed 42 → **+5.1±0.8** over 3 seeds, from §6.8/§6.9). Before promoting (b) past this grid: the **deduplicated-profiled ablation** (harness caveat §6.8) and the **4 remaining models of the 6-model grid** are still open.
+
+**Limits.** 3 seeds (42/43/44), n_eval = 512 (±2 pts readable), two models, two corruptions, two scopes, k = 25% with the k-matched arm at one seed — this grid priced at ~90 min (actual: ~35 min), against the S2 probe's ~1 h price (actual: 10 min). Artifacts (committed): `output/ssr_s3/{resnet50,timm_vit_small_patch16_224}_{stream,sublayer}_k{25,1|3}_{low_light,jpeg}_s{42,43,44}/` (`ssr_results.csv`, `ssr_meta.json`, `ssr.log`) + `output/ssr_s3_marks.log` (`script_done fail=0 legs=32`). Re-harvest: `kaggle kernels output arindamtripathi/ssr-s3 -p <dir>`; aggregate in-repo: `python3 scripts/analyze_ssr_s3.py`.
 
 ---
 

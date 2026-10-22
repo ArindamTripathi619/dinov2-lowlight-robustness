@@ -82,24 +82,42 @@ dataset (CIFAR-10-derived), a synthetic axis.
 | Core library | `src/` (10 modules) |
 | Committed pilot results | `results_pilot/` (23 files) |
 | Paper | `paper/` (TeX, auto-generated tables/figures, PDFs) |
-| Site build source | `apps/presentation.py` (14 sections, renders the static site) |
+| Site build source | `apps/presentation.py` (15 sections, renders the static site) |
 | Static website | `tools/export_static_site.py` → `index.html` → Vercel |
 | Docs | `README.md`, `docs/*.md` |
 | Tests + CI | `tests/run_tests.py`, `.github/workflows/` |
 
 ## Status
 
-- PRs #1–#4 merged upstream (2026-10-01 → 2026-10-12; latest merge `0ad0ef5`);
-  upstream and fork share one lineage; both content sets preserved.
-- 26/26 unit tests pass; static site published to Vercel at HEAD.
+- PRs #1–#6 merged upstream (2026-10-01 → 2026-10-15; latest merge `8ca8ca5`,
+  PR #6); upstream and fork share one lineage; both content sets preserved.
+- 48/48 unit tests pass; static site published to Vercel at HEAD.
 - Track 2 v9 done at n=3 (2026-10-10): drift-weighted LoRA at parity with uniform on
   ViT-B while training 24% fewer params (RESEARCH §6.5); deterministic-noise residual
   closed (DIVERGENCE_REPORT §8.5).
 - v9 allocation-shape ablations done at n=3 (2026-10-11, `output/v9_ablation/`): β^τ,
   top-k and inverted-β all tie uniform/drift at budget-matched Σr — allocation shape
   inert at ~0.4% params, coverage discriminates (RESEARCH §6.6).
-- Open: Track 3 cross-family atlas; sublayer-resolved allocation; full-scale paper
-  numbers (pilot-scale bars/macros currently in the text).
+- Track 3 cross-family atlas done 2026-10-14 (kernel `drift-atlas-v4`; artifacts
+  `output/profiles/` + `output/atlas/`; RESEARCH §5.2).
+- Track 4 SSR: S1 smoke 2026-10-14 (gate + drift-ranked selection hold,
+  repair net-harmful — RESEARCH §6.7); S2 attachment-point probe 2026-10-15
+  (SSR_PLAN §7.2, RESEARCH §6.8): scope flips the outcome — ResNet stream
+  **+4.3** sev5, ViT sublayer −1.4 — artifact confirmed, mechanism stands.
+- **Complete:** Track 4 S3 replication grid run + analyzed 2026-10-15 (§6.9 / §7.13;
+  results of record committed `output/ssr_s3/` + `output/ssr_s3_marks.log`):
+  **32/32 legs rc=0 in ~35 min**, identity bit-identical 32/32, seed-42 legs
+  reproduce S2 bit-exactly. ResNet stream low_light sev5 **+5.1±0.8** and jpeg
+  +4.1±2.4 replicate across 3 seeds; ResNet sublayer harm confirmed
+  (−32.8±1.2); every ViT cell noise-level (the seed-42-only +0.8 does not
+  replicate). Two roster positives: CLAHE@ViT-S low_light sev5 (+22.3) and
+  SSR-stream@ResNet-50 low_light sev5 (+4.3 at seed 42, +5.1±0.8 over seeds).
+  Still open before any positive claim is promoted: the deduplicated-profiled
+  ablation and the 4 remaining models (6-model grid).
+
+- Open: Track 5 real-dark dense eval; Track 6 manuscript; full-scale paper numbers
+  (pilot-scale bars/macros currently in the text, pending promotion of the framework
+  claims once the dedup-profiled ablation and the 6-model grid close).
 
 ## Where to start reading
 

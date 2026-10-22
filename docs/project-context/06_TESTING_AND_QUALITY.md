@@ -19,7 +19,12 @@ python3 tests/run_tests.py
 
 **Observed result (2026-10-11): `26/26 passed`, exit 0.**
 
-## 2. What is covered (26 tests)
+## 2. What is covered (48 tests at 2026-10-15)
+
+The group table below is the 2026-10-11 snapshot (26 tests); since then the
+SSR/AQR/selection/kernel-verifier/SSR-S2-scope/SSR-S3 tests were added
+(2026-10-13 → 10-15; latest: `test_ssr_s3_kernel_verifier_matches_driver_dir_names`,
+`test_ssr_scope_row_mapping_and_k_policy`). The runner itself is the source of truth (`python3 tests/run_tests.py`).
 
 Almost everything tested is in the **torch-free analysis stack** (`src/corruptions.py`,
 `src/analysis.py`, `src/probes.py`, plus local `biased` math in-test). The runner itself
@@ -46,6 +51,26 @@ torch-enabled local environments.
   2. Import smoke: `python -c "import src.analysis, src.corruptions, src.probes, src.common; print('analysis stack OK')"`
 
 This proves the **torch-optional import invariant** enforced by `src/common.py:_torch`.
+
+**Status (2026-10-16 →):** GitHub-hosted CI is **billing-locked** for the account — every
+run (push, PR, schedule, manual) aborts in ~3–4 s with zero steps started and the
+annotation *"account is locked due to a billing issue"*. This is an account-level action,
+not a workflow or code failure; the workflow above is unchanged and will run again once
+billing is cleared (`gh run rerun <id>`).
+
+### `scripts/ci_local.sh` — local reproduction of the CI gate
+
+Until GitHub-hosted runners work, **`bash scripts/ci_local.sh` is the gate of record**.
+One command, exits non-zero on first failure:
+
+1. `tests/run_tests.py` + import smoke on **Python 3.10** (CI matrix, torch-free deps via `uv`)
+2. the same on **Python 3.11** (CI matrix)
+3. the same on the **native python3** (torch-optional tests active) + runner imports
+   (`run_drift_proxy`, `run_drift_profile`, `run_ssr`)
+4. builds **all 9 Kaggle kernel variants** (`build_kaggle_kernel.py` — catches manifest wiring regressions)
+5. **presentation smoke** — renders all 15 sections headlessly
+
+Verified ALL GREEN on 2026-10-22: 48/48 tests on 3.10, 3.11, and native; 9/9 kernels; 15/15 sections.
 
 ### `.github/workflows/security.yml`
 - Weekly (Mon 06:00 UTC) + on push touching `requirements.txt` / the workflow.
@@ -80,7 +105,8 @@ This proves the **torch-optional import invariant** enforced by `src/common.py:_
 ## 6. How to verify a change (practical checklist)
 
 ```bash
-python3 tests/run_tests.py                                   # 26/26 expected
+bash scripts/ci_local.sh                                      # full gate (CI matrix + native + kernels + smoke)
+python3 tests/run_tests.py                                   # 48/48 expected
 python -c "import src.analysis, src.corruptions, src.probes, src.common; print('OK')"
 PRESENTATION_SMOKE=1 python3 apps/presentation.py             # if touching the site's source
 git status --porcelain                                        # confirm no stray artifacts
