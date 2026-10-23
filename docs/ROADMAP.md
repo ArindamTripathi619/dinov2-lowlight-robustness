@@ -215,7 +215,10 @@ rank stability at n ≥ 1k already established in Track 2).
   low_light sev5 **+5.1±0.8** and jpeg +4.1±2.4 replicate, sublayer harm
   confirmed (−32.8±1.2), every ViT cell noise-level (the seed-42-only +0.8
   fails to replicate), TENT flat, identity 32/32 (RESEARCH §6.9).
-  Next: deduplicated-profiled ablation + the 6-model grid.
+  S4 6-model-grid harness landed 2026-10-15 (SSR_PLAN §7.4): ConvNeXt/Swin
+  stage-scope patterns, DINOv2 CIFAR-10 frozen-probe protocol, the
+  `dedup_selected` fix (the dedup ablation), `ssr_s4.sh` 68-leg grid + kernel
+  `ssr-s4`; T4 run + verdict pending.
 
 ### Track 5 — Real-darkness dense eval (the credibility arm; ~3–5 GPU-hours)
 - ACDC night + Dark Zurich (segmentation, eval-only with a frozen SegFormer/DeepLab
@@ -364,3 +367,19 @@ Next up, in order:
    **Verdict: replication, not rescue; roster = 2 positives** (CLAHE@ViT-S
    low_light sev5, SSR-stream@ResNet-50 low_light sev5). Next:
    deduplicated-profiled ablation + the 4 remaining models.
+10. [x] **Track 4 S4 6-model-grid harness** — landed 2026-10-15
+   (SSR_PLAN §7.4; run pending). Extends the stream/sublayer replication to
+   the 4 remaining atlas models — ConvNeXt-T, Swin-T, DeiT-S, DINOv2-ViT-B/14
+   — and resolves the dedup ablation in the same grid. Changes:
+   (a) `src/ssr.py` scope patterns gain `stages.\d+`/`layers.\d+` (stream) and
+   `stages.\d+.blocks|downsample`/`layers.\d+.blocks|downsample` (sublayer) for
+   the hierarchical stage models (duplicate-free; DeiT/DINOv2 reuse ViT
+   patterns + `norm`); (b) `run_ssr.py --dataset cifar10` runs DINOv2 on the
+   frozen-probe protocol (no ImageNet head), + `dedup_selected` drops
+   same-tensor container/child pairs so the affine applies once per tensor;
+   (c) driver `scripts/kaggle/ssr_s4.sh` (**68 legs** = stream/sublayer(/norm
+   for DeiT+DINOv2) × {low_light,jpeg} × seeds{42,43,44} @k25 + a
+   profiled-dedup control per model @seed42) + kernel `ssr_s4`
+   (`arindamtripathi/ssr-s4`, exit verifier mirrors the driver). 51/51 tests;
+   CPU smoke green on all 4 new models incl. DINOv2-cifar10. **Next: T4 run +
+   harvest + verdict (RESEARCH §6.10 / METHODS §7.14).**

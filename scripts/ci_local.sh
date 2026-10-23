@@ -9,7 +9,7 @@
 #   2. the same on Python 3.11 (CI matrix)
 #   3. the same on the native python3 (torch-enabled: exercises the
 #      torch-optional regression tests CI self-skips) + runner imports
-#   4. builds all 9 Kaggle kernel variants (manifest wiring regressions)
+#   4. builds all 10 Kaggle kernel variants (manifest wiring regressions)
 #   5. presentation smoke: renders all 15 sections headlessly
 #
 # Exits non-zero on the first failure. Requires: uv (matrix steps), torch +
@@ -36,8 +36,8 @@ echo "=== [native] import smoke (analysis stack + runners) ==="
 python3 -c "$IMPORT_SMOKE"
 python3 -c "import run_drift_proxy, run_drift_profile, run_ssr; print('runner imports OK')"
 
-echo "=== [kernels] build all 9 variants ==="
-for variant in grid vitb_profile vitb_lora_v9 vitb_lora_abl atlas atlas_v4 ssr_s1 ssr_s2 ssr_s3; do
+echo "=== [kernels] build all 10 variants ==="
+for variant in grid vitb_profile vitb_lora_v9 vitb_lora_abl atlas atlas_v4 ssr_s1 ssr_s2 ssr_s3 ssr_s4; do
     pkg="$(mktemp -d)"
     python3 scripts/build_kaggle_kernel.py --variant "$variant" --pkg "$pkg" >/dev/null
     echo "  $variant OK"

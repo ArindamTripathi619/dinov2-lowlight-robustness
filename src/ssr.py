@@ -175,8 +175,10 @@ def select_topk(rows, k, key="cka_unbiased_drop"):
 SCOPE_CHOICES = ("profiled", "stream", "sublayer", "norm")
 
 _SCOPE_PATTERNS = {
-    "stream": (r"blocks\.\d+", r"layer\d+"),
-    "sublayer": (r"blocks\.\d+\.(?:attn|mlp)", r"layer\d+\.\d+"),
+    "stream": (r"blocks\.\d+", r"layer\d+", r"stages\.\d+", r"layers\.\d+"),
+    "sublayer": (r"blocks\.\d+\.(?:attn|mlp)", r"layer\d+\.\d+",
+                 r"stages\.\d+\.(?:blocks|downsample)",
+                 r"layers\.\d+\.(?:blocks|downsample)"),
     "norm": (r"blocks\.\d+\.norm[12]",),
 }
 
@@ -186,19 +188,32 @@ _NORM_ALIAS = (("attn", "norm1"), ("mlp", "norm2"))
 def module_in_scope(name, scope):
     """Whether an S2 attachment scope owns this module (SSR_PLAN §7.2).
 
-    Full-match semantics on timm-ViT / torchvision-ResNet names:
+    Full-match semantics on timm-ViT / torchvision-ResNet / timm-ConvNeXt /
+    timm-Swin names:
       profiled  everything (the S1 hook set, untouched)
-      stream    residual-stream outputs: ViT ``blocks.<n>`` (post-block) and
-                ResNet stage outputs ``layer<n>``. The ViT ``blocks``
-                container is excluded: its output tensor *is* ``blocks.11``'s
-                (Sequential returns the last child), and selecting both
-                would apply the moment affine twice to the same value.
-                ResNet ``avgpool`` is the readout, not the stream.
+      stream    residual-stream outputs: ViT ``blocks.<n>`` (post-block),
+                ResNet stage outputs ``layer<n>``, and the hierarchical
+                stage models' stage outputs ``stages.<n>`` (ConvNeXt) /
+                ``layers.<n>`` (Swin). The ViT ``blocks`` container is
+                excluded: its output tensor *is* ``blocks.11``'s (Sequential
+                returns the last child), and selecting both would apply the
+                moment affine twice to the same value. Likewise the bare
+                ``stages``/``layers`` containers are excluded (their output
+                *is* ``stages.3``/``layers.3``'s). ResNet ``avgpool`` is the
+                readout, not the stream.
       sublayer  per-sublayer outputs: ViT ``blocks.<n>.attn|mlp``, ResNet
-                bottleneck outputs ``layer<n>.<m>`` (pre-norm residual
-                stream — where the atlas profiles point, SSR_PLAN §2)
+                bottleneck outputs ``layer<n>.<m>``, and for the hierarchical
+                stage models the within-stage rows ``stages.<n>.blocks|downsample``
+                (ConvNeXt) / ``layers.<n>.blocks|downsample`` (Swin). This
+                mirrors the ResNet precedent where ``layer<n>.<m>`` shares a
+                tensor with the stage output only at the final block — the
+                blocks-container row is the stage-equivalent, ``downsample`` is
+                a genuinely distinct intra-stage tensor (pre-norm residual
+                stream — where the atlas profiles point, SSR_PLAN §2).
       norm      post-LN outputs: ViT ``blocks.<n>.norm1|norm2`` — the class
-                S1 repaired into (LN normalizes channel moments away there)
+                S1 repaired into (LN normalizes channel moments away there);
+                ConvNeXt/Swin profiles carry no ``attn|mlp`` rows to alias
+                from, so ``norm`` is empty for those two architectures
     """
     if scope == "profiled":
         return True

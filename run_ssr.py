@@ -17,6 +17,10 @@ Protocol (SSR_PLAN §5/§6):
     distance, and decide the gate: closed -> bypass entirely (bit-identical
     by construction, src.ssr.recalibrate returns the input object);
   * eval: top-1 of the frozen ImageNet head on the shifted eval images.
+    DINOv2 has no ImageNet head, so it runs the CIFAR-10 + frozen-probe
+    protocol (SSR_PLAN §6): a linear probe is fit on clean train embeddings
+    and frozen; SSR still calibrates/estimates/gates on the backbone, and the
+    frozen probe turns backbone embeddings into class scores.
 
 Arms (SSR_PLAN §6):
   frozen         no recalibration, reference
@@ -114,6 +118,12 @@ def parse_args():
     p.add_argument("--est-batches", type=int, default=4,
                    help="number of unlabeled estimation batches per condition")
     p.add_argument("--batch-size", type=int, default=64)
+    p.add_argument("--dataset", default="auto", choices=["auto", "imagenet", "cifar10"],
+                   help="eval set. 'auto' = imagenet for head models, cifar10 "
+                        "(frozen-probe protocol, SSR_PLAN §6) for DINOv2")
+    p.add_argument("--n-probe-train", type=int, default=5000,
+                   help="clean CIFAR-10 train images for DINOv2's frozen probe "
+                        "(phase-1 protocol: 5000, configs/experiments.yaml)")
     p.add_argument("--severities", default="1,2,3,4,5")
     p.add_argument("--seed", type=int, default=42,
                    help="estimation-pool draw seed (the S2 3-seed axis)")
@@ -274,20 +284,32 @@ def aqr_transform(source_q, target_q):
     return fn
 
 
+def _readout(out):
+    """Normalize a forward return to a single tensor (tuple/list -> first;
+    dict -> the known logit/embedding keys). DINOv2's forward returns its
+    CLS-embedding tensor directly. Pure selection (no arithmetic), so it is
+    deliberately not no_grad-decorated: TENT calls it inside the grad flow."""
+    if isinstance(out, (tuple, list)):
+        out = out[0]
+    if isinstance(out, dict):
+        out = out.get("x_norm_clstoken", out.get("logits", out.get("out")))
+    return out
+
+
 @torch.no_grad()
 def evaluate(model, images, labels, batch_size, device, token_mode="cls",
-             preprocess=None):
-    """Top-1 of the model's own head over the eval images."""
+             preprocess=None, head=None):
+    """Top-1 of the model's own head over the eval images. ``head`` (optional)
+    maps backbone output -> logits; for DINOv2 it is the frozen CIFAR-10
+    probe (SSR_PLAN §6)."""
     preprocess = preprocess or rdp.PREPROCESS
     correct, n = 0, 0
     for i in range(0, len(images), batch_size):
         batch = images[i:i + batch_size]
         tensors = torch.stack([preprocess(img) for img in batch]).to(device)
-        logits = model(tensors)
-        if isinstance(logits, (tuple, list)):
-            logits = logits[0]
-        if isinstance(logits, dict):
-            logits = logits.get("logits", logits.get("out"))
+        logits = _readout(model(tensors))
+        if head is not None:
+            logits = head(logits)
         pred = logits.argmax(dim=1).cpu().numpy()
         correct += int((pred == labels[i:i + batch_size]).sum())
         n += len(batch)
@@ -380,8 +402,10 @@ def entropy_loss(logits):
     return -(p * logp).sum(dim=1).mean()
 
 
-def tent_adapt(model, images, batch_size, device, kind, lr, steps):
-    """One TENT adaptation pass over the unlabeled estimation batches."""
+def tent_adapt(model, images, batch_size, device, kind, lr, steps, head=None):
+    """One TENT adaptation pass over the unlabeled estimation batches.
+    ``head`` (optional) maps backbone output -> logits (DINOv2's frozen probe)
+    so the entropy loss back-props through the backbone."""
     import torch.nn as nn
     mods, params = norm_affine_params(model, kind)
     if not params:
@@ -400,7 +424,10 @@ def tent_adapt(model, images, batch_size, device, kind, lr, steps):
             tensors = torch.stack([rdp.PREPROCESS(img) for img in batch]).to(device)
             for _ in range(steps):
                 opt.zero_grad()
-                loss = entropy_loss(model(tensors))
+                logits = _readout(model(tensors))
+                if head is not None:
+                    logits = head(logits)
+                loss = entropy_loss(logits)
                 loss.backward()
                 opt.step()
     finally:
@@ -464,6 +491,73 @@ def bn_stat_replace(model, est_images, batch_size, device, scope_modules=None):
     return restore
 
 
+def build_frozen_probe(model, probe_train, batch_size, token_mode="cls"):
+    """DINOv2 has no ImageNet head (SSR_PLAN §6). Fit a frozen linear probe on
+    CLEAN embeddings of a clean CIFAR-10 train subset, then freeze it. Returns
+    (head_module, train_acc). The head is an nn.Linear so TENT's entropy loss
+    back-props through it to the backbone's norm params."""
+    import torch.nn as nn
+    from src.probes import fit_probe
+    tr_images, tr_labels = probe_train
+    embs = []
+    model.eval()
+    with torch.no_grad():
+        for i in range(0, len(tr_images), batch_size):
+            batch = tr_images[i:i + batch_size]
+            tensors = torch.stack([rdp.PREPROCESS(img) for img in batch]).to(DEVICE)
+            out = _readout(model(tensors))
+            embs.append(out.detach().float().cpu())
+    X = torch.cat(embs).numpy()
+    probe = fit_probe(X, tr_labels, C=1.0, max_iter=2000)
+    train_acc = float(probe.score(X, tr_labels))
+    head = nn.Linear(X.shape[1], probe.coef_.shape[0])
+    with torch.no_grad():
+        head.weight.copy_(torch.from_numpy(probe.coef_.astype(np.float32)))
+        head.bias.copy_(torch.from_numpy(probe.intercept_.astype(np.float32)))
+    head.requires_grad_(False)
+    head = head.to(DEVICE).eval()
+    print(f"Frozen probe: {X.shape[1]}d -> {probe.coef_.shape[0]} classes, "
+          f"train acc {train_acc:.4f} on {len(X)} clean embeddings")
+    return head, train_acc
+
+
+def dedup_selected(model, modules, selected_names, batch, device, token_mode="cls"):
+    """Drop selected modules whose forward output IS another selected module's
+    tensor object (a Sequential container returns its last child's tensor
+    verbatim: `blocks`/`blocks.11`, `layer4`/`layer4.2`, `stages`/`stages.3`,
+    `stages.N`/`stages.N.blocks` are the same tensor). Applying the moment
+    affine to both would apply it twice to the same value (the S1 profiled-arm
+    caveat, docs/METHODS.md). Keeps the earliest-fired module in each
+    same-tensor group so exactly one affine lands per tensor."""
+    from collections import OrderedDict
+    groups = OrderedDict()   # id(tensor) -> [names in fire order]
+    refs = []                # keep tensors alive so id() stays unique this pass
+    handles = []
+    for name in selected_names:
+        if name not in modules:
+            continue
+        def mk(name):
+            def hook(_m, _inp, out):
+                t = out[0] if isinstance(out, (tuple, list)) else out
+                if torch.is_tensor(t):
+                    refs.append(t)          # prevent id() reuse via GC
+                    groups.setdefault(id(t), []).append(name)
+            return hook
+        handles.append(modules[name].register_forward_hook(mk(name)))
+    try:
+        with torch.no_grad():
+            rdp.forward_pass(model, batch, modules, max(1, len(batch)), device,
+                             token_mode=token_mode)
+    finally:
+        for h in handles:
+            h.remove()
+    drop = set()
+    for names in groups.values():
+        for name in names[1:]:   # keep names[0], drop later same-tensor modules
+            drop.add(name)
+    return [n for n in selected_names if n not in drop], sorted(drop)
+
+
 def main():
     args = parse_args()
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -473,16 +567,20 @@ def main():
     severities = sorted({int(s) for s in args.severities.split(",") if s.strip()})
     if not severities or any(s < 1 or s > 5 for s in severities):
         raise ValueError(f"--severities must be in 1..5, got {severities}")
-    if args.model.startswith("dinov2"):
-        raise NotImplementedError(
-            "DINOv2 has no ImageNet head; its SSR leg runs on the CIFAR-10 + "
-            "frozen-probe protocol (SSR_PLAN §6) — lands with the S2 probe path.")
+    is_dinov2 = args.model.startswith("dinov2")
+    dataset = args.dataset
+    if dataset == "auto":
+        dataset = "cifar10" if is_dinov2 else "imagenet"
+    if is_dinov2 and dataset != "cifar10":
+        raise ValueError(
+            "DINOv2 has no ImageNet head; it must run --dataset cifar10 "
+            "(frozen-probe protocol, SSR_PLAN §6).")
 
     os.makedirs(args.output, exist_ok=True)
     t_wall = time.time()
     print("=" * 72)
-    print(f"SSR — model={args.model}, corruption={args.corruption}, arms={arms}, "
-          f"attach={args.attach}")
+    print(f"SSR — model={args.model}, dataset={dataset}, "
+          f"corruption={args.corruption}, arms={arms}, attach={args.attach}")
     print(f"Device: {DEVICE}")
     print("=" * 72)
 
@@ -506,7 +604,16 @@ def main():
 
     n_pool = args.n_est
     n_total = n_pool + args.n_images
-    if args.cache_dir:
+    probe_train = None
+    if dataset == "cifar10":
+        from src.data import load_cifar10_subsets
+        # CIFAR-10 test fold -> pool+eval (disjoint head/tail, SSR_PLAN §6);
+        # train fold -> clean embeddings for the frozen probe (phase-1 n=5000)
+        te_img, te_lbl, _, tr_img, tr_lbl, _ = load_cifar10_subsets(
+            n_test=n_total, n_train=args.n_probe_train, seed=args.seed)
+        images, labels = te_img, te_lbl
+        probe_train = (tr_img, tr_lbl)
+    elif args.cache_dir:
         images, labels = rdp_main.load_imagenet_cached(
             n_total, args.seed, args.data_root, args.cache_dir)
     else:
@@ -519,6 +626,10 @@ def main():
 
     model, model_desc = rdp.load_model(args.model, DEVICE)
     print(f"Model: {model_desc}")
+    head, probe_train_acc = None, None
+    if dataset == "cifar10":
+        head, probe_train_acc = build_frozen_probe(
+            model, probe_train, args.batch_size, args.vit_token)
     modules = select_modules_for_hooks(model, args.max_depth, args.attach)
     dummy = [pool_imgs[0]]
     modules, axes = probe_channel_axes(model, modules, dummy, DEVICE,
@@ -529,6 +640,14 @@ def main():
     missing = [n for n in selected_names if n not in modules]
     if missing:
         raise ValueError(f"selected modules not hookable on this model: {missing}")
+    selected_names_pre_dedup = list(selected_names)
+    dedup_dropped = []
+    if selected_names:
+        selected_names, dedup_dropped = dedup_selected(
+            model, modules, selected_names, dummy, DEVICE, args.vit_token)
+        if dedup_dropped:
+            print(f"Dedup (same-tensor container/child): dropped {dedup_dropped}; "
+                  f"affine applies once per tensor")
     print(f"{len(modules)} modules fire; channel axes: "
           f"{ {n: axes[n] for n in selected_names} }")
 
@@ -619,13 +738,14 @@ def main():
             used_gate = None
             if arm == "frozen":
                 top1 = evaluate(model, eval_deg, eval_lbls, args.batch_size, DEVICE,
-                                args.vit_token)
+                                args.vit_token, head=head)
             elif arm == "ssr_topk":
                 used_gate = g_open
                 if g_open:
                     arm_transforms = transforms
                 top1 = run_eval_with(model, eval_deg, eval_lbls, modules, axes,
-                                     args.batch_size, args.vit_token, arm_transforms)
+                                     args.batch_size, args.vit_token, arm_transforms,
+                                     head=head)
             elif arm == "ssr_all":
                 used_gate = g_open
                 all_t = {}
@@ -637,29 +757,31 @@ def main():
                 if g_open:
                     arm_transforms = all_t
                 top1 = run_eval_with(model, eval_deg, eval_lbls, modules, axes,
-                                     args.batch_size, args.vit_token, arm_transforms)
+                                     args.batch_size, args.vit_token, arm_transforms,
+                                     head=head)
             elif arm == "ssr_gate_off":
                 top1 = run_eval_with(model, eval_deg, eval_lbls, modules, axes,
-                                     args.batch_size, args.vit_token, transforms)
+                                     args.batch_size, args.vit_token, transforms,
+                                     head=head)
             elif arm == "bn_stats":
                 scope = selected_names if args.bn_scope == "topk" else None
                 restore = bn_stat_replace(model, est_imgs, args.batch_size, DEVICE,
                                           scope_modules=scope)
                 try:
                     top1 = evaluate(model, eval_deg, eval_lbls, args.batch_size,
-                                    DEVICE, args.vit_token)
+                                    DEVICE, args.vit_token, head=head)
                 finally:
                     restore()
             elif arm == "tent":
                 kind = "bn" if any(isinstance(m, torch.nn.BatchNorm2d)
                                    for m in model.modules()) else "ln"
                 ok = tent_adapt(model, est_imgs, args.batch_size, DEVICE, kind,
-                                args.tent_lr, args.tent_steps)
+                                args.tent_lr, args.tent_steps, head=head)
                 if not ok:
                     print(f"  WARNING: tent skipped ({kind}-affine params absent)")
                 else:
                     top1 = evaluate(model, eval_deg, eval_lbls, args.batch_size,
-                                    DEVICE, args.vit_token)
+                                    DEVICE, args.vit_token, head=head)
             elif arm == "aqr":
                 tgt = collect_activations(model, est_imgs,
                                           {n: modules[n] for n in selected_names},
@@ -671,12 +793,13 @@ def main():
                         aqr_t[n] = aqr_transform(
                             aqr_source[n], fit_channel_quantiles(tgt[n], channel_axis=1))
                 top1 = run_eval_with(model, eval_deg, eval_lbls, modules, axes,
-                                     args.batch_size, args.vit_token, aqr_t)
+                                     args.batch_size, args.vit_token, aqr_t,
+                                     head=head)
             elif arm == "clahe":
                 from src.corruptions import clahe_enhance
                 enhanced = [clahe_enhance(img) for img in eval_deg]
                 top1 = evaluate(model, enhanced, eval_lbls, args.batch_size,
-                                DEVICE, args.vit_token)
+                                DEVICE, args.vit_token, head=head)
             results.append({
                 "model": args.model, "corruption": args.corruption,
                 "severity": sev, "arm": arm, "top1": top1,
@@ -705,8 +828,11 @@ def main():
         "model_desc": model_desc, "corruption": args.corruption,
         "attach": args.attach,
         "profile_csv": args.profile_csv, "selection": k_desc,
-        "selected_modules": selected_names, "n_pool": n_pool,
+        "selected_modules": selected_names,
+        "selected_modules_pre_dedup": selected_names_pre_dedup,
+        "dedup_dropped": dedup_dropped, "n_pool": n_pool,
         "n_eval": len(eval_imgs), "seed": args.seed,
+        "dataset": dataset, "probe_train_acc": probe_train_acc,
         "gate": {"tau": tau, "clean_distances": calib_d,
                  "quantile": args.gate_quantile, "margin": args.gate_margin},
         "identity": identity_report,
@@ -724,14 +850,15 @@ def main():
 
 
 def run_eval_with(model, images, labels, modules, axes, batch_size,
-                  token_mode, transforms):
+                  token_mode, transforms, head=None):
     """Eval with optional recalibration hooks armed (present iff non-empty)."""
     hooks = None
     if transforms:
         hooks = RecalibrationHooks(transforms, axes).attach(modules)
         hooks.armed = True
     try:
-        return evaluate(model, images, labels, batch_size, DEVICE, token_mode)
+        return evaluate(model, images, labels, batch_size, DEVICE, token_mode,
+                        head=head)
     finally:
         if hooks is not None:
             hooks.remove()

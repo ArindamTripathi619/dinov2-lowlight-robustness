@@ -207,6 +207,52 @@ real ImageNet-val, arms frozen · ssr_topk · ssr_gate_off · tent).
 - **Remaining open:** the deduplicated-profiled ablation and the other 4
   models (full 6-model grid), per §7.2's probe-gating.
 
+### 7.4 S4 — 6-model grid (extend replication to the remaining 4) — **LANDED 2026-10-15, kernel ssr-s4 built**
+
+S3 established the attachment-verdict flip on {ResNet-50, ViT-S}. S4 asks
+whether it generalizes to the four remaining atlas models — ConvNeXt-T,
+Swin-T, DeiT-S, DINOv2-ViT-B/14 — and resolves the §7.3 "Remaining open"
+dedup ablation in the same grid.
+
+- **Scope mapping (src/ssr.py, additive).** ConvNeXt/Swin are hierarchical
+  stage models profiled to depth 2, so their within-stage granularity is the
+  blocks-container + downsample, not per-block: `stream` gains `stages.\d+`
+  (ConvNeXt) / `layers.\d+` (Swin) — the stage outputs; `sublayer` gains
+  `stages.\d+.blocks|downsample` / `layers.\d+.blocks|downsample`, mirroring
+  the ResNet `layer<n>.<m>` precedent (the blocks-container row shares a
+  tensor with its stage output only at the final block — duplicate-free
+  within the scope). DeiT/DINOv2 are ViT-architecture and reuse the existing
+  `blocks.<n>` / `blocks.<n>.attn|mlp` patterns and the `norm` alias (they
+  carry attn/mlp rows; ConvNeXt/Swin `norm` is empty — documented).
+- **DINOv2 eval protocol (run_ssr.py `--dataset cifar10`).** DINOv2 has no
+  ImageNet head, so it runs the CIFAR-10 + frozen-probe protocol (§6): a
+  linear probe is fit on clean train embeddings (phase-1 n=5000) and frozen;
+  SSR still calibrates/estimates/gates on the backbone, and the frozen probe
+  turns backbone embeddings into class scores. `--dataset auto` resolves to
+  cifar10 for `dinov2*` and imagenet otherwise; meta records `dataset` +
+  `probe_train_acc`.
+- **Dedup fix (run_ssr.py `dedup_selected`, the §7.3 ablation).** A Sequential
+  container's forward output *is* its last child's tensor (`blocks`/`blocks.11`,
+  `layer4`/`layer4.2`, `stages`/`stages.3`), so selecting both applies the
+  moment affine twice to one value — the S1 profiled-arm caveat. `dedup_selected`
+  runs one forward, groups selected modules by output-tensor identity, and keeps
+  one per tensor (earliest-fired). `ssr_meta.json` records
+  `selected_modules_pre_dedup` + `dedup_dropped`. The `profiled` scope is now
+  clean; stream/sublayer/norm were already duplicate-free.
+- **Grid:** driver `scripts/kaggle/ssr_s4.sh` (**68 legs**), kernel variant
+  `ssr_s4` (`arindamtripathi/ssr-s4`; exit verifier mirrors the driver's leg
+  names). Per model: `{stream, sublayer}`(/`norm` for DeiT+DINOv2) ×
+  {low_light, jpeg} × seeds {42, 43, 44} at k = 25% (48+12 = 60 primary
+  legs) + a `profiled`-dedup control × {low_light, jpeg} @ seed 42 (8 legs).
+  k-matched control is **not** repeated (it was an S3 one-time confound price
+  on the original 2 models; the k=25% policy is identical across all models).
+  Arms frozen · ssr_topk · ssr_gate_off · tent; sev {1,5}; 512 eval / 128
+  pool; real ImageNet-val for the 3 timm models, torchvision CIFAR-10 for
+  DINOv2. 51/51 tests (torch-free scope-coverage + kernel/driver-consistency
+  tests; dedup regression test torch-gated).
+- **Status:** harness + kernel landed 2026-10-15; T4 run + verdict pending
+  (fill §6.10 + METHODS after harvest).
+
 
 - **`src/ssr.py` (landed with this plan)** — torch-free NumPy core: channel
   moments, moment-matching affine, shift distance, gate, drift-ranked top-k
@@ -289,6 +335,12 @@ Track 3 kernel ✓ (2026-10-14, drift-atlas-v4, fail=0) → harvest ✓ (output/
                        (3 seeds), sublayer harm confirmed, TENT flat,
                        roster = 2 positives → open: dedup-profiled
                        ablation + the 4 remaining models
+                 → S4 harness ✓ (2026-10-15: convnext/swin stage-scope
+                       patterns, dinov2 cifar10 frozen-probe, dedup_selected,
+                       ssr_s4.sh 68-leg grid, kernel ssr_s4, 51/51 tests,
+                       CPU smoke green on all 4 new models incl. dinov2)
+                 → ssr-s4 T4 run PENDING (kernel built; harvest + verdict
+                       RESEARCH §6.10 / METHODS §7.14 after run)
 ```
 
 Selection inputs of record (§4, one measurement two consumers): per-model

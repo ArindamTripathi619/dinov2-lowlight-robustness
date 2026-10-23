@@ -950,6 +950,140 @@ def test_ssr_s3_kernel_verifier_matches_driver_dir_names():
         f"symmetric difference {sorted(got ^ expected)}")
 
 
+def test_ssr_scope_patterns_cover_all_atlas_models():
+    """The attachment-scope patterns (src/ssr.py) must resolve non-empty,
+    duplicate-free row sets for every atlas model's committed severity-5
+    profile, including the two hierarchical stage models added for S4
+    (ConvNeXt -> `stages.N`, Swin -> `layers.N`). DeiT/DINOv2 are ViT-
+    architecture and reuse the `blocks.N` patterns; `norm` is non-empty only
+    for the ViT-arch pair (ConvNeXt/Swin profiles carry no attn/mlp rows to
+    alias from)."""
+    import csv as _csv
+    base = "output/profiles"
+    def rows(model):
+        with open(f"{base}/{model}/drift_profile_sev5_low_light.csv") as f:
+            return list(_csv.DictReader(f))
+    def mods(model, scope):
+        return [r["module"] for r in map_scope_rows(rows(model), scope)]
+
+    # ConvNeXt: stream = 4 stage outputs, sublayer = 7 within-stage rows, no norm
+    assert mods("convnext_tiny", "stream") == [
+        "stages.0", "stages.1", "stages.2", "stages.3"]
+    assert len(mods("convnext_tiny", "sublayer")) == 7
+    assert mods("convnext_tiny", "norm") == []
+    # Swin: stream = 4 layer outputs, sublayer = 7 within-stage rows, no norm
+    assert mods("swin_tiny_patch4_window7_224", "stream") == [
+        "layers.0", "layers.1", "layers.2", "layers.3"]
+    assert len(mods("swin_tiny_patch4_window7_224", "sublayer")) == 7
+    assert mods("swin_tiny_patch4_window7_224", "norm") == []
+    # DeiT / DINOv2 (ViT-arch): 12 stream, 24 sublayer, 24 norm (norm1/norm2)
+    for m in ("deit_small_patch16_224", "dinov2_vitb14"):
+        assert len(mods(m, "stream")) == 12, m
+        assert len(mods(m, "sublayer")) == 24, m
+        assert len(mods(m, "norm")) == 24, m
+    # full-match semantics: containers stay out of stream, bare stages excluded
+    assert module_in_scope("stages.1", "stream")
+    assert not module_in_scope("stages.1.blocks", "stream")
+    assert not module_in_scope("stages", "stream")
+    assert not module_in_scope("layers", "stream")
+    assert module_in_scope("stages.1.blocks", "sublayer")
+    assert module_in_scope("layers.1.downsample", "sublayer")
+
+
+def test_ssr_s4_kernel_verifier_matches_driver_dir_names():
+    """S4 mirror of the S1/S2/S3 naming-bug tests: the ssr_s4 kernel's exit
+    verifier must derive its result-dir names from the driver's LEGS array
+    (output/ssr_s4/<slug_safe>_<scope>_k<k>_<corr>_s<seed>/). Every scope
+    must be one run_ssr.py accepts, and the grid must cover the 4 remaining
+    atlas models: {convnext_tiny, swin_tiny, deit_small, dinov2_vitb14} at
+    {stream, sublayer}(/norm for the ViT-arch pair) x {low_light, jpeg} x
+    seeds{42,43,44} at k=25, plus a profiled-dedup control per model."""
+    import re
+
+    sh = open("scripts/kaggle/ssr_s4.sh").read()
+    assert "--attach" in sh, "S4 driver must pass --attach to run_ssr.py"
+    m_legs = re.search(r"LEGS=\((.*?)\n\)", sh, re.S)
+    assert m_legs, "S4 driver LEGS array not found"
+    legs = re.findall(r'"(\S+) (\S+) (\S+) (\d+) (\d+)"', m_legs.group(1))
+    assert legs, "no legs parsed from ssr_s4.sh LEGS"
+    scopes = {sc for _, sc, _, _, _ in legs}
+    assert scopes <= set(SCOPE_CHOICES), (scopes, SCOPE_CHOICES)
+    expected = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+                for s, sc, c, sd, k in legs}
+    models = {"timm:convnext_tiny", "timm:swin_tiny_patch4_window7_224",
+              "timm:deit_small_patch16_224", "dinov2_vitb14"}
+    assert {s for s, _, _, _, _ in legs} == models
+    primary = {(s, sc, c, sd) for s, sc, c, sd, k in legs if k == "25"}
+    for corr in ("low_light", "jpeg"):
+        for sd in ("42", "43", "44"):
+            for s in ("timm:convnext_tiny", "timm:swin_tiny_patch4_window7_224"):
+                for sc in ("stream", "sublayer"):
+                    assert (s, sc, corr, sd) in primary, \
+                        f"missing replication leg {s} {sc} {corr} seed {sd}"
+            for s in ("timm:deit_small_patch16_224", "dinov2_vitb14"):
+                for sc in ("stream", "sublayer", "norm"):
+                    assert (s, sc, corr, sd) in primary, \
+                        f"missing replication leg {s} {sc} {corr} seed {sd}"
+    # a profiled-dedup control leg per model, seed 42
+    profiled = {s for s, sc, c, sd, k in legs if sc == "profiled"}
+    assert profiled == models, profiled
+
+    src = open("scripts/build_kaggle_kernel.py").read()
+    m_blk = re.search(r"SSR_S4_TEMPLATE = '''(.*?)'''", src, re.S)
+    assert m_blk, "SSR_S4_TEMPLATE not found in the kernel builder"
+    m_inv = re.search(r"invocations = \[(.*?)\]", m_blk.group(1), re.S)
+    assert m_inv, "S4 verifier invocations list not found"
+    namespace = {}
+    exec("invocations = [" + m_inv.group(1) + "]", namespace)
+    got = {f"{s.replace(':', '_')}_{sc}_k{k}_{c}_s{sd}"
+           for s, sc, c, sd, k in namespace["invocations"]}
+    assert got == expected, (
+        f"verifier checks {len(got)} dirs; driver creates {len(expected)}; "
+        f"symmetric difference {sorted(got ^ expected)}")
+
+
+def test_ssr_dedup_selected_same_tensor_container():
+    """The output-identity dedup (run_ssr.dedup_selected) must drop a selected
+    container whose forward output IS a selected child's tensor (a Sequential
+    returns its last child's tensor verbatim, so `blocks` and `blocks.1` are
+    the same tensor) so the moment affine applies once per tensor — the S1
+    profiled-arm double-application caveat. A distinct-tensor module must be
+    kept. Skipped when torch is absent (CI)."""
+    try:
+        import torch
+        import torch.nn as nn
+        from run_ssr import dedup_selected
+    except ImportError:
+        return
+
+    class Block(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.conv = nn.Conv2d(3, 3, 1)
+
+        def forward(self, x):
+            return self.conv(x)
+
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.stem = nn.Conv2d(3, 3, 1)      # distinct tensor
+            self.blocks = nn.Sequential(Block(), Block())  # out IS blocks.1's
+
+        def forward(self, x):
+            return self.blocks(self.stem(x))
+
+    model = Net().eval()
+    modules = {n: m for n, m in model.named_modules() if n}
+    selected = ["blocks", "blocks.1", "stem"]
+    imgs = [np.random.randint(0, 255, (32, 32, 3), dtype=np.uint8)
+            for _ in range(2)]
+    kept, dropped = dedup_selected(model, modules, selected, imgs, "cpu")
+    assert "blocks.1" in kept and "blocks" not in kept, (kept, dropped)
+    assert "stem" in kept, kept
+    assert dropped == ["blocks"], dropped
+
+
 # ---------------------------------------------------------------------------
 def main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
