@@ -186,6 +186,35 @@ LEGS=(
   "timm:swin_tiny_patch4_window7_224 profiled jpeg 42 25"
   "timm:deit_small_patch16_224 profiled jpeg 42 25"
   "dinov2_vitb14 profiled jpeg 42 25"
+
+  # Quick-k-fraction variation: k=10 and k=50 for seed 42/43 (limitation #13)
+  "timm:convnext_tiny stream low_light 42 10"
+  "timm:convnext_tiny stream low_light 42 50"
+  "timm:convnext_tiny sublayer low_light 42 10"
+  "timm:convnext_tiny sublayer low_light 42 50"
+  "timm:convnext_tiny stream jpeg 42 10"
+  "timm:convnext_tiny stream jpeg 42 50"
+  "timm:swin_tiny_patch4_window7_224 stream low_light 42 10"
+  "timm:swin_tiny_patch4_window7_224 stream low_light 42 50"
+  "timm:swin_tiny_patch4_window7_224 sublayer low_light 42 10"
+  "timm:swin_tiny_patch4_window7_224 sublayer low_light 42 50"
+  "dinov2_vitb14 stream low_light 42 10"
+  "dinov2_vitb14 stream low_light 42 50"
+  "dinov2_vitb14 sublayer low_light 42 10"
+  "dinov2_vitb14 sublayer low_light 42 50"
+  "timm:convnext_tiny stream jpeg 43 10"
+  "timm:convnext_tiny stream jpeg 43 50"
+  "timm:convnext_tiny sublayer jpeg 43 10"
+  "timm:convnext_tiny sublayer jpeg 43 50"
+  "timm:swin_tiny_patch4_window7_224 stream jpeg 43 10"
+  "timm:swin_tiny_patch4_window7_224 stream jpeg 43 50"
+  "timm:swin_tiny_patch4_window7_224 sublayer jpeg 43 10"
+  "timm:swin_tiny_patch4_window7_224 sublayer jpeg 43 50"
+  "dinov2_vitb14 stream jpeg 43 10"
+  "dinov2_vitb14 stream jpeg 43 50"
+  "dinov2_vitb14 sublayer jpeg 43 10"
+  "dinov2_vitb14 sublayer jpeg 43 50"
+
 )
 
 for leg in "${LEGS[@]}"; do
