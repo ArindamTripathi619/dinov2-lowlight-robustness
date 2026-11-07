@@ -32,6 +32,15 @@ set -o pipefail
 fail=0
 T_START=$(date +%s)
 
+# DINOv2 batch-size hardening (T4 14.56 GiB OOM guard); reduce from 64→32 for heads+probe+calibration.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+# Batch size per model type for T4 14.56 GiB ceiling.
+export BATCH_SIZE_64=64  # default for timm/ResNet/ViT
+if [[ "${LEGS[0]%% *}" == dinov2* ]]; then
+  export BATCH_SIZE_64=32  # DINOv2 with frozen probe protocol
+fi
+
 mark() {
   local line="SSR_MARK ts=$(date -Is) since_start_s=$(( $(date +%s) - T_START )) $*"
   echo "$line"
@@ -73,6 +82,7 @@ run_invocation() {
   local d=output/ssr_s4/${safe}_${scope}_k${kcode}_${corr}_s${seed}
   local ds_flags="--data-root $IMAGENET_ROOT --cache-dir ssr_cache"
   if [[ "$slug" == dinov2* ]]; then ds_flags="--data-root ./data"; fi
+  
   local t0 rc el
   mkdir -p "$d"
   t0=$(date +%s)
@@ -80,7 +90,7 @@ run_invocation() {
   timeout --kill-after=60s "${MODEL_LIMIT_S}s" python -u run_ssr.py \
     --model "$slug" --profile-csv "$prof" --corruption "$corr" \
     --attach "$scope" --arms "$arms" $kflag \
-    --n-images 512 --n-est 128 --est-batches 4 --batch-size 64 \
+    --n-images 512 --n-est 128 --est-batches 4 --batch-size ${BATCH_SIZE_64} \
     --severities 1,5 --seed "$seed" \
     $ds_flags \
     --output "$d" 2>&1 | tee "$d/ssr.log"
